@@ -38,6 +38,7 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
 import org.ballerinalang.formatter.core.FormatterException;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -372,7 +373,8 @@ public class CodeGenerator {
         return syntaxTree;
     }
 
-    public static SyntaxTree merge(SyntaxTree first, SyntaxTree second) {
+    public static @NotNull SyntaxTree merge(SyntaxTree first, SyntaxTree second) {
+        assert first != null && second != null : "Cannot merge null syntax trees";
         ModulePartNode firstPart = (ModulePartNode) first.rootNode();
         ModulePartNode secondPart = (ModulePartNode) second.rootNode();
 

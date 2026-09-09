@@ -138,19 +138,31 @@ public class TibcoConverter {
                 new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
                         BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
                         BICodeConverter.DEFAULT_SKIP_CONVERSION_PREDICATE, allProjectImports).convert(result.module());
-        SyntaxTree irTypesTree = null;
+        Optional<SyntaxTree> irTypesTree = Optional.empty();
         for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
             SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
             if (textDocument.documentName().equals("types.bal")) {
-                irTypesTree = st;
+                irTypesTree = Optional.of(st);
             } else {
                 files.put(textDocument.documentName(), st.toSourceCode());
             }
         }
 
-        SyntaxTree combinedTypesTree = mergeNullable(irTypesTree, result.types());
-        if (combinedTypesTree != null) {
-            files.put("types.bal", CodeGenerator.formatSyntaxTree(combinedTypesTree).toSourceCode());
+        Optional<SyntaxTree> xsdTypesTree = Optional.ofNullable(result.types());
+        Optional<SyntaxTree> combinedTypesTree;
+        if (irTypesTree.isPresent() && xsdTypesTree.isPresent()) {
+            combinedTypesTree = Optional.of(CodeGenerator.merge(irTypesTree.get(), xsdTypesTree.get()));
+        } else if (irTypesTree.isPresent()) {
+            combinedTypesTree = irTypesTree;
+        } else {
+            combinedTypesTree = xsdTypesTree;
+        }
+        if (combinedTypesTree.isPresent()) {
+            SyntaxTree typesTree = combinedTypesTree.get();
+            if (System.getenv("BAL_MIGRATE_SKIP_FORMATTING") == null) {
+                typesTree = CodeGenerator.formatSyntaxTree(typesTree);
+            }
+            files.put("types.bal", typesTree.toSourceCode());
         }
         files.put("Ballerina.toml", ballerinaToml(cx));
 
@@ -162,16 +174,6 @@ public class TibcoConverter {
                         .sum());
 
         return new SerializedProject(files, report);
-    }
-
-    private static SyntaxTree mergeNullable(SyntaxTree first, SyntaxTree second) {
-        if (first == null) {
-            return second;
-        }
-        if (second == null) {
-            return first;
-        }
-        return CodeGenerator.merge(first, second);
     }
 
     public static void migrateTibcoProject(ProjectConversionContext cx, String projectPath, String targetPath)
