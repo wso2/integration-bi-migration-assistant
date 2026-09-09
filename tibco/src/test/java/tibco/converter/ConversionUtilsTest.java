@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import tibco.converter.ConversionUtils.LineCount;
 
@@ -181,5 +182,27 @@ public class ConversionUtilsTest {
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 3);
         Assert.assertEquals(result.xml(), 4);
+    }
+
+    @DataProvider
+    public Object[][] sanitizesProvider() {
+        return new Object[][]{
+                // A name with no alphabetic character at all used to be stripped down to "" and then crash.
+                {"404", "'404"},
+                {"500", "'500"},
+                {"123", "'123"},
+                {"1.0", "'1_0"},
+                {"123abc", "abc"},
+                {"_Out--Throttling-1", "Out__Throttling_1"},
+                {"[Esc] Throttling", "Esc__Throttling"},
+                {"Start", "Start"},
+                {"Get Sales Order", "Get_Sales_Order"},
+                {"type", "'type"},
+        };
+    }
+
+    @Test(dataProvider = "sanitizesProvider")
+    public void testSanitizes(String name, String expected) {
+        Assert.assertEquals(ConversionUtils.sanitizes(name), expected);
     }
 }
