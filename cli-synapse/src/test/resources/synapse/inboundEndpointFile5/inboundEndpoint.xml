@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inboundEndpoint name="FileBinaryInbound" sequence="processBinaryFile" protocol="file" suspend="false"
+                 xmlns="http://ws.apache.org/ns/synapse">
+    <parameters>
+        <parameter name="transport.vfs.FileURI">file:///data/in</parameter>
+        <parameter name="transport.vfs.ContentType">application/octet-stream</parameter>
+    </parameters>
+</inboundEndpoint>

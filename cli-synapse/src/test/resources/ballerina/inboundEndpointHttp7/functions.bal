@@ -1,4 +1,5 @@
 import ballerina/http;
+import ballerina/log;
 
 function foo(Context ctx) returns error? {
     ctx.payload = {"Hello": "World"};
@@ -11,6 +12,11 @@ function handleError(Context ctx) returns error? {
 }
 
 function respond(Context ctx) returns error? {
+    http:Caller? caller = ctx.caller;
+    if caller is () {
+        log:printError("Cannot send response: no reply transport available for this message");
+        return error("Cannot send response: no reply transport available for this message");
+    }
     http:Response response = new;
     response.setPayload(ctx.payload);
     foreach [string, string] [name, value] in ctx.headers.entries() {
@@ -20,7 +26,7 @@ function respond(Context ctx) returns error? {
     if statusCode is int {
         response.statusCode = statusCode;
     }
-    check (<http:Caller>ctx.caller)->respond(response);
+    check caller->respond(response);
 }
 
 function emitPayload(Context ctx, http:Request request) returns error? {

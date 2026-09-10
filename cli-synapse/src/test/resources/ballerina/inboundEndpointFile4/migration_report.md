@@ -1,6 +1,6 @@
 # Synapse to Ballerina migration report
 
-17 Synapse constructs could not be automatically converted and were left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
+14 Synapse constructs could not be automatically converted and were left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
 
 ## Unsupported mediator (3)
 
@@ -32,7 +32,7 @@ Mediator not supported; manual conversion required.
 <drop xmlns="http://ws.apache.org/ns/synapse"/>
 ```
 
-## Unsupported inbound endpoint parameter (14)
+## Unsupported inbound endpoint parameter (11)
 
 ### `<parameter>` — inboundEndpoint.xml
 
@@ -100,34 +100,10 @@ Inbound endpoint 'FileInboundEndpoint' parameter 'coordination' is not mapped to
 
 ### `<parameter>` — inboundEndpoint.xml
 
-Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ContentType' is not mapped to any Ballerina construct; manual conversion required.
-
-```xml
-<parameter name="transport.vfs.ContentType">text/plain</parameter>
-```
-
-### `<parameter>` — inboundEndpoint.xml
-
 Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.FileNamePattern' is not mapped to any Ballerina construct; manual conversion required.
 
 ```xml
 <parameter name="transport.vfs.FileNamePattern">.*\.txt</parameter>
-```
-
-### `<parameter>` — inboundEndpoint.xml
-
-Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.ActionAfterProcess' is not mapped to any Ballerina construct; manual conversion required.
-
-```xml
-<parameter name="transport.vfs.ActionAfterProcess">MOVE</parameter>
-```
-
-### `<parameter>` — inboundEndpoint.xml
-
-Inbound endpoint 'FileInboundEndpoint' parameter 'transport.vfs.MoveAfterProcess' is not mapped to any Ballerina construct; manual conversion required.
-
-```xml
-<parameter name="transport.vfs.MoveAfterProcess">file:///C:/projects/Test/inbound/done</parameter>
 ```
 
 ### `<parameter>` — inboundEndpoint.xml

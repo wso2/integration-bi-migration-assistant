@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="processBinaryFile" xmlns="http://ws.apache.org/ns/synapse">
+    <payloadFactory media-type="json">
+        <format>{"status":"processed"}</format>
+    </payloadFactory>
+</sequence>
