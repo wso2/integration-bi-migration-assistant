@@ -147,8 +147,13 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record CatchAll(Scope scope, Element element, String fileName)
-                    implements FaultHandler, Flow.Activity.ActivityWithScope,
-                    Flow.Activity.StartActivity {
+                    implements FaultHandler, Flow.Activity.ActivityWithScope {
+
+            }
+
+            record Catch(String faultName, Optional<String> faultVariable, Scope scope, Element element,
+                         String fileName)
+                    implements FaultHandler, Flow.Activity.ActivityWithScope {
 
             }
 
@@ -187,7 +192,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                 }
             }
 
-            record Throw(List<Flow.Activity.InputBinding> inputBindings, 
+            record Throw(String faultName, List<Flow.Activity.InputBinding> inputBindings,
                          Collection<Flow.Activity.Target> targets, Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithTargets {
 
