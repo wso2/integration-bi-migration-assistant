@@ -11,7 +11,7 @@ function HTTP_Receiver(Context cx) returns error? {
 
 function Log1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
@@ -25,15 +25,16 @@ function Log1(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "Log1", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "Log1", var3);
 }
 
 function Rest_call(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform1" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
@@ -60,20 +61,21 @@ function Rest_call(Context cx) returns error? {
 </ns1:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<Body>;
-    map<json> var3 = <map<json>>xmlToJson(var2);
-    http:Client var4 = check new ("http://localhost:8080/weather");
-    json var5 = check var4->post("/", var3["Body"]);
-    xml var6 = check toXML(<map<json>>var5);
-    xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
-    xml var8 = xml `<root>${var7}</root>`;
-    addToContext(cx, "Rest-call", var8);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<Body>;
+    map<json> var4 = <map<json>>xmlToJson(var3);
+    http:Client var5 = check new ("http://localhost:8080/weather");
+    json var6 = check var5->post("/", var4["Body"]);
+    xml var7 = check toXML(<map<json>>var6);
+    xml var8 = xml `<ns:RESTOutput><msg>${var7}</msg></ns:RESTOutput>`;
+    xml var9 = xml `<root>${var8}</root>`;
+    addToContext(cx, "Rest-call", var9);
 }
 
 function SOAP_Response(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Rest-call"/>     <xsl:template name="Transform2" match="/">
         <ResponseActivityInput>
                     
@@ -116,10 +118,11 @@ function SOAP_Response(Context cx) returns error? {
 </ResponseActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<asciiContent>/*;
-    xml var3 = xml `<root>${var2}</root>`;
-    addToContext(cx, "SOAP-Response", var3);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<asciiContent>/*;
+    xml var4 = xml `<root>${var3}</root>`;
+    addToContext(cx, "SOAP-Response", var4);
 }
 
 function scope0ActivityRunner(Context cx) returns error? {

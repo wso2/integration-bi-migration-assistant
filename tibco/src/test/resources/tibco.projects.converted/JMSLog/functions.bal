@@ -42,7 +42,7 @@ function JMS_Queue_Receiver(Context cx) returns error? {
 
 function JMS_Send(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0">
      <xsl:template name="Transform1" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms">
@@ -56,21 +56,22 @@ function JMS_Send(Context cx) returns error? {
 </ns1:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    jms:Connection var2 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61617", username = "userName", password = "password");
-    jms:Session var3 = check var2->createSession();
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    jms:Connection var3 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61617", username = "userName", password = "password");
+    jms:Session var4 = check var3->createSession();
     // WARNING: using default destination configuration
-    jms:MessageProducer var4 = check var3.createProducer();
-    string var5 = (var1/**/<Body>/*).toString().trim();
-    jms:TextMessage var6 = {content: var5};
-    check var4->send(var6);
-    xml var7 = xml `<root></root>`;
-    addToContext(cx, "JMS-Send", var7);
+    jms:MessageProducer var5 = check var4.createProducer();
+    string var6 = (var2/**/<Body>/*).toString().trim();
+    jms:TextMessage var7 = {content: var6};
+    check var5->send(var7);
+    xml var8 = xml `<root></root>`;
+    addToContext(cx, "JMS-Send", var8);
 }
 
 function Log(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Queue-Receiver"/>     <xsl:template name="Transform0" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                     
@@ -83,15 +84,16 @@ function Log(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "Log", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "Log", var3);
 }
 
 function Log_End(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                     
@@ -104,15 +106,16 @@ function Log_End(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "Log-End", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "Log-End", var3);
 }
 
 function Sleep(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0">
      <xsl:template name="Transform2" match="/">
         <ns0:SleepInputSchema xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer">
@@ -126,16 +129,17 @@ function Sleep(Context cx) returns error? {
 </ns0:SleepInputSchema>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    decimal var2 = check decimal:fromString((var1/**/<IntervalInMillisec>/*).toString().trim());
-    runtime:sleep(var2 / 1000);
-    xml var3 = xml `<root></root>`;
-    addToContext(cx, "Sleep", var3);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    decimal var3 = check decimal:fromString((var2/**/<IntervalInMillisec>/*).toString().trim());
+    runtime:sleep(var3 / 1000);
+    xml var4 = xml `<root></root>`;
+    addToContext(cx, "Sleep", var4);
 }
 
 function Topic_Send(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>     <xsl:template name="Transform4" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms">
                     
@@ -148,20 +152,21 @@ function Topic_Send(Context cx) returns error? {
 </ns1:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    jms:Connection var2 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61616");
-    jms:Session var3 = check var2->createSession();
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    jms:Connection var3 = check new (initialContextFactory = "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl = "tcp://localhost:61616");
+    jms:Session var4 = check var3->createSession();
     // WARNING: using default destination configuration
-    jms:MessageProducer var4 = check var3.createProducer(destination = {
+    jms:MessageProducer var5 = check var4.createProducer(destination = {
         'type: jms:TOPIC,
         name: "TOPIC"
     }
 );
-    string var5 = (var1/**/<Body>/*).toString().trim();
-    jms:TextMessage var6 = {content: var5};
-    check var4->send(var6);
-    xml var7 = xml `<root></root>`;
-    addToContext(cx, "Topic-Send", var7);
+    string var6 = (var2/**/<Body>/*).toString().trim();
+    jms:TextMessage var7 = {content: var6};
+    check var5->send(var7);
+    xml var8 = xml `<root></root>`;
+    addToContext(cx, "Topic-Send", var8);
 }
 
 function scope0ActivityRunner(Context cx) returns error? {

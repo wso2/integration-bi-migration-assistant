@@ -7,7 +7,7 @@ import testOrg/lib;
 
 function Call_shared_process(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform2" match="/">
         <InvokeProcessInput>
                     
@@ -20,11 +20,12 @@ function Call_shared_process(Context cx) returns error? {
 </InvokeProcessInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    addToContext(cx, "$Start", var1);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    addToContext(cx, "$Start", var2);
     lib:start_lib_Process_shared_process(cx);
-    xml var2 = cx.result;
-    addToContext(cx, "Call-shared-process", var2);
+    xml var3 = cx.result;
+    addToContext(cx, "Call-shared-process", var3);
 }
 
 function HTTP_Receiver(Context cx) returns error? {
@@ -35,7 +36,7 @@ function HTTP_Receiver(Context cx) returns error? {
 
 function LogLoadedVars(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="loadSharedVariable"/>     <xsl:template name="Transform0" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
@@ -52,15 +53,16 @@ function LogLoadedVars(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "LogLoadedVars", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "LogLoadedVars", var3);
 }
 
 function SQL_Direct(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform3" match="/">
         <jdbcGeneralActivityInput>
                     
@@ -73,29 +75,30 @@ function SQL_Direct(Context cx) returns error? {
 </jdbcGeneralActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    string var2 = (var1/**/<statement>/*).toString().trim();
-    sql:ParameterizedQuery var3 = ``;
-    var3.strings = [var2];
-    xml var4;
-    if var2.startsWith("SELECT") {
-        stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
-        xml var6 = xml ``;
-        check from var each in var5
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string var3 = (var2/**/<statement>/*).toString().trim();
+    sql:ParameterizedQuery var4 = ``;
+    var4.strings = [var3];
+    xml var5;
+    if var3.startsWith("SELECT") {
+        stream<record {|anydata...;|}, error?> var6 = JDBCConnection->query(var4);
+        xml var7 = xml ``;
+        check from var each in var6
             do {
-                xml var7 = check toXML(each);
-                var6 = var6 + xml `<Record>${var7}</Record>`;
+                xml var8 = check toXML(each);
+                var7 = var7 + xml `<Record>${var8}</Record>`;
             };
 
-        xml var8 = xml `<root>${var6}</root>`;
-        var4 = var8;
+        xml var9 = xml `<root>${var7}</root>`;
+        var5 = var9;
     } else {
-        sql:ExecutionResult var9 = check JDBCConnection->execute(var3);
-        xml var10 = xml `<root></root>`;
-        var4 = var10;
+        sql:ExecutionResult var10 = check JDBCConnection->execute(var4);
+        xml var11 = xml `<root></root>`;
+        var5 = var11;
     }
     // WARNING: validate jdbc query result mapping
-    addToContext(cx, "SQL-Direct", var4);
+    addToContext(cx, "SQL-Direct", var5);
 }
 
 function loadSharedVariable(Context cx) returns error? {
@@ -130,7 +133,7 @@ function start_Processes_Main_process(Context cx) returns () {
 
 function storeSharedVariable(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="loadSharedVariable"/>     <xsl:template name="Transform1" match="/">
         <root>
                     
@@ -143,9 +146,10 @@ function storeSharedVariable(Context cx) returns error? {
 </root>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    setSharedVariable(cx, "shared", var1);
-    addToContext(cx, "storeSharedVariable", var1);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    setSharedVariable(cx, "shared", var2);
+    addToContext(cx, "storeSharedVariable", var2);
 }
 
 function toXML(map<anydata> data) returns error|xml {
