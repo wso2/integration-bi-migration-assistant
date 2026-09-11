@@ -19,10 +19,13 @@ package common;
 
 import common.BallerinaModel.ClassDef;
 import common.BallerinaModel.HTTPInterceptor;
+import io.ballerina.compiler.syntax.tree.AbstractNodeFactory;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ClassDefinitionNode;
 import io.ballerina.compiler.syntax.tree.FunctionBodyBlockNode;
 import io.ballerina.compiler.syntax.tree.FunctionDefinitionNode;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.MinutiaeList;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
@@ -32,8 +35,11 @@ import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.ObjectFieldNode;
 import io.ballerina.compiler.syntax.tree.ServiceDeclarationNode;
+import io.ballerina.compiler.syntax.tree.SimpleNameReferenceNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.Token;
+import io.ballerina.compiler.syntax.tree.TreeModifier;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import org.ballerinalang.formatter.core.Formatter;
@@ -42,8 +48,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -378,6 +386,11 @@ public class CodeGenerator {
         ModulePartNode firstPart = (ModulePartNode) first.rootNode();
         ModulePartNode secondPart = (ModulePartNode) second.rootNode();
 
+        Map<String, String> typeRenames = computeCollisionRenames(firstPart, secondPart);
+        if (!typeRenames.isEmpty()) {
+            secondPart = renameTypeReferences(secondPart, typeRenames);
+        }
+
         List<ImportDeclarationNode> mergedImports = new ArrayList<>();
         Set<String> seenImports = new LinkedHashSet<>();
         for (ImportDeclarationNode each : firstPart.imports()) {
@@ -398,6 +411,107 @@ public class CodeGenerator {
         return createSyntaxTree(NodeFactory.createNodeList(mergedImports),
                 NodeFactory.createNodeList(mergedMembers),
                 firstPart.eofToken().leadingMinutiae());
+    }
+
+    /**
+     * Determines which top-level type names in {@code secondPart} collide with a type already declared in
+     * {@code firstPart}. {@code firstPart}'s names always win (its types are typically referenced from many
+     * other generated files, while {@code secondPart}'s types are only ever referenced within its own tree),
+     * so a colliding name in {@code secondPart} is mapped to a fresh, non-colliding replacement.
+     */
+    private static Map<String, String> computeCollisionRenames(ModulePartNode firstPart, ModulePartNode secondPart) {
+        Set<String> firstNames = topLevelTypeNames(firstPart);
+        Set<String> reserved = new LinkedHashSet<>(firstNames);
+        reserved.addAll(topLevelTypeNames(secondPart));
+
+        Map<String, String> renames = new LinkedHashMap<>();
+        for (String name : topLevelTypeNames(secondPart)) {
+            if (firstNames.contains(name)) {
+                String renamed = mintUniqueTypeName(name, reserved);
+                reserved.add(renamed);
+                renames.put(name, renamed);
+            }
+        }
+        return renames;
+    }
+
+    private static Set<String> topLevelTypeNames(ModulePartNode part) {
+        Set<String> names = new LinkedHashSet<>();
+        for (ModuleMemberDeclarationNode member : part.members()) {
+            if (member instanceof TypeDefinitionNode typeDef) {
+                names.add(typeDef.typeName().text());
+            }
+        }
+        return names;
+    }
+
+    private static String mintUniqueTypeName(String base, Set<String> reserved) {
+        int suffix = 1;
+        String candidate;
+        do {
+            candidate = base + suffix;
+            suffix++;
+        } while (reserved.contains(candidate));
+        return candidate;
+    }
+
+    /**
+     * Renames every colliding top-level type declaration in {@code part} per {@code renames}, along with every
+     * reference to it (array/union/optional member types, {@code *Type;} inclusions, etc.), preserving the
+     * original name via an {@code @xmldata:Name} annotation so XML data-binding is unaffected. This is an
+     * AST-scoped rename rather than a textual one: XSD-derived records commonly have a field whose name matches
+     * their type's name (e.g. {@code <xs:element name="Response" type="tns:Response"/>}), and only reference
+     * positions (never field-name tokens) are ever represented as a {@link SimpleNameReferenceNode}.
+     */
+    private static ModulePartNode renameTypeReferences(ModulePartNode part, Map<String, String> renames) {
+        TreeModifier modifier = new TreeModifier() {
+            @Override
+            public TypeDefinitionNode transform(TypeDefinitionNode node) {
+                TypeDefinitionNode transformed = super.transform(node);
+                String originalName = transformed.typeName().text();
+                String newName = renames.get(originalName);
+                if (newName == null) {
+                    return transformed;
+                }
+                Token oldNameToken = transformed.typeName();
+                Token newNameToken = AbstractNodeFactory.createIdentifierToken(newName,
+                        oldNameToken.leadingMinutiae(), oldNameToken.trailingMinutiae());
+                MetadataNode metadata = ensureOriginalNameAnnotation(transformed, originalName);
+                return transformed.modify().withTypeName(newNameToken).withMetadata(metadata).apply();
+            }
+
+            @Override
+            public SimpleNameReferenceNode transform(SimpleNameReferenceNode node) {
+                SimpleNameReferenceNode transformed = super.transform(node);
+                String newName = renames.get(transformed.name().text());
+                if (newName == null) {
+                    return transformed;
+                }
+                Token oldNameToken = transformed.name();
+                Token newNameToken = AbstractNodeFactory.createIdentifierToken(newName,
+                        oldNameToken.leadingMinutiae(), oldNameToken.trailingMinutiae());
+                return transformed.modify(newNameToken);
+            }
+        };
+        return (ModulePartNode) part.apply(modifier);
+    }
+
+    private static MetadataNode ensureOriginalNameAnnotation(TypeDefinitionNode node, String originalName) {
+        Optional<MetadataNode> existing = node.metadata();
+        boolean alreadyHasNameOverride = existing
+                .map(m -> m.annotations().stream()
+                        .anyMatch(a -> a.annotReference().toSourceCode().strip().equals("xmldata:Name")))
+                .orElse(false);
+        if (alreadyHasNameOverride) {
+            return existing.get();
+        }
+        AnnotationNode nameAnnotation = NodeParser.parseAnnotation(
+                "@xmldata:Name {value: \"%s\"}".formatted(originalName));
+        if (existing.isPresent()) {
+            MetadataNode metadataNode = existing.get();
+            return metadataNode.modify().withAnnotations(metadataNode.annotations().add(nameAnnotation)).apply();
+        }
+        return NodeFactory.createMetadataNode(null, NodeFactory.createNodeList(nameAnnotation));
     }
 
     public static SyntaxTree formatSyntaxTree(SyntaxTree syntaxTree) {
