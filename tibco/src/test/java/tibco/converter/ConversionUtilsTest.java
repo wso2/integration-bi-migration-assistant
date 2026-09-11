@@ -19,6 +19,7 @@
 package tibco.converter;
 
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -251,13 +252,15 @@ public class ConversionUtilsTest {
         Assert.assertFalse(nameTwo.contains("/") || nameTwo.contains("."));
     }
 
+    @NotNull
     private static ProjectContext newProjectContext() {
         Logger logger = createVerboseLogger("test");
-        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
-        ConversionContext conversionContext = new ConversionContext(
-                "testOrg", false, true, stateCallback, logCallback);
-        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
-        return new ProjectContext(cx, Map.of());
+        return new ProjectContext(
+                new ProjectConversionContext(
+                        new ConversionContext("testOrg", false, true,
+                                LoggingUtils.wrapLoggerForStateCallback(logger),
+                                LoggingUtils.wrapLoggerForStateCallback(logger)),
+                        "test"),
+                Map.of());
     }
 }
