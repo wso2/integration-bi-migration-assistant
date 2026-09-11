@@ -155,6 +155,11 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                          String fileName)
                     implements FaultHandler, Flow.Activity.ActivityWithScope {
 
+                public Catch {
+                    assert faultName != null;
+                    assert faultVariable != null;
+                    assert scope != null;
+                }
             }
 
             record UnhandledActivity(String reason, List<Flow.Activity.Source> sources,

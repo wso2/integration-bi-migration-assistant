@@ -183,8 +183,6 @@ public class XmlToModelTests {
                 """;
         Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
                 TestUtils.stringToElement(processXml));
-        // An unrecognized fault handler tag is skipped and logged rather than failing the whole process,
-        // so the still-supported catchAll fault handler in the same scope is preserved.
         assertTrue(processOpt.isPresent());
         tibco.model.Process6 process = (tibco.model.Process6) processOpt.get();
         var faultHandlers = process.scope().faultHandlers();
