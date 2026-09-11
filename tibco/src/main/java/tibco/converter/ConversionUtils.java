@@ -237,7 +237,7 @@ public final class ConversionUtils {
                             Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
         Expression xPathExpr = templateExpression(predicate, context);
-        return new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr));
+        return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr)));
     }
 
     public static @NotNull String baseName(String value) {

@@ -296,7 +296,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     String predicateFunction(Scope.Flow.Activity.Source.Predicate predicate) {
-        return predicateToFunctionMap.computeIfAbsent(predicate, p -> "predicate_" + predicateToFunctionMap.size());
+        return predicateToFunctionMap.computeIfAbsent(predicate,
+                p -> ConversionUtils.sanitizes(process.name()) + "_predicate_" + predicateToFunctionMap.size());
     }
 
     String getConfigVarName(String varName) {
