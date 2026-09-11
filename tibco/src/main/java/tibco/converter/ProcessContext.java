@@ -300,6 +300,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
                 p -> ConversionUtils.sanitizes(process.name()) + "_predicate_" + predicateToFunctionMap.size());
     }
 
+    boolean isFirstPredicateFunctionUse(Scope.Flow.Activity.Source.Predicate predicate) {
+        return !predicateToFunctionMap.containsKey(predicate);
+    }
+
     String getConfigVarName(String varName) {
         return projectContext.getConfigVarName(varName);
     }

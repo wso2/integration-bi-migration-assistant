@@ -210,6 +210,7 @@ public class ConversionUtilsTest {
                 {"type", "'type"},
                 {"Resources/AWS/SendMail/applicationId", "Resources_AWS_SendMail_applicationId"},
                 {"anagrafica_clienti_isu_das/LocalFilePathArchive", "anagrafica_clienti_isu_das_LocalFilePathArchive"},
+                {"", "unnamed"},
         };
     }
 

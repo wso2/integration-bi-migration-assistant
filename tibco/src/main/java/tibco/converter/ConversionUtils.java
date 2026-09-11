@@ -108,6 +108,9 @@ public final class ConversionUtils {
 
     public static @NotNull String sanitizes(String name) {
         String sanitized = name.replaceAll("[^a-zA-Z0-9]", "_");
+        if (sanitized.isEmpty()) {
+            sanitized = "unnamed";
+        }
         int start = 0;
         while (start < sanitized.length() && !Character.isAlphabetic(sanitized.charAt(start))) {
             start++;

@@ -422,12 +422,20 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                     case XPath xPath -> {
                         Expression expr = ConversionUtils.xPath(cx, value, new VariableReference("cx"), xPath);
                         prev = expr;
-                        accum.add(getTransitionPredicateFn(cx, xPath, expr));
+                        boolean isNew = cx.isFirstPredicateFunctionUse(xPath);
+                        BallerinaModel.Function fn = getTransitionPredicateFn(cx, xPath, expr);
+                        if (isNew) {
+                            accum.add(fn);
+                        }
                     }
                     case Activity.Source.Predicate.Else anElse -> {
                         assert prev != null : "Should not be the first predicate";
-                        accum.add(getTransitionPredicateFn(cx, anElse,
-                                new Expression.Not(prev)));
+                        boolean isNew = cx.isFirstPredicateFunctionUse(anElse);
+                        BallerinaModel.Function fn = getTransitionPredicateFn(cx, anElse,
+                                new Expression.Not(prev));
+                        if (isNew) {
+                            accum.add(fn);
+                        }
                     }
                 }
             }
@@ -440,7 +448,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             Activity.Source.Predicate predicate,
             Expression expr) {
         return new BallerinaModel.Function(cx.predicateFunction(predicate),
-                List.of(new Parameter("input", XML), new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
+                List.of(new Parameter("input", XML), new Parameter("cx", cx.contextType())),
                 BOOLEAN, List.of(new Return<>(expr)));
     }
 
