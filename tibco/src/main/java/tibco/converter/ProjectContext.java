@@ -437,14 +437,15 @@ public class ProjectContext implements LoggingContext {
         return new SharedVariableInfo(sharedVariable.name(), new VariableReference(name));
     }
 
-    public void addConfigurableVariable(String name, String source) {
-        addConfigurableVariable(name, source, STRING);
+    public String addConfigurableVariable(String name, String source) {
+        return addConfigurableVariable(name, source, STRING);
     }
 
-    public void addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
-        utilityVars.put(name, BallerinaModel.ModuleVar.configurable(
-                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames()),
-                type));
+    public String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
+        String uniqueName =
+                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames());
+        utilityVars.put(name, BallerinaModel.ModuleVar.configurable(uniqueName, type));
+        return uniqueName;
     }
 
     @NotNull

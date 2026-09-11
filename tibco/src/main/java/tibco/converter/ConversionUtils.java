@@ -132,10 +132,15 @@ public final class ConversionUtils {
 
     public static @NotNull String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {
         String sanitized = sanitizes(name);
-        String nameToCheck = sanitized;
-        if (allocatedNames.contains(nameToCheck)) {
-            nameToCheck = sanitized + "_" + allocatedNames.size();
+        if (!allocatedNames.contains(sanitized)) {
+            return sanitized;
         }
+        String nameToCheck;
+        int suffix = 1;
+        do {
+            nameToCheck = sanitized + "_" + suffix;
+            suffix++;
+        } while (allocatedNames.contains(nameToCheck));
         return nameToCheck;
     }
 
@@ -250,6 +255,19 @@ public final class ConversionUtils {
         }
         int lastDotIndex = baseFileName.lastIndexOf('.');
         return lastDotIndex > 0 ? baseFileName.substring(0, lastDotIndex) : baseFileName;
+    }
+
+    // TIBCO references a shared resource that lives in a subfolder using the folder-qualified
+    // form "<parentFolder>.<resourceBaseName>" (e.g. "DAS.JDBCConnectionResource" for
+    // Resources/DAS/JDBCConnectionResource.jdbcResource), not just the bare resource name.
+    // baseName must be resourceNameFromPath(path), passed in to avoid recomputing it.
+    public static @NotNull String qualifiedResourceNameFromPath(String path, String baseName) {
+        String[] parts = path.split("/");
+        if (parts.length < 2) {
+            return baseName;
+        }
+        String parentFolder = parts[parts.length - 2];
+        return parentFolder + "." + baseName;
     }
 
     public static @NotNull String createSoapEnvelope(Expression.VariableReference body) {

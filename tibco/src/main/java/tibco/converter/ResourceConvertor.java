@@ -123,8 +123,8 @@ final class ResourceConvertor {
                     resource.port().map(value -> (Expression) common.ConversionUtils.exprFrom(Integer.toString(value)))
                             .orElseGet(() -> {
                                         String onMissingName = listenerName + "Port";
-                                        cx.addConfigurableVariable(onMissingName, onMissingName, INT);
-                                        return new Expression.VariableReference(onMissingName);
+                                        return new Expression.VariableReference(
+                                                cx.addConfigurableVariable(onMissingName, onMissingName, INT));
                                     }
                             );
             BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(listenerName,
@@ -220,10 +220,9 @@ final class ResourceConvertor {
 
     private static Expression getOptionalConfigurableValueString(ProjectContext cx, Optional<String> configValue,
                                                                  String onMissingName) {
-        return configValue.map(value -> (Expression) new StringConstant(value)).orElseGet(() -> {
-                    cx.addConfigurableVariable(onMissingName, onMissingName, STRING);
-                    return new Expression.VariableReference(onMissingName);
-                }
+        return configValue.map(value -> (Expression) new StringConstant(value)).orElseGet(() ->
+                new Expression.VariableReference(
+                        cx.addConfigurableVariable(onMissingName, onMissingName, STRING))
         );
     }
 }

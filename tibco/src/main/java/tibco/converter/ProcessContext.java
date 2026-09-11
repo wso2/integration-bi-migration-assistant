@@ -97,10 +97,14 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     private String findResourcePathByName(String resourceName) {
-        // Find the resource path from the generated resources map by matching the resource name
+        // Find the resource path from the generated resources map by matching the resource name.
+        // TIBCO references a resource in a subfolder using the folder-qualified form
+        // "<parentFolder>.<resourceBaseName>" (e.g. "DAS.JDBCConnectionResource"), so a candidate
+        // is matched against both the bare resource name and that qualified form.
         for (String resourcePath : projectContext.getGeneratedResourceKeys()) {
             String name = tibco.converter.ConversionUtils.resourceNameFromPath(resourcePath);
-            if (name.equals(resourceName)) {
+            String qualifiedName = tibco.converter.ConversionUtils.qualifiedResourceNameFromPath(resourcePath, name);
+            if (name.equals(resourceName) || qualifiedName.equals(resourceName)) {
                 return resourcePath;
             }
         }

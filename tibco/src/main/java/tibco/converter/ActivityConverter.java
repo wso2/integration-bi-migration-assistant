@@ -21,6 +21,7 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Action.RemoteMethodCallAction;
 import common.BallerinaModel.Expression.Check;
+import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
@@ -68,6 +69,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -252,12 +254,25 @@ final class ActivityConverter {
             body.add(new Comment(
                     "WARNING: Missing DB client resource '" + connectionName
                             + "'. Using placeholder client."));
-            client = new VariableReference("placeholder_db_connection");
+            client = declarePlaceholderClient(cx, body, "jdbc:Client", Library.JDBC, "db", connectionName);
         } else {
             client = dbClientOpt.get();
         }
 
         return new JDBCSetupResult(query, client);
+    }
+
+    private static VariableReference declarePlaceholderClient(ActivityContext cx, List<Statement> body,
+                                                               String balClientType, Library library,
+                                                               String resourceKind, String resourceName) {
+        cx.addLibraryImport(library);
+        VarDeclStatment placeholder = new VarDeclStatment(typeFrom(balClientType),
+                "placeholder_" + resourceKind + "_connection",
+                new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
+                        "Missing " + resourceKind.toUpperCase(Locale.ROOT) + " client resource '" + resourceName
+                                + "'. Cannot generate call.")))));
+        body.add(placeholder);
+        return placeholder.ref();
     }
 
     private static ActivityConversionResult convertJDBCQuery(ActivityContext cx, VariableReference input,
@@ -273,9 +288,9 @@ final class ActivityConverter {
                         cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
                 .orElseGet(() -> {
                     String configName = configurableNames.apply("Statement");
-                    cx.projectContext().addConfigurableVariable(configName, configName);
+                    String configVarName = cx.projectContext().addConfigurableVariable(configName, configName);
                     return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configName)));
+                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configVarName)));
                 });
 
         body.add(query);
@@ -566,8 +581,8 @@ final class ActivityConverter {
                     .map(value -> (BallerinaModel.Expression) new StringConstant(value))
                     .orElseGet(() -> {
                         String varName = connectionName + "NamingInitialContextFactory";
-                        projectContext.addConfigurableVariable(varName, varName, STRING);
-                        return new VariableReference(varName);
+                        return new VariableReference(
+                                projectContext.addConfigurableVariable(varName, varName, STRING));
                     });
             sb.append("initialContextFactory = ").append(initialContextFactory).append(",");
             BallerinaModel.Expression providerUrl = jmsSharedResource.namingEnvironment().flatMap(
@@ -576,8 +591,8 @@ final class ActivityConverter {
                     .orElseGet(() -> {
 
                         String varName = connectionName + "ProviderUrl";
-                        projectContext.addConfigurableVariable(varName, varName, STRING);
-                        return new VariableReference(varName);
+                        return new VariableReference(
+                                projectContext.addConfigurableVariable(varName, varName, STRING));
                     });
             sb.append("providerUrl = ").append(providerUrl);
             jmsSharedResource.connectionAttributes().flatMap(
@@ -720,9 +735,9 @@ final class ActivityConverter {
                         cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
                 .orElseGet(() -> {
                     String configName = configurableNames.apply("Statement");
-                    cx.projectContext().addConfigurableVariable(configName, configName);
+                    String configVarName = cx.projectContext().addConfigurableVariable(configName, configName);
                     return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configName)));
+                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configVarName)));
                 });
 
         body.add(query);
@@ -1500,7 +1515,8 @@ final class ActivityConverter {
                     + ". Creating placeholder client.");
             body.add(new Comment("WARNING: Missing DB client resource '" + sql.sharedResourcePropertyName() +
                     "'. Using placeholder client."));
-            dbClient = new VariableReference("placeholder_db_connection");
+            dbClient = declarePlaceholderClient(cx, body, "jdbc:Client", Library.JDBC, "db",
+                    sql.sharedResourcePropertyName());
         } else {
             dbClient = dbClientOpt.get();
         }
@@ -1618,7 +1634,8 @@ final class ActivityConverter {
                     + ". Creating placeholder client.");
             body.add(new Comment("WARNING: Missing HTTP client resource '" + httpSend.httpClientResource()
                     + "'. Using placeholder client."));
-            client = new VariableReference("placeholder_http_connection");
+            client = declarePlaceholderClient(cx, body, "http:Client", Library.HTTP, "http",
+                    httpSend.httpClientResource());
         } else {
             client = clientOpt.get();
         }

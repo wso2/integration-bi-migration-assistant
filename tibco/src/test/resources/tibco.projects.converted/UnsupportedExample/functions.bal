@@ -6,6 +6,7 @@ import ballerina/log;
 import ballerina/soap.soap11;
 import ballerina/sql;
 import ballerina/xslt;
+import ballerinax/java.jdbc;
 
 function Catch(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
@@ -222,6 +223,7 @@ function SQL_Direct(Context cx) returns error? {
     sql:ParameterizedQuery var3 = ``;
     var3.strings = [var2];
     // WARNING: Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Using placeholder client.
+    jdbc:Client placeholder_db_connection = checkpanic error("Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Cannot generate call.");
     xml var4;
     if var2.startsWith("SELECT") {
         stream<record {|anydata...;|}, error?> var5 = placeholder_db_connection->query(var3);
