@@ -442,8 +442,14 @@ public class ProjectContext implements LoggingContext {
     }
 
     public void addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
-        BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, type);
-        utilityVars.put(name, var);
+        utilityVars.put(name, BallerinaModel.ModuleVar.configurable(
+                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames()),
+                type));
+    }
+
+    @NotNull
+    private Set<String> emittedVarNames() {
+        return utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).collect(Collectors.toSet());
     }
 
     public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
