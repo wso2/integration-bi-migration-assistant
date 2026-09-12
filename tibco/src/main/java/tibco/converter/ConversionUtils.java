@@ -180,7 +180,8 @@ public final class ConversionUtils {
     }
 
     private static Expression templateExpression(
-            Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context) {
+            Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context,
+            String getFromContextFn) {
         String xPathStr = xPath.expression();
         StringBuilder sb = new StringBuilder();
         char[] chars = xPathStr.toCharArray();
@@ -194,7 +195,7 @@ public final class ConversionUtils {
                     accum.append(chars[i]);
                     i++;
                 }
-                sb.append("${%s.get(\"%s\")}".formatted(context, accum));
+                sb.append("${%s(%s, \"%s\")}".formatted(getFromContextFn, context, accum));
             } else {
                 sb.append(chars[i]);
                 i++;
@@ -239,7 +240,7 @@ public final class ConversionUtils {
     static Expression xPath(ProcessContext cx, Expression value, Expression.VariableReference context,
                             Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
-        Expression xPathExpr = templateExpression(predicate, context);
+        Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());
         return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr)));
     }
 
