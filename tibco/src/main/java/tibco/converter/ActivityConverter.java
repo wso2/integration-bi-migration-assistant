@@ -25,7 +25,6 @@ import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
-import common.BallerinaModel.Expression.Trap;
 import common.BallerinaModel.Expression.TypeCast;
 import common.BallerinaModel.Expression.TypeCheckExpression;
 import common.BallerinaModel.Expression.VariableReference;
@@ -1767,44 +1766,46 @@ final class ActivityConverter {
         String targetProcess = extActivity.callProcess().subprocessName();
         Optional<ProcessContext.DefaultClientDetails> client = cx.getDefaultClientDetails(targetProcess);
 
-        VarDeclStatment resultDecl = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
+        ActivityConversionResult callResult = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
                 .orElseGet(() -> callProcessDirectlyUsingStartFunction(
                         cx, cx.getProcessStartFunctionName(targetProcess), finalResult));
-        body.add(resultDecl);
-        VarDeclStatment wrappedResult = wrapWithRoot(cx, resultDecl.ref());
+        body.addAll(callResult.body());
+        VarDeclStatment wrappedResult = wrapWithRoot(cx, callResult.result());
         body.add(wrappedResult);
         body.add(addToContext(cx, wrappedResult.ref(), extActivity.outputVariable()));
         return body;
     }
 
-    private static @NotNull VarDeclStatment callProcessUsingClient(ActivityContext cx,
+    private static @NotNull ActivityConversionResult callProcessUsingClient(ActivityContext cx,
                                                                    ProcessContext.DefaultClientDetails client,
                                                                    VariableReference result) {
+        VarDeclStatment resultDecl;
         if (client.method.equalsIgnoreCase("get")) {
             // TODO: properly set path parameters
-            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+            resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                     new Check(
                             new RemoteMethodCallAction(client.ref(),
                                     client.method,
                                     List.of(new StringConstant("")))));
         } else {
-            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+            resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                     new Check(
                             new RemoteMethodCallAction(client.ref(),
                                     client.method,
                                     List.of(new StringConstant(""), result))));
         }
+        return new ActivityConversionResult(resultDecl.ref(), List.of(resultDecl));
     }
 
-    private static @NotNull VarDeclStatment callProcessDirectlyUsingStartFunction(
-            ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference result) {
-        String convertToTypeFunction = cx.processContext.getConvertToTypeFunction(startFunction.inputType());
-        FunctionCall convertToTypeFunctionCall = new FunctionCall(convertToTypeFunction, List.of(result));
-
-        return new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
-                new FunctionCall(cx.processContext.getToXmlFunction(), List.of(new Check(
-                        new Trap(new FunctionCall(startFunction.name(),
-                                List.of(convertToTypeFunctionCall))))))));
+    private static @NotNull ActivityConversionResult callProcessDirectlyUsingStartFunction(
+            ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        body.add(addToContext(cx, input, "$Start"));
+        body.add(new CallStatement(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef()))));
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
     }
 
     private static InputBindingResult convertInputBindings(ActivityContext cx, VariableReference input,

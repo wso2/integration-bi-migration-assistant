@@ -212,14 +212,6 @@ public class ProjectContext implements LoggingContext {
         conversionContext.addJavaDependency(dependencies);
     }
 
-    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        importLibraryIfNeededToUtility(XML_DATA);
-        importLibraryIfNeededToUtility(JSON_DATA);
-        ComptimeFunction convertToType = new ConvertToType(targetType);
-        utilityCompTimeFunctions.add(convertToType);
-        return convertToType.functionName();
-    }
-
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return dataBindingFunctions.computeIfAbsent(targetType, this::createTryDataBindToTypeFunction);
     }
@@ -582,12 +574,10 @@ public class ProjectContext implements LoggingContext {
         }).orElseGet(() -> ConversionUtils.processFunctionName(processName)));
     }
 
-    record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
+    record FunctionData(String name) {
 
         FunctionData {
             assert name != null && !name.isEmpty();
-            assert inputType != null;
-            assert returnType != null;
         }
     }
 

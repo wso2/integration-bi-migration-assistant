@@ -222,16 +222,11 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {
-        return new ProjectContext.FunctionData(getProcessStartFunctionName(), getProcessInputType(),
-                getProcessOutputType());
+        return new ProjectContext.FunctionData(getProcessStartFunctionName());
     }
 
     String getProcessStartFunctionName() {
         return ConversionUtils.processFunctionName(process);
-    }
-
-    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        return projectContext.getConvertToTypeFunction(targetType);
     }
 
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
