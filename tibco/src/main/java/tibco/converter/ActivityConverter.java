@@ -45,6 +45,7 @@ import tibco.model.Resource;
 import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.ActivityExtension;
 import tibco.model.Scope.Flow.Activity.ActivityExtension.Config.JsonOperation;
+import tibco.model.Scope.Flow.Activity.Catch;
 import tibco.model.Scope.Flow.Activity.CatchAll;
 import tibco.model.Scope.Flow.Activity.Empty;
 import tibco.model.Scope.Flow.Activity.ExtActivity;
@@ -155,6 +156,7 @@ final class ActivityConverter {
             case Invoke invoke -> convertInvoke(cx, invoke);
             case Pick pick -> convertPickAction(cx, pick);
             case CatchAll catchAll -> convertCatchAll(cx, catchAll);
+            case Catch catchActivity -> convertCatch(cx, catchActivity);
             case ReceiveEvent receiveEvent -> convertReceiveEvent(cx, receiveEvent);
             case Reply reply -> convertReply(cx, reply);
             case UnhandledActivity unhandledActivity -> convertUnhandledActivity(cx, unhandledActivity);
@@ -1271,9 +1273,10 @@ final class ActivityConverter {
         VariableReference input = inputDecl.ref();
         InputBindingResult inputBindings = convertInputBindings(cx, input, throwActivity.inputBindings());
         body.addAll(inputBindings.statements());
-        // TODO: set the body correctly using inputBindings.resultRef() if needed
+        String escapedFaultName = ConversionUtils.escapeString(throwActivity.faultName());
         VarDeclStatment errorValue = new VarDeclStatment(ERROR, cx.getAnnonVarName(),
-                exprFrom("error(\"TODO: create error value\")"));
+                exprFrom("error(\"%s\", faultName = \"%s\", payload = %s)".formatted(
+                        escapedFaultName, escapedFaultName, inputBindings.resultRef())));
         body.add(errorValue);
         body.add(stmtFrom(String.format("panic %s;", errorValue.varName())));
         return body;
@@ -1281,6 +1284,10 @@ final class ActivityConverter {
 
     private static List<Statement> convertCatchAll(ActivityContext cx, CatchAll catchAll) {
         return convertActivityWithScope(cx, catchAll);
+    }
+
+    private static List<Statement> convertCatch(ActivityContext cx, Catch catchActivity) {
+        return convertActivityWithScope(cx, catchActivity);
     }
 
     private static @NotNull List<Statement> convertActivityWithScope(

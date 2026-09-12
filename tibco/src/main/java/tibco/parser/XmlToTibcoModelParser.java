@@ -819,23 +819,50 @@ public final class XmlToTibcoModelParser {
     }
 
     private static Stream<Scope.FaultHandler> parseFaultHandlers(ProcessContext cx, Element element) {
-        return ElementIterable.of(element).stream().map(e -> parseFaultHandler(cx, e));
+        return ElementIterable.of(element).stream()
+                .map(e -> tryParseFaultHandler(cx, e))
+                .flatMap(Optional::stream);
+    }
+
+    private static Optional<Scope.FaultHandler> tryParseFaultHandler(ProcessContext cx, Element element) {
+        try {
+            return Optional.of(parseFaultHandler(cx, element));
+        } catch (Exception ex) {
+            cx.log(SEVERE, "Skipping unsupported fault handler in " + cx.fileName() + ": " + ex.getMessage());
+            return Optional.empty();
+        }
     }
 
     private static Scope.FaultHandler parseFaultHandler(ProcessContext cx, Element element) {
         String tag = getTagNameWithoutNameSpace(element);
         return switch (tag) {
             case "catchAll" -> parseCatchAll(cx, element);
+            case "catch" -> parseCatch(cx, element);
             default -> throw new ParserException("Unsupported fault handler " + tag, element);
         };
     }
 
     private static Flow.Activity.CatchAll parseCatchAll(ProcessContext cx, Element element) {
+        return new Flow.Activity.CatchAll(parseFaultHandlerScope(cx, element), element, cx.fileName());
+    }
+
+    private static Flow.Activity.Catch parseCatch(ProcessContext cx, Element element) {
+        String faultName = element.getAttribute("faultName");
+        if (faultName.isBlank()) {
+            faultName = element.getAttribute("faultElement");
+        }
+        String faultVariable = element.getAttribute("faultVariable");
+        return new Flow.Activity.Catch(faultName, faultVariable.isBlank() ? Optional.empty()
+                : Optional.of(faultVariable),
+                parseFaultHandlerScope(cx, element), element, cx.fileName());
+    }
+
+    private static Scope parseFaultHandlerScope(ProcessContext cx, Element element) {
         Element scope = expectNChildren(element, 1).iterator().next();
         if (!getTagNameWithoutNameSpace(scope).equals("scope")) {
             throw new ParserException("Expected a scope", element);
         }
-        return new Flow.Activity.CatchAll(parseScope(cx, scope), element, cx.fileName());
+        return parseScope(cx, scope);
     }
 
     private static Flow parseFlow(ProcessContext cx, Element flow) {
@@ -989,7 +1016,8 @@ public final class XmlToTibcoModelParser {
 
     private static Flow.Activity.Throw parseThrow(ProcessContext cx, Element element) {
         ActivityInputOutput result = getActivityInputOutput(element);
-        return new Flow.Activity.Throw(result.inputBindings(), result.targets(), element, cx.fileName());
+        String faultName = element.getAttribute("faultName");
+        return new Flow.Activity.Throw(faultName, result.inputBindings(), result.targets(), element, cx.fileName());
     }
 
     private static @NotNull ActivityInputOutput getActivityInputOutput(Element element) {

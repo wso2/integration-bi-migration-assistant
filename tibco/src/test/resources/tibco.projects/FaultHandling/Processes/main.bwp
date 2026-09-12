@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.faulthandling.MainProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/faulthandling"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:tns="http://xmlns.example.com/test/faulthandling">
+    <bpws:scope name="MainScope">
+        <bpws:faultHandlers>
+            <bpws:catch faultName="tns:TestFault" faultVariable="TestFaultVar">
+                <bpws:scope name="RecoveryScope">
+                    <bpws:flow name="recoveryFlow"/>
+                </bpws:scope>]
+            </bpws:catch>
+            <bpws:catchAll>
+                <bpws:scope name="FallbackScope">
+                    <bpws:flow name="fallbackFlow"/>
+                </bpws:scope>
+            </bpws:catchAll>
+        </bpws:faultHandlers>
+        <bpws:flow name="mainFlow">
+            <bpws:throw faultName="tns:TestFault" name="RaiseFault"/>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>
