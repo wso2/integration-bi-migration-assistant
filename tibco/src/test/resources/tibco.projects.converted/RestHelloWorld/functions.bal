@@ -15,7 +15,7 @@ function Catch(Context cx) returns error? {
 
 function ErrorLog(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
      <xsl:template name="Transform9" match="/">
         <ActivityInput>
@@ -29,10 +29,11 @@ function ErrorLog(Context cx) returns error? {
 </ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "ErrorLog", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "ErrorLog", var3);
 }
 
 function HTTP_Receiver(Context cx) returns error? {
@@ -43,7 +44,7 @@ function HTTP_Receiver(Context cx) returns error? {
 
 function InvokeProcess(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="HTTP-Receiver"/>     <xsl:template name="Transform1" match="/">
         <InvokeProcessInput>
                     
@@ -56,16 +57,17 @@ function InvokeProcess(Context cx) returns error? {
 </InvokeProcessInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    addToContext(cx, "$Start", var1);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    addToContext(cx, "$Start", var2);
     start_Processes_Other_process(cx);
-    xml var2 = cx.result;
-    addToContext(cx, "InvokeProcess", var2);
+    xml var3 = cx.result;
+    addToContext(cx, "InvokeProcess", var3);
 }
 
 function Log(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform4" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
@@ -78,15 +80,16 @@ function Log(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "Log", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "Log", var3);
 }
 
 function Mapper(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
         <failedTestsCount>
                     
@@ -95,14 +98,15 @@ function Mapper(Context cx) returns error? {
 </failedTestsCount>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = xml `<root>${var1}</root>`;
-    addToContext(cx, "Mapper", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "Mapper", var3);
 }
 
 function Parse(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Render"/>     <xsl:template name="Transform6" match="/">
         <xmlString>
                     
@@ -111,17 +115,18 @@ function Parse(Context cx) returns error? {
 </xmlString>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/<xmlString>/*;
-    string var3 = var2.toString();
-    xml var4 = check xml:fromString(var3);
-    xml var5 = xml `<root>${var4}</root>`;
-    addToContext(cx, "Parse", var5);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/<xmlString>/*;
+    string var4 = var3.toString();
+    xml var5 = check xml:fromString(var4);
+    xml var6 = xml `<root>${var5}</root>`;
+    addToContext(cx, "Parse", var6);
 }
 
 function Read_file(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
      <xsl:template name="Transform3" match="/">
         <ReadActivityInputClass>
@@ -135,33 +140,35 @@ function Read_file(Context cx) returns error? {
 </ReadActivityInputClass>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    string fileName = (var1/**/<fileName>/*).toString();
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string fileName = (var2/**/<fileName>/*).toString();
     string content = check io:fileReadString(fileName);
-    xml var2 = xml `<ns:ReadActivityOutputTextClass xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file">
+    xml var3 = xml `<ns:ReadActivityOutputTextClass xmlns:ns="http://www.tibco.com/namespaces/tnt/plugins/file">
     <fileContent>
         <textContent>${content}</textContent>
     </fileContent>
 </ns:ReadActivityOutputTextClass>`;
-    addToContext(cx, "Read-file", var2);
+    addToContext(cx, "Read-file", var3);
 }
 
 function Render(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform5" match="/">
         <xsl:copy-of select="$Mapper" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    string var2 = var1.toBalString();
-    xml var3 = xml `<root><xmlString>${var2}</xmlString></root>`;
-    addToContext(cx, "Render", var3);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string var3 = var2.toBalString();
+    xml var4 = xml `<root><xmlString>${var3}</xmlString></root>`;
+    addToContext(cx, "Render", var4);
 }
 
 function SOAPRequestReply(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
      <xsl:template name="Transform7" match="/">
         <inputMessage>
@@ -173,23 +180,24 @@ function SOAPRequestReply(Context cx) returns error? {
 </inputMessage>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    soap11:Client var2 = check new ("http://localhost:8800");
-    xml var3 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    soap11:Client var3 = check new ("http://localhost:8800");
+    xml var4 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
     soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <soap:Header/>
     <soap:Body>
-        ${var1}
+        ${var2}
     </soap:Body>
 </soap:Envelope>`;
-    xml var4 = check var2->sendReceive(var3, "SOAPAction");
-    xml var5 = xml `<root>${var4}</root>`;
-    addToContext(cx, "SOAPRequestReply", var5);
+    xml var5 = check var3->sendReceive(var4, "SOAPAction");
+    xml var6 = xml `<root>${var5}</root>`;
+    addToContext(cx, "SOAPRequestReply", var6);
 }
 
 function SQL_Direct(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
      <xsl:template name="Transform8" match="/">
         <jdbcGeneralActivityInput>
@@ -203,34 +211,35 @@ function SQL_Direct(Context cx) returns error? {
 </jdbcGeneralActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    string var2 = (var1/**/<statement>/*).toString().trim();
-    sql:ParameterizedQuery var3 = ``;
-    var3.strings = [var2];
-    xml var4;
-    if var2.startsWith("SELECT") {
-        stream<record {|anydata...;|}, error?> var5 = JDBCConnection->query(var3);
-        xml var6 = xml ``;
-        check from var each in var5
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string var3 = (var2/**/<statement>/*).toString().trim();
+    sql:ParameterizedQuery var4 = ``;
+    var4.strings = [var3];
+    xml var5;
+    if var3.startsWith("SELECT") {
+        stream<record {|anydata...;|}, error?> var6 = JDBCConnection->query(var4);
+        xml var7 = xml ``;
+        check from var each in var6
             do {
-                xml var7 = check toXML(each);
-                var6 = var6 + xml `<Record>${var7}</Record>`;
+                xml var8 = check toXML(each);
+                var7 = var7 + xml `<Record>${var8}</Record>`;
             };
 
-        xml var8 = xml `<root>${var6}</root>`;
-        var4 = var8;
+        xml var9 = xml `<root>${var7}</root>`;
+        var5 = var9;
     } else {
-        sql:ExecutionResult var9 = check JDBCConnection->execute(var3);
-        xml var10 = xml `<root></root>`;
-        var4 = var10;
+        sql:ExecutionResult var10 = check JDBCConnection->execute(var4);
+        xml var11 = xml `<root></root>`;
+        var5 = var11;
     }
     // WARNING: validate jdbc query result mapping
-    addToContext(cx, "SQL-Direct", var4);
+    addToContext(cx, "SQL-Direct", var5);
 }
 
 function Write_File(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform2" match="/">
         <ns0:WriteActivityInputTextClass xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/file">
                     
@@ -255,11 +264,12 @@ function Write_File(Context cx) returns error? {
 </ns0:WriteActivityInputTextClass>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    string fileName = (var1/**/<fileName>/*).toString();
-    string content = (var1/**/<textContent>/*).toString();
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string fileName = (var2/**/<fileName>/*).toString();
+    string content = (var2/**/<textContent>/*).toString();
     check io:fileWriteString(fileName, content, "APPEND");
-    addToContext(cx, "Write-File", var1);
+    addToContext(cx, "Write-File", var2);
 }
 
 function scope0ActivityRunner(Context cx) returns error? {
@@ -294,7 +304,7 @@ function HTTP_Receiver_12(Context cx) returns error? {
 
 function InnerLogElement(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="element"/>     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                         
@@ -307,15 +317,16 @@ function InnerLogElement(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "InnerLogElement", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "InnerLogElement", var3);
 }
 
 function InnerLogIndex(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="index"/>     <xsl:template name="Transform4" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                         
@@ -328,15 +339,16 @@ function InnerLogIndex(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "InnerLogIndex", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "InnerLogIndex", var3);
 }
 
 function Log_14(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
@@ -349,10 +361,11 @@ function Log_14(Context cx) returns error? {
 </ns:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<message>/*;
-    log:printInfo(var2.toString());
-    addToContext(cx, "Log", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+    addToContext(cx, "Log", var3);
 }
 
 function Loop(Context cx) returns error? {
@@ -375,7 +388,7 @@ function Loop(Context cx) returns error? {
 
 function Mapper_13(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
         <failedTestsCount>
                     
@@ -384,14 +397,15 @@ function Mapper_13(Context cx) returns error? {
 </failedTestsCount>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = xml `<root>${var1}</root>`;
-    addToContext(cx, "Mapper", var2);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = xml `<root>${var2}</root>`;
+    addToContext(cx, "Mapper", var3);
 }
 
 function Parse_JSON(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Start"/>     <xsl:template name="Transform5" match="/">
         <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
@@ -404,17 +418,18 @@ function Parse_JSON(Context cx) returns error? {
 </ns1:ActivityInputClass>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
-    xml var2 = check renderJsonAsFooXML(var1);
-    xml var3 = xml `<ActivityOutputClass>var2</ActivityOutputClass>`;
-    xml var4 = xml `<root>${var3}</root>`;
-    addToContext(cx, "Parse-JSON", var4);
+    xml var3 = check renderJsonAsFooXML(var2);
+    xml var4 = xml `<ActivityOutputClass>var3</ActivityOutputClass>`;
+    xml var5 = xml `<root>${var4}</root>`;
+    addToContext(cx, "Parse-JSON", var5);
 }
 
 function Render_JSON(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Parse-JSON"/>     <xsl:template name="Transform6" match="/">
         <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                         
@@ -427,23 +442,24 @@ function Render_JSON(Context cx) returns error? {
 </ns1:ActivityInputClass>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = (var1/*);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = (var2/*);
     xmlns "http://www.tibco.com/namespaces/tnt/plugins/json" as ns;
     // WARNING: assuming single element
     record {|
         string foo;
         string bar?;
-    |} var3 = check xmldata:parseAsType(var2);
-    string var4 = var3.toJsonString();
-    xml var5 = xml `<jsonString>${var4}</jsonString>`;
-    xml var6 = xml `<ns:ActivityOutputClass>${var5}</ns:ActivityOutputClass>`;
-    addToContext(cx, "Render-JSON", var6);
+    |} var4 = check xmldata:parseAsType(var3);
+    string var5 = var4.toJsonString();
+    xml var6 = xml `<jsonString>${var5}</jsonString>`;
+    xml var7 = xml `<ns:ActivityOutputClass>${var6}</ns:ActivityOutputClass>`;
+    addToContext(cx, "Render-JSON", var7);
 }
 
 function Rest_call(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Schedule-Poller"/>     <xsl:template name="Transform7" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
@@ -484,20 +500,21 @@ function Rest_call(Context cx) returns error? {
 </ns1:ActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = var1/**/<Body>;
-    map<json> var3 = <map<json>>xmlToJson(var2);
-    http:Client var4 = check new ("https://eieio.azurewebsites.net/schedulepolling/uploadschedule");
-    json var5 = check var4->post("/", var3["Body"]);
-    xml var6 = check toXML(<map<json>>var5);
-    xml var7 = xml `<ns:RESTOutput><msg>${var6}</msg></ns:RESTOutput>`;
-    xml var8 = xml `<root>${var7}</root>`;
-    addToContext(cx, "Rest-call", var8);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<Body>;
+    map<json> var4 = <map<json>>xmlToJson(var3);
+    http:Client var5 = check new ("https://eieio.azurewebsites.net/schedulepolling/uploadschedule");
+    json var6 = check var5->post("/", var4["Body"]);
+    xml var7 = check toXML(<map<json>>var6);
+    xml var8 = xml `<ns:RESTOutput><msg>${var7}</msg></ns:RESTOutput>`;
+    xml var9 = xml `<root>${var8}</root>`;
+    addToContext(cx, "Rest-call", var9);
 }
 
 function SOAPSendReply(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0">
      <xsl:template name="Transform2" match="/">
         <Response>
@@ -509,16 +526,17 @@ function SOAPSendReply(Context cx) returns error? {
 </Response>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
-    xml var2 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = xml `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
     soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <soap:Header/>
     <soap:Body>
-        ${var1}
+        ${var2}
     </soap:Body>
 </soap:Envelope>`;
-    xml var3 = xml `<root>${var2}</root>`;
-    addToContext(cx, "SOAPSendReply", var3);
+    xml var4 = xml `<root>${var3}</root>`;
+    addToContext(cx, "SOAPSendReply", var4);
 }
 
 function scope0_1ActivityRunner(Context cx) returns error? {

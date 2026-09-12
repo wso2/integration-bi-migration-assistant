@@ -729,7 +729,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
 
             @Override
             public String toString() {
-                return "string`" + body() + "`";
+                return "string `" + body() + "`";
             }
         }
 

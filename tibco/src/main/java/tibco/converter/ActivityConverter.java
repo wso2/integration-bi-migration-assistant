@@ -24,6 +24,7 @@ import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
+import common.BallerinaModel.Expression.StringTemplate;
 import common.BallerinaModel.Expression.Trap;
 import common.BallerinaModel.Expression.TypeCast;
 import common.BallerinaModel.Expression.TypeCheckExpression;
@@ -1120,9 +1121,11 @@ final class ActivityConverter {
             return new ActivityConversionResult(input, body);
         } else {
             cx.addLibraryImport(Library.XSLT);
+            VarDeclStatment styleSheetDecl = parseStyleSheet(cx, xsltContent);
+            body.add(styleSheetDecl);
             VarDeclStatment transformResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
                     new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                            List.of(input, new XMLTemplate(xsltContent),
+                            List.of(input, styleSheetDecl.ref(),
                                     cx.contextVarRef()))));
             body.add(transformResult);
             return new ActivityConversionResult(transformResult.ref(), body);
@@ -1245,6 +1248,7 @@ final class ActivityConverter {
                 body.add(init);
                 XsltTransformResult transformResult = xsltTransform(cx, init.ref(), xslt);
                 addNonStandardXsltWarning(transformResult.nonStandardFunctions(), body);
+                body.addAll(transformResult.statements());
                 yield transformResult.expression();
             }
             case ValueSource.VarRef varRef -> getFromContext(cx, varRef.name());
@@ -1645,7 +1649,7 @@ final class ActivityConverter {
                         %2$s = check %3$s->get(%4$s);
                     }
                     "POST" => {
-                        json postData = (var1/**/<PostData>[0]).data();
+                        json postData = (%5$s/**/<PostData>[0]).data();
                         %2$s = check %3$s->post(%4$s, postData);
                     }
                     _ => {
@@ -1653,7 +1657,7 @@ final class ActivityConverter {
                     }
                 }
                 """.formatted(method.varName(), result.varName(), client.varName(),
-                requestURI.varName())));
+                requestURI.varName(), configVar.varName())));
         VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root><asciiContent>${%s.toJsonString()}</asciiContent></root>"
                         .formatted(
@@ -1731,6 +1735,7 @@ final class ActivityConverter {
             }
             XsltTransformResult transformResult = xsltTransform(cx, result, xslt);
             addNonStandardXsltWarning(transformResult.nonStandardFunctions(), body);
+            body.addAll(transformResult.statements());
             VarDeclStatment transformDecl =
                     new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
             body.add(transformDecl);
@@ -1799,6 +1804,7 @@ final class ActivityConverter {
                 case InputBinding.CompleteBinding completeBinding -> {
                     XsltTransformResult transformResult = xsltTransform(cx, last, completeBinding.xslt());
                     addNonStandardXsltWarning(transformResult.nonStandardFunctions(), statements);
+                    statements.addAll(transformResult.statements());
                     VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                             transformResult.expression());
                     statements.add(varDecl);
@@ -1817,21 +1823,24 @@ final class ActivityConverter {
     private static InputBindingResult convertPartialInputBinding(
             ActivityContext cx, InputBinding.PartialBindings partialBindings, VariableReference last) {
         List<Statement> statements = new ArrayList<>();
-        List<VarDeclStatment> xsltStatements = new ArrayList<>();
+        List<Statement> xsltStatements = new ArrayList<>();
+        List<VariableReference> xsltResults = new ArrayList<>();
         Set<String> allNonStandardFunctions = new HashSet<>();
         for (Activity.Expression.XSLT each : partialBindings.xslt()) {
             XsltTransformResult transformResult = xsltTransform(cx, last, each);
             allNonStandardFunctions.addAll(transformResult.nonStandardFunctions());
+            xsltStatements.addAll(transformResult.statements());
             VarDeclStatment vds = new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
             xsltStatements.add(vds);
+            xsltResults.add(vds.ref());
         }
         addNonStandardXsltWarning(new ArrayList<>(allNonStandardFunctions), statements);
         statements.addAll(xsltStatements);
-        String concat = xsltStatements.stream().map(VarDeclStatment::varName).collect(Collectors.joining(" + "));
+        String concat = xsltResults.stream().map(VariableReference::varName).collect(Collectors.joining(" + "));
         VarDeclStatment concatResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root>${%s}</root>".formatted(concat)));
         statements.add(concatResult);
-        VariableReference resultRef = xsltStatements.isEmpty() ? last : new VariableReference(concatResult.varName());
+        VariableReference resultRef = xsltResults.isEmpty() ? last : new VariableReference(concatResult.varName());
         return new InputBindingResult(statements, resultRef);
     }
 
@@ -1844,11 +1853,22 @@ final class ActivityConverter {
         // Detect non-standard functions (Tibco-specific functions)
         List<String> nonStandardFunctions = detectNonStandardFunctions(styleSheet);
 
+        VarDeclStatment styleSheetDecl = parseStyleSheet(cx, styleSheet);
         BallerinaModel.Expression expression = new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, new XMLTemplate(styleSheet),
+                List.of(inputVariable, styleSheetDecl.ref(),
                         new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))));
 
-        return new XsltTransformResult(expression, nonStandardFunctions);
+        return new XsltTransformResult(List.of(styleSheetDecl), expression, nonStandardFunctions);
+    }
+
+    // An inline xml literal expands into compiler AST nodes at build time, and that expansion grows exponentially
+    // with the nesting depth of the stylesheet. A string template is a single AST node whatever it contains, so
+    // deeply nested stylesheets are parsed at runtime instead of being inlined as xml.
+    @NotNull
+    private static VarDeclStatment parseStyleSheet(ActivityContext cx, String styleSheet) {
+        return new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(XSLTConstants.XML_FROM_STRING_FUNCTION,
+                        List.of(new StringTemplate(styleSheet.trim())))));
     }
 
     @NotNull
@@ -1897,12 +1917,18 @@ final class ActivityConverter {
 
     }
 
-    record XsltTransformResult(BallerinaModel.Expression expression, List<String> nonStandardFunctions) {
+    record XsltTransformResult(List<Statement> statements, BallerinaModel.Expression expression,
+                               List<String> nonStandardFunctions) {
 
+        XsltTransformResult(BallerinaModel.Expression expression, List<String> nonStandardFunctions) {
+            this(List.of(), expression, nonStandardFunctions);
+        }
     }
     static final class XSLTConstants {
 
         static final String XSLT_TRANSFORM_FUNCTION = "xslt:transform";
+
+        static final String XML_FROM_STRING_FUNCTION = "xml:fromString";
 
         private XSLTConstants() {
 

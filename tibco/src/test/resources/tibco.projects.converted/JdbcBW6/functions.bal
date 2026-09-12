@@ -6,21 +6,22 @@ import ballerina/xslt;
 
 function activityExtension(Context cx) returns error? {
     xml var0 = getFromContext(cx, "QueryRecords-input");
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><firstName><xsl:value-of select="$Start/root/FirstName"/></firstName><lastName><xsl:value-of select="$Start/root/LastName"/></lastName><age><xsl:value-of select="$Start/root/Age"/></age></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`, cx.variables);
-    string firstName = (var1/<firstName>/*).toString().trim();
-    string lastName = (var1/<lastName>/*).toString().trim();
-    string age = (var1/<age>/*).toString().trim();
-    sql:ParameterizedQuery var2 = `select * from table where firstName like ${firstName} and lastName like ${lastName} and age < ${age}`;
-    stream<record {|anydata...;|}, error?> var3 = dbConnection->query(var2);
-    xml var4 = xml ``;
-    check from var each in var3
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><firstName><xsl:value-of select="$Start/root/FirstName"/></firstName><lastName><xsl:value-of select="$Start/root/LastName"/></lastName><age><xsl:value-of select="$Start/root/Age"/></age></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string firstName = (var2/<firstName>/*).toString().trim();
+    string lastName = (var2/<lastName>/*).toString().trim();
+    string age = (var2/<age>/*).toString().trim();
+    sql:ParameterizedQuery var3 = `select * from table where firstName like ${firstName} and lastName like ${lastName} and age < ${age}`;
+    stream<record {|anydata...;|}, error?> var4 = dbConnection->query(var3);
+    xml var5 = xml ``;
+    check from var each in var4
         do {
-            xml var5 = check toXML(each);
-            var4 = var4 + xml `<Record>${var5}</Record>`;
+            xml var6 = check toXML(each);
+            var5 = var5 + xml `<Record>${var6}</Record>`;
         };
-    xml var6 = xml `<root>${var4}</root>`;
-    addToContext(cx, "QueryRecords", var6);
+    xml var7 = xml `<root>${var5}</root>`;
+    addToContext(cx, "QueryRecords", var7);
 }
 
 function receiveEvent(Context cx) returns error? {
@@ -29,7 +30,7 @@ function receiveEvent(Context cx) returns error? {
 
 function reply(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
                     <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                     xmlns:ns1="http://xmlns.example.com/test/api"
                     version="2.0">
@@ -39,8 +40,9 @@ function reply(Context cx) returns error? {
                     <ns1:Score><xsl:value-of select="$QueryRecords/root/resultSet/Record[1]/score"/></ns1:Score>
                     </ns1:Response>
                     </xsl:template>
-                    </xsl:stylesheet>`, cx.variables);
-    setXMLResponse(cx, var1, {});
+                    </xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    setXMLResponse(cx, var2, {});
 }
 
 function scopeActivityRunner(Context cx) returns error? {
