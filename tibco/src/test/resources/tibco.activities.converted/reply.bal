@@ -1,6 +1,6 @@
 function reply(Context cx) returns error? {
     xml var0 = xml`<root></root>`;
-    xml var1 = check xml:fromString(string`<?xml version="1.0"
+    xml var1 = check xml:fromString(string `<?xml version="1.0"
         encoding="UTF-8"?>
         <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
         xmlns:tns1="http://xmlns.example.com/20180831151624PLT" xmlns:tns2="/T1535753828744Converted/JsonSchema"

@@ -1649,7 +1649,7 @@ final class ActivityConverter {
                         %2$s = check %3$s->get(%4$s);
                     }
                     "POST" => {
-                        json postData = (var1/**/<PostData>[0]).data();
+                        json postData = (%5$s/**/<PostData>[0]).data();
                         %2$s = check %3$s->post(%4$s, postData);
                     }
                     _ => {
@@ -1657,7 +1657,7 @@ final class ActivityConverter {
                     }
                 }
                 """.formatted(method.varName(), result.varName(), client.varName(),
-                requestURI.varName())));
+                requestURI.varName(), configVar.varName())));
         VarDeclStatment resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate("<root><asciiContent>${%s.toJsonString()}</asciiContent></root>"
                         .formatted(

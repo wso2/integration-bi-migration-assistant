@@ -1,6 +1,6 @@
 function Generate_Error(Context cx) returns error? {
     xml var0 = xml`<root></root>`;
-    xml var1 = check xml:fromString(string`<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"><xsl:param name="msg"/><xsl:param name="code"/>     <xsl:template name="Transform0" match="/">
         <xsl:variable name="code" select="'code'"/>
 <xsl:variable name="msg" select="'msg'"/>

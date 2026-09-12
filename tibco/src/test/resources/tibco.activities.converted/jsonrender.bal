@@ -1,6 +1,6 @@
 function activityExtension(Context cx) returns error? {
     xml var0 = getFromContext(cx, "InputVariable");
-    xml var1 = check xml:fromString(string`<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns6="/y54cuadtcxtfstqs3rux2gfdaxppoqgc/T1535409245354Converted/JsonSchema" xmlns:tns="http://tns.tibco.com/bw/activity/jsonRender/xsd/input/55832ae5-2a37-4b37-8392-a64537f49367" version="2.0">
     <xsl:param name="Start"/>
     <xsl:template name="RenderJSON-input" match="/">
