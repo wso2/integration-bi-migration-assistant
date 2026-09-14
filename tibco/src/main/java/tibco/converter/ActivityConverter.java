@@ -1526,7 +1526,7 @@ final class ActivityConverter {
 
     private static @NotNull ActivityConversionResult finishSQLQuery(
             ActivityContext cx, VariableReference dbClient, VariableReference query, List<Statement> body) {
-        body.add(new CallStatement(
+        body.add(new Statement.VarAssignStatement(new VariableReference("_"),
                 new Check(new RemoteMethodCallAction(dbClient, BallerinaSQLConstants.EXECUTE_METHOD, List.of(query)))));
         VarDeclStatment dummyXmlResult = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
         body.add(dummyXmlResult);
