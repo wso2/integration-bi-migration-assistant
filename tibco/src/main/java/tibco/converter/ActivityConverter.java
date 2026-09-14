@@ -1223,8 +1223,6 @@ final class ActivityConverter {
         List<Statement> body = new ArrayList<>();
         BallerinaModel.Expression init = convertValueSource(cx, foreach.startCounterValue(), body, INT);
         BallerinaModel.Expression end = convertValueSource(cx, foreach.finalCounterValue(), body, INT);
-        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
-        body.add(result);
         Statement contextUpdate = addToContext(cx,
                 new XMLTemplate("<root>${%s}</root>".formatted(foreach.counterName())),
                 foreach.counterName());
@@ -1232,9 +1230,9 @@ final class ActivityConverter {
         body.add(stmtFrom("""
                 foreach int %1$s in %2$s ..< %3$s {
                     %4$s
-                    %5$s = %6$s(%7$s);
+                    check %5$s(%6$s);
                 }
-                """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn,
+                """.formatted(foreach.counterName(), init, end, contextUpdate, scopeFn,
                 cx.contextVarRef())));
         return body;
     }
