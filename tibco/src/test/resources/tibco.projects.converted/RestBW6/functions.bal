@@ -5,27 +5,28 @@ import ballerina/xslt;
 
 function activityExtension(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/test/api" version="2.0">
     <xsl:template name="RenderOutput-input" match="/">
         <tns:TestResponse>
             <tns:response>Hello world</tns:response>
         </tns:TestResponse>
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
     // WARNING: assuming single element
     record {|
         string response;
-    |} var2 = check xmldata:parseAsType(var1);
-    string var3 = var2.toJsonString();
-    xml var4 = xml `<jsonString>${var3}</jsonString>`;
-    xml var5 = xml `<root>${var4}</root>`;
-    addToContext(cx, "RenderOutput", var5);
+    |} var3 = check xmldata:parseAsType(var2);
+    string var4 = var3.toJsonString();
+    xml var5 = xml `<jsonString>${var4}</jsonString>`;
+    xml var6 = xml `<root>${var5}</root>`;
+    addToContext(cx, "RenderOutput", var6);
 }
 
 function activityExtension_2(Context cx) returns error? {
     xml var0 = getFromContext(cx, "RenderOutput");
-    xml var1 = check xslt:transform(var0, xml `<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
     <xsl:template name="SendHTTPResponse-input" match="/">
         <tns1:ResponseActivityInput>
@@ -39,23 +40,24 @@ function activityExtension_2(Context cx) returns error? {
             </Headers>
         </tns1:ResponseActivityInput>
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
     // FIXME ignoring headers others than content type
-    string var2 = (var1/**/<Content\-Type>/*).toString();
-    string var3 = (var1/**/<asciiContent>/*).toString();
-    xml var4 = (var1/**/<Headers>/*);
-    map<string> var5 = parseHeaders(var4);
-    match var2 {
+    string var3 = (var2/**/<Content\-Type>/*).toString();
+    string var4 = (var2/**/<asciiContent>/*).toString();
+    xml var5 = (var2/**/<Headers>/*);
+    map<string> var6 = parseHeaders(var5);
+    match var3 {
         "application/json" => {
-            map<json> jsonRepr = check jsondata:parseString(var3);
-            setJSONResponse(cx, jsonRepr, var5);
+            map<json> jsonRepr = check jsondata:parseString(var4);
+            setJSONResponse(cx, jsonRepr, var6);
         }
         "application/xml" => {
-            xml xmlRepr = xml `${var3}`;
-            setXMLResponse(cx, xmlRepr, var5);
+            xml xmlRepr = xml `${var4}`;
+            setXMLResponse(cx, xmlRepr, var6);
         }
         _ => {
-            setTextResponse(cx, var3, var5);
+            setTextResponse(cx, var4, var6);
         }
     }
 }

@@ -18,17 +18,24 @@
 
 package tibco.converter;
 
+import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import tibco.ConversionContext;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.converter.ConversionUtils.LineCount;
 import tibco.model.NameSpace;
 import tibco.model.Process;
+import tibco.model.Variable;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
+
+import static tibco.converter.TibcoConverter.createVerboseLogger;
 
 public class ConversionUtilsTest {
 
@@ -205,6 +212,8 @@ public class ConversionUtilsTest {
                 {"Start", "Start"},
                 {"Get Sales Order", "Get_Sales_Order"},
                 {"type", "'type"},
+                {"Resources/AWS/SendMail/applicationId", "Resources_AWS_SendMail_applicationId"},
+                {"anagrafica_clienti_isu_das/LocalFilePathArchive", "anagrafica_clienti_isu_das_LocalFilePathArchive"},
         };
     }
 
@@ -253,5 +262,49 @@ public class ConversionUtilsTest {
         ProjectConversionContext conversionContext =
                 TestUtils.createTestProjectConversionContext("test", projectName);
         return new ProjectContext(conversionContext, Map.<Process, AnalysisResult>of());
+    @Test(groups = { "tibco", "converter" })
+    public void testSlashSeparatedResourcePathIsSanitizedAsConfigurableVariable() {
+        ProjectContext projectContext = newProjectContext();
+        projectContext.addConfigurableVariable("myProp", "Resources/AWS/SendMail/applicationId");
+        String configVarName = projectContext.getConfigVarName("myProp");
+        Assert.assertEquals(configVarName, "Resources_AWS_SendMail_applicationId");
+        Assert.assertFalse(configVarName.contains("/"), "configurable variable name must not contain '/'");
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testResourceVariableRoundTripThroughProcessContext() {
+        ProjectContext projectContext = newProjectContext();
+        ProcessContext processContext = new ProcessContext(projectContext, null);
+        processContext.addResourceVariable(
+                new Variable.PropertyVariable.SimpleProperty(
+                        "myProp", "anagrafica_clienti_isu_das/LocalFilePathArchive", "string"));
+        Assert.assertEquals(processContext.getConfigVarName("myProp"),
+                "anagrafica_clienti_isu_das_LocalFilePathArchive");
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testCollidingSanitizedResourcePathsGetUniqueSuffix() {
+        ProjectContext projectContext = newProjectContext();
+        projectContext.addConfigurableVariable("propOne", "Resources/AWS/SendMail");
+        projectContext.addConfigurableVariable("propTwo", "Resources.AWS.SendMail");
+
+        String nameOne = projectContext.getConfigVarName("propOne");
+        String nameTwo = projectContext.getConfigVarName("propTwo");
+
+        Assert.assertEquals(nameOne, "Resources_AWS_SendMail");
+        Assert.assertNotEquals(nameTwo, nameOne);
+        Assert.assertFalse(nameTwo.contains("/") || nameTwo.contains("."));
+    }
+
+    @NotNull
+    private static ProjectContext newProjectContext() {
+        Logger logger = createVerboseLogger("test");
+        return new ProjectContext(
+                new ProjectConversionContext(
+                        new ConversionContext("testOrg", false, true,
+                                LoggingUtils.wrapLoggerForStateCallback(logger),
+                                LoggingUtils.wrapLoggerForStateCallback(logger)),
+                        "test"),
+                Map.of());
     }
 }
