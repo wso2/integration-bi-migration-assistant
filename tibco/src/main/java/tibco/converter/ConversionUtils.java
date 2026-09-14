@@ -375,7 +375,8 @@ public final class ConversionUtils {
 
     private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
         List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
-                .map(each -> new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
+                .map(each -> new RecordTypeDesc.RecordField(
+                        common.ConversionUtils.convertToBalIdentifier(each.name()), toTypeDesc(each.type()),
                         each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false),
                         Optional.empty(), Optional.empty(),
                         each.type() == XSD.XSDType.BasicXSDType.ANY
