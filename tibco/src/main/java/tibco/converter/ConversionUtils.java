@@ -244,6 +244,16 @@ public final class ConversionUtils {
         return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr)));
     }
 
+    // Passes an explicit "boolean" typedesc argument to xmldata:transform instead of relying on
+    // inference from the surrounding context.
+    static Expression xPathBoolean(ProcessContext cx, Expression value, Expression.VariableReference context,
+                            Scope.Flow.Activity.Expression.XPath predicate) {
+        String predicateTestFn = cx.getXPathFunction();
+        Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());
+        return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn,
+                List.of(value, xPathExpr, new Expression.BallerinaExpression(BOOLEAN.toString()))));
+    }
+
     public static @NotNull String baseName(String value) {
         String[] parts = value.split("/");
         return parts[parts.length - 1];

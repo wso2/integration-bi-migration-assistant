@@ -420,7 +420,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 }
                 switch (predicate.get()) {
                     case XPath xPath -> {
-                        Expression expr = ConversionUtils.xPath(cx, value, new VariableReference("cx"), xPath);
+                        Expression expr = ConversionUtils.xPathBoolean(cx, value, new VariableReference("cx"), xPath);
                         prev = expr;
                         boolean isNew = cx.isFirstPredicateFunctionUse(xPath);
                         BallerinaModel.Function fn = getTransitionPredicateFn(cx, xPath, expr);
