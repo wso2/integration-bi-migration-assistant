@@ -235,9 +235,13 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         if (!prefix.chars().allMatch(Character::isLetterOrDigit)) {
             return;
         }
-        String decl = "xmlns \"%s\" as %s;".formatted(nameSpace.uri(), prefix);
+        NameSpace resolved = projectContext.registerNameSpace(nameSpace);
+        if (nameSpaces.contains(resolved)) {
+            return;
+        }
+        String decl = "xmlns \"%s\" as %s;".formatted(resolved.uri(), resolved.prefix().get());
         intrinsics.add(decl);
-        nameSpaces.add(nameSpace);
+        nameSpaces.add(resolved);
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {

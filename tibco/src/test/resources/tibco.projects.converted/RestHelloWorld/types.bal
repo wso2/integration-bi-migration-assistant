@@ -1,3 +1,5 @@
+import ballerina/data.xmldata;
+
 public type Context record {|
     map<xml> variables;
     xml result;
@@ -38,8 +40,6 @@ type XMLElementParseResult record {|
     string? namespace;
     string name;
 |};
-
-import ballerina/data.xmldata;
 
 public type Foo record {|
     @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}

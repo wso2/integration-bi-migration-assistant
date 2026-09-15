@@ -1,6 +1,6 @@
 function JDBC_Update(Context cx) returns error? {
     xml var0 = xml`<root></root>`;
-    xml var1 = check xslt:transform(var0, xml`<?xml version="1.0" encoding="UTF-8"?>
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
         <jdbcUpdateActivityInput>
                 
@@ -13,11 +13,12 @@ function JDBC_Update(Context cx) returns error? {
 </jdbcUpdateActivityInput>
 
     </xsl:template>
-</xsl:stylesheet>`, cx.variables);
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
     
 // WARNING: Prepared data is not supported, validate generated query
 
-    sql:ParameterizedQuery var2 = `INSERT INTO DB (USER_ID) VALUES (?)`;
+    sql:ParameterizedQuery var3 = `INSERT INTO DB (USER_ID) VALUES (?)`;
     
 // WARNING: Missing DB client resource '/CRUD/SharedResources/JDBCConnection.sharedjdbc'. Using placeholder client.
 
@@ -29,5 +30,5 @@ function JDBC_Update(Context cx) returns error? {
     
 // WARNING: validate jdbc update result mapping
 
-    addToContext(cx, "JDBC-Update", var3);
+    addToContext(cx, "JDBC-Update", var4);
 }

@@ -27,13 +27,17 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import tibco.ConversionContext;
 import tibco.ProjectConversionContext;
+import tibco.analyzer.AnalysisResult;
 import tibco.converter.ConversionUtils.LineCount;
+import tibco.model.NameSpace;
+import tibco.model.Process;
 import tibco.model.Variable;
 import tibco.model.XSD;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import static tibco.converter.TibcoConverter.createVerboseLogger;
@@ -224,6 +228,48 @@ public class ConversionUtilsTest {
         Assert.assertEquals(ConversionUtils.sanitizes(name), expected);
     }
 
+    @Test
+    public void testNameSpacePrefixCollision() {
+        ProjectContext projectContext = newProjectContext("NamespaceCollision");
+
+        NameSpace resolvedFirst = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/uriA"));
+        NameSpace resolvedSecond = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/uriB"));
+
+        Assert.assertEquals(resolvedFirst.prefix().orElseThrow(), "ns1");
+        Assert.assertEquals(resolvedFirst.uri(), "http://example.com/uriA");
+        Assert.assertNotEquals(resolvedSecond.prefix(), resolvedFirst.prefix(),
+                "a colliding prefix bound to a different uri must be renamed rather than reused");
+        Assert.assertEquals(resolvedSecond.uri(), "http://example.com/uriB");
+    }
+
+    @Test
+    public void testNameSpaceSameUriDedup() {
+        ProjectContext projectContext = newProjectContext("NamespaceSameUri");
+
+        NameSpace resolvedFirst = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/uriA"));
+        NameSpace resolvedSecond = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/uriA"));
+
+        Assert.assertEquals(resolvedFirst, resolvedSecond);
+    }
+
+    @Test
+    public void testNameSpaceChainedCollisions() {
+        ProjectContext projectContext = newProjectContext("NamespaceChainedCollision");
+
+        NameSpace a = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/a"));
+        NameSpace b = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/b"));
+        NameSpace c = projectContext.registerNameSpace(new NameSpace("ns1", "http://example.com/c"));
+
+        Assert.assertEquals(Set.of(a.prefix().orElseThrow(), b.prefix().orElseThrow(), c.prefix().orElseThrow()).size(),
+                3, "three different uris colliding on the same raw prefix must each get a distinct prefix");
+    }
+
+    private static ProjectContext newProjectContext(String projectName) {
+        ProjectConversionContext conversionContext =
+                TestUtils.createTestProjectConversionContext("test", projectName);
+        return new ProjectContext(conversionContext, Map.<Process, AnalysisResult>of());
+    }
+    
     @Test(groups = { "tibco", "converter" })
     public void testSlashSeparatedResourcePathIsSanitizedAsConfigurableVariable() {
         ProjectContext projectContext = newProjectContext();
