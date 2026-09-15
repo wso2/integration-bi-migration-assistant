@@ -138,21 +138,31 @@ public class TibcoConverter {
                 new BICodeConverter(BICodeConverter.DEFAULT_IS_CONFIGURABLE_PREDICATE,
                         BICodeConverter.DEFAULT_IS_CONNECTION_PREDICATE,
                         BICodeConverter.DEFAULT_SKIP_CONVERSION_PREDICATE, allProjectImports).convert(result.module());
+        Optional<SyntaxTree> irTypesTree = Optional.empty();
         for (BallerinaModel.TextDocument textDocument : module.textDocuments()) {
             SyntaxTree st = new CodeGenerator(textDocument).generateSyntaxTree();
-            files.put(textDocument.documentName(), st.toSourceCode());
+            if (textDocument.documentName().equals("types.bal")) {
+                irTypesTree = Optional.of(st);
+            } else {
+                files.put(textDocument.documentName(), st.toSourceCode());
+            }
         }
 
-        SyntaxTree typesTree = result.types();
-        if (typesTree != null) {
-            String xsdTypeSource = typesTree.toSourceCode();
-            String typeSource;
-            if (files.containsKey("types.bal")) {
-                typeSource = files.get("types.bal") + "\n" + xsdTypeSource;
-            } else {
-                typeSource = xsdTypeSource;
+        Optional<SyntaxTree> xsdTypesTree = Optional.ofNullable(result.types());
+        Optional<SyntaxTree> combinedTypesTree;
+        if (irTypesTree.isPresent() && xsdTypesTree.isPresent()) {
+            combinedTypesTree = Optional.of(CodeGenerator.merge(irTypesTree.get(), xsdTypesTree.get()));
+        } else if (irTypesTree.isPresent()) {
+            combinedTypesTree = irTypesTree;
+        } else {
+            combinedTypesTree = xsdTypesTree;
+        }
+        if (combinedTypesTree.isPresent()) {
+            SyntaxTree typesTree = combinedTypesTree.get();
+            if (System.getenv("BAL_MIGRATE_SKIP_FORMATTING") == null) {
+                typesTree = CodeGenerator.formatSyntaxTree(typesTree);
             }
-            files.put("types.bal", typeSource);
+            files.put("types.bal", typesTree.toSourceCode());
         }
         files.put("Ballerina.toml", ballerinaToml(cx));
 
