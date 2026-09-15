@@ -36,6 +36,7 @@ import tibco.analyzer.TibcoAnalysisReport.PartiallySupportedActivityElement.UnNa
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.NamedUnhandledActivityElement;
 import tibco.analyzer.TibcoAnalysisReport.UnhandledActivityElement.UnNamedUnhandledActivityElement;
+import tibco.model.NameSpace;
 import tibco.model.Process;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
@@ -49,6 +50,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -98,6 +100,8 @@ public class ProjectContext implements LoggingContext {
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<String, Resource.JMSSharedResource> jmsResourceMap = new HashMap<>();
+    private final Map<String, NameSpace> projectNameSpacesByUri = new LinkedHashMap<>();
+    private final Map<String, String> projectPrefixToUri = new HashMap<>();
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
     private ContextTypeNames contextTypeNames = null;
@@ -126,6 +130,36 @@ public class ProjectContext implements LoggingContext {
 
     int allocatePort() {
         return nextPort++;
+    }
+
+    /**
+     * Resolves a namespace to a project-wide unique prefix. TIBCO Designer numbers namespace prefixes
+     * (ns1, ns2, ...) independently per process, so two different processes can each pick the same
+     * prefix for two different namespace URIs. Since Ballerina resolves module-level xmlns declarations
+     * across every file in the module, such a clash must be resolved here, at project scope, rather than
+     * per-process.
+     */
+    NameSpace registerNameSpace(NameSpace nameSpace) {
+        NameSpace existing = projectNameSpacesByUri.get(nameSpace.uri());
+        if (existing != null) {
+            return existing;
+        }
+        String prefix = nameSpace.prefix().orElseThrow();
+        String finalPrefix = projectPrefixToUri.containsKey(prefix) ? mintUniquePrefix(prefix) : prefix;
+        NameSpace resolved = finalPrefix.equals(prefix) ? nameSpace : new NameSpace(finalPrefix, nameSpace.uri());
+        projectNameSpacesByUri.put(nameSpace.uri(), resolved);
+        projectPrefixToUri.put(finalPrefix, nameSpace.uri());
+        return resolved;
+    }
+
+    private String mintUniquePrefix(String basePrefix) {
+        int suffix = 1;
+        String candidate;
+        do {
+            candidate = basePrefix + suffix;
+            suffix++;
+        } while (projectPrefixToUri.containsKey(candidate));
+        return candidate;
     }
 
     BallerinaModel.Module serialize(Collection<BallerinaModel.TextDocument> textDocuments) {
@@ -442,8 +476,14 @@ public class ProjectContext implements LoggingContext {
     }
 
     public void addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
-        BallerinaModel.ModuleVar var = BallerinaModel.ModuleVar.configurable(source, type);
-        utilityVars.put(name, var);
+        utilityVars.put(name, BallerinaModel.ModuleVar.configurable(
+                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames()),
+                type));
+    }
+
+    @NotNull
+    private Set<String> emittedVarNames() {
+        return utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).collect(Collectors.toSet());
     }
 
     public BallerinaModel.Expression.VariableReference getHttpClient(String path) {

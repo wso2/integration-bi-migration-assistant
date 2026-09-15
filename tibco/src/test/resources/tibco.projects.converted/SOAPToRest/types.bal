@@ -38,4 +38,3 @@ type XMLElementParseResult record {|
     string? namespace;
     string name;
 |};
-

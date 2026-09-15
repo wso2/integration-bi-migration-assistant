@@ -1,3 +1,5 @@
+import ballerina/data.xmldata;
+
 public type Context record {|
     map<xml> variables;
     xml result;
@@ -33,8 +35,6 @@ public type XMLResponse readonly & record {|
     "XMLResponse" kind = "XMLResponse";
     xml payload;
 |};
-
-import ballerina/data.xmldata;
 
 @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
 public type ProcessContext record {|
