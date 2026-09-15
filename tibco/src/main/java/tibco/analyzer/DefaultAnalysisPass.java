@@ -235,9 +235,15 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         cx.allocateControlFlowFunctionsIfNeeded(scope);
         cx.pushScope(scope);
         scope.flows().forEach(flow -> analyseFlow(cx, flow));
-        scope.faultHandlers().forEach(faultHandler -> analyseActivity(cx, faultHandler));
+        analyseFaultHandlers(cx, scope.faultHandlers());
         scope.sequence().forEach(sequence -> analyseSequence(cx, sequence));
         cx.popScope();
+    }
+
+    private void analyseFaultHandlers(ProcessAnalysisContext cx, Collection<Scope.FaultHandler> faultHandlers) {
+        cx.getInSequence().push(false);
+        faultHandlers.forEach(faultHandler -> analyseActivity(cx, faultHandler));
+        cx.getInSequence().pop();
     }
 
     @Override

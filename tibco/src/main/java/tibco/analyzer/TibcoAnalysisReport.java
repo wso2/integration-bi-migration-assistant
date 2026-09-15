@@ -50,7 +50,6 @@ public final class TibcoAnalysisReport {
                                Collection<UnhandledActivityElement> unhandledActivityElements,
                                int partiallySupportedActivityCount,
                                Collection<PartiallySupportedActivityElement> partiallySupportedActivityElements) {
-        assert totalActivityCount >= unhandledActivityCount;
         unhandledActivityElements = Collections.unmodifiableCollection(unhandledActivityElements);
         partiallySupportedActivityElements = Collections.unmodifiableCollection(partiallySupportedActivityElements);
         this.totalActivityCount = totalActivityCount;
@@ -201,8 +200,11 @@ public final class TibcoAnalysisReport {
                 new HashSet<>(report1.partiallySupportedActivityElements());
         partiallySupportedActivities.addAll(report2.partiallySupportedActivityElements());
 
+        int totalActivityCount = report1.totalActivityCount() + report2.totalActivityCount();
+        assert totalActivityCount >= unhandledActivities.size() :
+                "Combined total activity count should never be less than the combined unhandled activity count";
         return new TibcoAnalysisReport(
-                report1.totalActivityCount() + report2.totalActivityCount(),
+                totalActivityCount,
                 unhandledActivities.size(),
                 unhandledActivities,
                 partiallySupportedActivities.size(),
