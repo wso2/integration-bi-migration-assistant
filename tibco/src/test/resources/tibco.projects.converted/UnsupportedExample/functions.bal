@@ -233,11 +233,11 @@ function SQL_Direct(Context cx) returns error? {
     var4.strings = [var3];
     // WARNING: Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Using placeholder client.
     jdbc:Client placeholder_db_connection = checkpanic error("Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Cannot generate call.");
-    xml var4;
-    if var2.startsWith("SELECT") {
-        stream<record {|anydata...;|}, error?> var5 = placeholder_db_connection->query(var3);
-        xml var6 = xml ``;
-        check from var each in var5
+    xml var5;
+    if var3.startsWith("SELECT") {
+        stream<record {|anydata...;|}, error?> var6 = placeholder_db_connection->query(var4);
+        xml var7 = xml ``;
+        check from var each in var6
             do {
                 xml var8 = check toXML(each);
                 var7 = var7 + xml `<Record>${var8}</Record>`;
@@ -334,7 +334,7 @@ function start_Processes_MainProcessStarter_process(Context cx) returns () {
     return scope0ScopeFn(cx);
 }
 
-function HTTP_Receiver_12(Context cx) returns error? {
+function HTTP_Receiver_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(cx, "HTTP-Receiver", var1);
@@ -384,7 +384,7 @@ function InnerLogIndex(Context cx) returns error? {
     addToContext(cx, "InnerLogIndex", var3);
 }
 
-function Log_14(Context cx) returns error? {
+function Log_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
@@ -438,7 +438,7 @@ function Loop(Context cx) returns error? {
     addToContext(cx, "Loop", var1);
 }
 
-function Mapper_13(Context cx) returns error? {
+function Mapper_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -592,9 +592,9 @@ function SOAPSendReply(Context cx) returns error? {
 }
 
 function scope0_1ActivityRunner(Context cx) returns error? {
-    check HTTP_Receiver_12(cx);
-    check Mapper_13(cx);
-    check Log_14(cx);
+    check HTTP_Receiver_1(cx);
+    check Mapper_1(cx);
+    check Log_1(cx);
     check SOAPSendReply(cx);
 }
 

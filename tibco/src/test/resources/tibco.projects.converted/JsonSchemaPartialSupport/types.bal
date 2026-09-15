@@ -37,11 +37,12 @@ public type XMLResponse readonly & record {|
 |};
 
 public type Event record {|
-    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
-    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 0, maxOccurs: 1}
+    SequenceGroup sequenceGroup?;
 |};
 
 public type SequenceGroup record {|
     @xmldata:SequenceOrder {value: 1}
+    @xmldata:Element {minOccurs: 0, maxOccurs: 1}
     string EventName?;
 |};

@@ -38,36 +38,36 @@ public type XMLResponse readonly & record {|
 
 @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
 public type ProcessContext record {|
-    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
-    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 65535}
+    SequenceGroup[] sequenceGroup;
 |};
 
 @xmldata:Name {value: "ProcessContext"}
 @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
 public type ProcessContext1 record {|
-    @xmldata:Sequence {minOccurs: 1, maxOccurs: 1}
-    SequenceGroup sequenceGroup;
+    @xmldata:Sequence {minOccurs: 1, maxOccurs: 65535}
+    SequenceGroup[] sequenceGroup;
 |};
 
 @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
 public type SequenceGroup record {|
-    @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
     @xmldata:SequenceOrder {value: 1}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string JobId;
-    @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
     @xmldata:SequenceOrder {value: 2}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string ApplicationName;
-    @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
     @xmldata:SequenceOrder {value: 3}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string EngineName;
-    @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
     @xmldata:SequenceOrder {value: 4}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string ProcessInstanceId;
-    @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
     @xmldata:SequenceOrder {value: 5}
+    @xmldata:Element {minOccurs: 0, maxOccurs: 1}
     string CustomJobId?;
-    @xmldata:Namespace {uri: "http://www.tibco.com/pe/EngineTypes"}
     @xmldata:SequenceOrder {value: 6}
+    @xmldata:Element {minOccurs: 0, maxOccurs: 65535}
     string[] TrackingInfo?;
 |};
 
@@ -99,6 +99,7 @@ public type TestResponse record {|
 public type SequenceGroup1 record {|
     @xmldata:Namespace {uri: "http://xmlns.example.com/test/api"}
     @xmldata:SequenceOrder {value: 1}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string request;
 |};
 
@@ -106,5 +107,6 @@ public type SequenceGroup1 record {|
 public type SequenceGroup2 record {|
     @xmldata:Namespace {uri: "http://xmlns.example.com/test/api"}
     @xmldata:SequenceOrder {value: 1}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string response;
 |};
