@@ -262,6 +262,8 @@ public class ConversionUtilsTest {
         ProjectConversionContext conversionContext =
                 TestUtils.createTestProjectConversionContext("test", projectName);
         return new ProjectContext(conversionContext, Map.<Process, AnalysisResult>of());
+    }
+    
     @Test(groups = { "tibco", "converter" })
     public void testSlashSeparatedResourcePathIsSanitizedAsConfigurableVariable() {
         ProjectContext projectContext = newProjectContext();
