@@ -425,9 +425,10 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                         accum.add(getTransitionPredicateFn(cx, xPath, expr));
                     }
                     case Activity.Source.Predicate.Else anElse -> {
-                        assert prev != null : "Should not be the first predicate";
+                        // No preceding sibling condition to negate means this "otherwise" link is
+                        // effectively the only/default transition, so it's unconditionally taken.
                         accum.add(getTransitionPredicateFn(cx, anElse,
-                                new Expression.Not(prev)));
+                                prev != null ? new Expression.Not(prev) : exprFrom("true")));
                     }
                 }
             }
@@ -673,20 +674,41 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         AnalysisResult analysisResult = cx.getAnalysisResult();
         Collection<Scope.FaultHandler> faultHandlers = scope.faultHandlers();
         List<Statement> body = new ArrayList<>();
-        int resultCount = 0;
-        if (faultHandlers.isEmpty()) {
-            body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
-        } else {
-            VariableReference finalResult = null;
-            for (Scope.FaultHandler each : faultHandlers) {
-                AnalysisResult.ActivityData data = analysisResult.from(each);
-                VarDeclStatment result = new VarDeclStatment(XML, "result" + (resultCount++),
-                        new CheckPanic(
-                                new FunctionCall(data.functionName(), List.of(new VariableReference(context.name())))));
-                body.add(result);
-                finalResult = result.ref();
+        // Typed catches must be tried before catchAll regardless of source document order, since only
+        // one handler may fire per fault and catchAll is only ever a fallback.
+        List<Scope.FaultHandler> orderedFaultHandlers = faultHandlers.stream()
+                .sorted(Comparator.comparingInt(handler -> handler instanceof Scope.Flow.Activity.Catch ? 0 : 1))
+                .toList();
+        boolean lastHandlerAlwaysReturns = false;
+        for (Scope.FaultHandler each : orderedFaultHandlers) {
+            AnalysisResult.ActivityData data = analysisResult.from(each);
+            Statement invokeHandler = new Statement.CallStatement(new CheckPanic(
+                    new FunctionCall(data.functionName(), List.of(new VariableReference(context.name())))));
+            if (each instanceof Scope.Flow.Activity.Catch catchHandler) {
+                // Only the first matching typed catch runs for a given fault; catchAll (below) is the
+                // fallback reached only when no preceding catch matched.
+                List<Statement> matchedBody = new ArrayList<>();
+                catchHandler.faultVariable().ifPresent(faultVariable -> matchedBody.add(
+                        new Statement.CallStatement(new FunctionCall(cx.getAddToContextFn(),
+                                List.of(new VariableReference(context.name()), new StringConstant(faultVariable),
+                                        exprFrom("checkpanic err.detail()[\"payload\"].ensureType()"))))));
+                matchedBody.add(invokeHandler);
+                matchedBody.add(new Return<Expression>());
+                body.add(Statement.IfElseStatement.ifStatement(
+                        exprFrom("err.detail()[\"faultName\"] == \""
+                                + ConversionUtils.escapeString(catchHandler.faultName()) + "\""),
+                        matchedBody));
+                lastHandlerAlwaysReturns = false;
+            } else {
+                body.add(invokeHandler);
+                body.add(new Return<Expression>());
+                lastHandlerAlwaysReturns = true;
             }
-            body.add(new Return<>(finalResult));
+        }
+        // Reachable only when no fault handler unconditionally handles every fault (i.e. no trailing
+        // catchAll): re-panic rather than silently swallowing a fault nothing matched.
+        if (!lastHandlerAlwaysReturns) {
+            body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
         }
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(scope).errorHandler();
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
