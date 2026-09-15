@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -119,14 +120,8 @@ final class ResourceConvertor {
         try {
             String listenerName = ConversionUtils.sanitizes(
                     ConversionUtils.resourceNameFromPath(resource.path()));
-            Expression port =
-                    resource.port().map(value -> (Expression) common.ConversionUtils.exprFrom(Integer.toString(value)))
-                            .orElseGet(() -> {
-                                        String onMissingName = listenerName + "Port";
-                                        return new Expression.VariableReference(
-                                                cx.addConfigurableVariable(onMissingName, onMissingName, INT));
-                                    }
-                            );
+            Expression port = getOptionalConfigurableValue(cx, resource.port(), listenerName + "Port", INT,
+                    value -> common.ConversionUtils.exprFrom(Integer.toString(value)));
             BallerinaModel.Listener listener = new BallerinaModel.Listener.HTTPListener(listenerName,
                     port, Optional.of(getOptionalConfigurableValueString(cx, resource.host(), listenerName + "Host")));
             cx.addListnerDeclartion(resource.path(), listener, List.of(), List.of(Library.HTTP));
@@ -220,9 +215,13 @@ final class ResourceConvertor {
 
     private static Expression getOptionalConfigurableValueString(ProjectContext cx, Optional<String> configValue,
                                                                  String onMissingName) {
-        return configValue.map(value -> (Expression) new StringConstant(value)).orElseGet(() ->
-                new Expression.VariableReference(
-                        cx.addConfigurableVariable(onMissingName, onMissingName, STRING))
+        return getOptionalConfigurableValue(cx, configValue, onMissingName, STRING, StringConstant::new);
+    }
+
+    private static <T> Expression getOptionalConfigurableValue(ProjectContext cx, Optional<T> configValue,
+            String onMissingName, BallerinaModel.TypeDesc type, Function<T, Expression> toExpr) {
+        return configValue.map(toExpr).orElseGet(() ->
+                new Expression.VariableReference(cx.addConfigurableVariable(onMissingName, onMissingName, type))
         );
     }
 }

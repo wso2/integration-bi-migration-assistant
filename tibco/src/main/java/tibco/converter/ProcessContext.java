@@ -30,9 +30,11 @@ import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,7 +59,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     public final Process process;
 
     public final ProjectContext projectContext;
-    private final Map<Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap = new HashMap<>();
+    // Identity-keyed: Predicate.Else has no fields, so distinct Else predicates from different
+    // sources are equals()-equal but must not share a cached function name.
+    private final Map<Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
+            new IdentityHashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private DefaultClientDetails processClient;
@@ -100,16 +105,30 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         // Find the resource path from the generated resources map by matching the resource name.
         // TIBCO references a resource in a subfolder using the folder-qualified form
         // "<parentFolder>.<resourceBaseName>" (e.g. "DAS.JDBCConnectionResource"), so a candidate
-        // is matched against both the bare resource name and that qualified form.
+        // is matched against both the bare resource name and that qualified form. The qualified
+        // form is preferred, since it disambiguates resources that share a bare file name.
+        List<String> qualifiedMatches = new ArrayList<>();
+        List<String> bareMatches = new ArrayList<>();
         for (String resourcePath : projectContext.getGeneratedResourceKeys()) {
             String name = tibco.converter.ConversionUtils.resourceNameFromPath(resourcePath);
             String qualifiedName = tibco.converter.ConversionUtils.qualifiedResourceNameFromPath(resourcePath, name);
-            if (name.equals(resourceName) || qualifiedName.equals(resourceName)) {
-                return resourcePath;
+            if (qualifiedName.equals(resourceName)) {
+                qualifiedMatches.add(resourcePath);
+            } else if (name.equals(resourceName)) {
+                bareMatches.add(resourcePath);
             }
         }
-        // If not found, return the original name (fallback)
-        return resourceName;
+        List<String> matches = qualifiedMatches.isEmpty() ? bareMatches : qualifiedMatches;
+        if (matches.isEmpty()) {
+            // If not found, return the original name (fallback)
+            return resourceName;
+        }
+        matches.sort(String::compareTo);
+        if (matches.size() > 1) {
+            log(LoggingUtils.Level.WARN, "Ambiguous resource reference \"" + resourceName
+                    + "\" matches multiple resources: " + matches + "; using \"" + matches.getFirst() + "\"");
+        }
+        return matches.getFirst();
     }
 
     String getToXmlFunction() {

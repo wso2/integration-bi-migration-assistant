@@ -277,11 +277,15 @@ public final class ConversionUtils {
     // baseName must be resourceNameFromPath(path), passed in to avoid recomputing it.
     public static @NotNull String qualifiedResourceNameFromPath(String path, String baseName) {
         String[] parts = path.split("/");
-        if (parts.length < 2) {
+        int lastIndex = parts.length - 1;
+        while (lastIndex >= 0 && parts[lastIndex].isEmpty()) {
+            lastIndex--;
+        }
+        int parentIndex = lastIndex - 1;
+        if (parentIndex < 0 || parts[parentIndex].isEmpty()) {
             return baseName;
         }
-        String parentFolder = parts[parts.length - 2];
-        return parentFolder + "." + baseName;
+        return parts[parentIndex] + "." + baseName;
     }
 
     public static @NotNull String createSoapEnvelope(Expression.VariableReference body) {

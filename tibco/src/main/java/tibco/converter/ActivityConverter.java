@@ -285,12 +285,7 @@ final class ActivityConverter {
         VarDeclStatment query = jdbcQuery.statement()
                 .map(value -> new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
                         cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
-                .orElseGet(() -> {
-                    String configName = configurableNames.apply("Statement");
-                    String configVarName = cx.projectContext().addConfigurableVariable(configName, configName);
-                    return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configVarName)));
-                });
+                .orElseGet(() -> configuredParameterizedQuery(cx, configurableNames.apply("Statement")));
 
         body.add(query);
         JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcQuery.connection(), query.ref());
@@ -306,6 +301,11 @@ final class ActivityConverter {
         }
         body.add(new Statement.VarAssignStatement(result.ref(), streamingResult.result()));
         return new ActivityConversionResult(result.ref(), body);
+    }
+
+    private static VarDeclStatment configuredParameterizedQuery(ActivityContext cx, String configName) {
+        return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
+                exprFrom("`${%s}`".formatted(cx.projectContext().addConfigurableVariable(configName, configName))));
     }
 
     private static ActivityConversionResult convertListFilesActivity(
@@ -732,12 +732,7 @@ final class ActivityConverter {
         VarDeclStatment query = jdbcUpdate.statement()
                 .map(value -> new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
                         cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
-                .orElseGet(() -> {
-                    String configName = configurableNames.apply("Statement");
-                    String configVarName = cx.projectContext().addConfigurableVariable(configName, configName);
-                    return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configVarName)));
-                });
+                .orElseGet(() -> configuredParameterizedQuery(cx, configurableNames.apply("Statement")));
 
         body.add(query);
 
@@ -1012,16 +1007,17 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
         List<Statement> body = new ArrayList<>();
         body.add(addToContext(cx, input, "$Start"));
-        String processFn = cx.getProcessFunction(callProcess.processName())
-                .orElseGet(() -> {
-                            body.add(new Comment(
-                                    "FIXME: failed to find process for %s using placeholder".formatted(
-                                            callProcess.processName())));
-                            return "placeholder_process_for_" + ConversionUtils.sanitizes(callProcess.processName());
-                        }
-                );
-
-        body.add(new CallStatement(new FunctionCall(processFn, List.of(cx.contextVarRef()))));
+        Optional<String> processFn = cx.getProcessFunction(callProcess.processName());
+        if (processFn.isPresent()) {
+            body.add(new CallStatement(new FunctionCall(processFn.get(), List.of(cx.contextVarRef()))));
+        } else {
+            cx.log(SEVERE, "WARNING: Failed to find process for " + callProcess.processName()
+                    + ". Using placeholder call.");
+            body.add(new Comment(
+                    "WARNING: Missing process '" + callProcess.processName() + "'. Cannot generate call."));
+            body.add(new CallStatement(new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
+                    "Missing process '" + callProcess.processName() + "'. Cannot generate call."))))));
+        }
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
