@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:activity name="SOAPRequestReply" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <pd:type>com.tibco.plugin.soap.SOAPSendReceiveActivity</pd:type>
+    <pd:resourceType>ae.activities.SOAPSendReceiveUI</pd:resourceType>
+    <config>
+        <timeout>%%Libraries/Logging/Configuration/GetConfigurationTimeoutInSec%%</timeout>
+        <soapAttachmentStyle>SwA</soapAttachmentStyle>
+        <timeoutType>Seconds</timeoutType>
+        <service>pfx6:Service</service>
+        <servicePort>LoggingSyncPortTypeEMSEndpoint</servicePort>
+        <operation>GetConfiguration</operation>
+        <soapAction>/service/enterprise/utilities/logging/1.0/getconfiguration</soapAction>
+        <sharedChannels>
+            <jmsChannel>
+                <NamingURL>tibjmsnaming://localhost:7222</NamingURL>
+                <NamingInitialContextFactory>com.tibco.tibjms.naming.TibjmsInitialContextFactory</NamingInitialContextFactory>
+                <NamingPrincipal>admin</NamingPrincipal>
+                <NamingCredential/>
+                <ConnectionFactory>QueueConnectionFactory</ConnectionFactory>
+                <JMSTo>%%Environment%%.service.enterprise.utilities.logging.1.0.Request</JMSTo>
+                <JMSMessageType>Bytes</JMSMessageType>
+                <JMSDeliveryMode>PERSISTENT</JMSDeliveryMode>
+                <JMSPriority>4</JMSPriority>
+                <JMSTimeToLive>0</JMSTimeToLive>
+                <JMSUserName>admin</JMSUserName>
+                <JMSPassword/>
+                <shareJms>true</shareJms>
+                <ApplicationPropertiesInMessage>/Libraries/Transport/Resources/Transport/JMS/ESBProperties.sharedjmsapp</ApplicationPropertiesInMessage>
+                <ApplicationPropertiesOutMessage>/Libraries/Transport/Resources/Transport/JMS/ESBProperties.sharedjmsapp</ApplicationPropertiesOutMessage>
+            </jmsChannel>
+        </sharedChannels>
+        <ConnectionReference>/Libraries/Transport/Resources/Transport/JMS/ESB.sharedjmscon</ConnectionReference>
+    </config>
+    <pd:inputBindings>
+        <inputMessage>
+            <message>
+                "foo bar"
+            </message>
+        </inputMessage>
+    </pd:inputBindings>
+</pd:activity>

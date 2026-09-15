@@ -563,9 +563,40 @@ public final class XmlToTibcoModelParser {
 
     private static InlineActivity.SOAPSendReceive parseSoapSendReceive(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        String endpointURL = getInlineActivityConfigValue(element, "endpointURL");
         Optional<String> soapAction = tryGetInlineActivityConfigValue(element, "soapAction");
-        return new InlineActivity.SOAPSendReceive(element, name, inputBinding, soapAction, endpointURL, cx.fileName());
+        Optional<String> endpointURL = tryGetInlineActivityConfigValue(element, "endpointURL");
+        if (endpointURL.isPresent()) {
+            return new InlineActivity.SOAPSendReceive.HTTPEndpoint(element, name, inputBinding, soapAction,
+                    endpointURL.get(), cx.fileName());
+        }
+        Element config = getFirstChildWithTag(element, "config");
+        Element jmsChannel = tryGetFirstChildWithTag(config, "sharedChannels")
+                .flatMap(sharedChannels -> tryGetFirstChildWithTag(sharedChannels, "jmsChannel"))
+                .orElseThrow(() -> new ParserException(
+                        "SOAPSendReceive without either an endpointURL or a jmsChannel is not supported", element));
+        return new InlineActivity.SOAPSendReceive.JMSProducer(element, name, inputBinding, soapAction,
+                parseSoapJmsChannel(jmsChannel), parseOptionalInt(config, "timeout"),
+                parseSoapJmsChannelValue(config, "timeoutType"), cx.fileName());
+    }
+
+    private static InlineActivity.SOAPSendReceive.JMSChannel parseSoapJmsChannel(Element jmsChannel) {
+        return new InlineActivity.SOAPSendReceive.JMSChannel(
+                parseSoapJmsChannelValue(jmsChannel, "NamingURL"),
+                parseSoapJmsChannelValue(jmsChannel, "NamingInitialContextFactory"),
+                parseSoapJmsChannelValue(jmsChannel, "NamingPrincipal"),
+                parseSoapJmsChannelValue(jmsChannel, "NamingCredential"),
+                parseSoapJmsChannelValue(jmsChannel, "ConnectionFactory"),
+                parseSoapJmsChannelValue(jmsChannel, "JMSTo"),
+                parseSoapJmsChannelValue(jmsChannel, "JMSMessageType"),
+                parseSoapJmsChannelValue(jmsChannel, "JMSDeliveryMode"),
+                parseOptionalInt(jmsChannel, "JMSPriority"),
+                parseOptionalInt(jmsChannel, "JMSTimeToLive"),
+                parseSoapJmsChannelValue(jmsChannel, "JMSUserName"),
+                parseSoapJmsChannelValue(jmsChannel, "JMSPassword"));
+    }
+
+    private static Optional<String> parseSoapJmsChannelValue(Element jmsChannel, String tag) {
+        return parseOptionalString(jmsChannel, tag).filter(Predicate.not(String::isBlank));
     }
 
     private static @NotNull LoopGroup parseLoopGroup(ProcessContext cx, Element element, String name,
