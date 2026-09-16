@@ -97,6 +97,8 @@ import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 final class ActivityConverter {
 
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
+    // TIBCO global variables are referenced as %%name%% and can appear inside a larger value.
+    private static final Pattern SUBSTITUTION_TOKEN = Pattern.compile("%%([^%]+)%%");
 
     private ActivityConverter() {
     }
@@ -889,31 +891,36 @@ final class ActivityConverter {
 
         VarDeclStatment connection = new VarDeclStatment(ConversionUtils.Constants.JMS_CONNECTION,
                 cx.getAnnonVarName(),
-                new Check(exprFrom("new (%s)".formatted(soapJmsConnectionArgs(cx, channel, configPrefix)))));
+                new Check(exprFrom("new (%s)"
+                        .formatted(soapJmsConnectionArgs(cx, channel, jmsProducer.name(), configPrefix)))));
         body.add(connection);
 
+        VarDeclStatment exchangeResult = new VarDeclStatment(UnionTypeDesc.of(XML, ERROR), cx.getAnnonVarName());
+        body.add(exchangeResult);
+
+        List<Statement> exchange = new ArrayList<>();
         VarDeclStatment session = new VarDeclStatment(ConversionUtils.Constants.JMS_SESSION, cx.getAnnonVarName(),
                 new Check(new RemoteMethodCallAction(connection.ref(), "createSession", List.of())));
-        body.add(session);
+        exchange.add(session);
 
         VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
                 cx.getAnnonVarName(),
                 new Check(new MethodCall(session.ref(), "createProducer", List.of(exprFrom("destination = %s"
-                        .formatted(soapJmsQueue(soapJmsConfigurableString(cx, channel.destination(),
-                                configPrefix + "Destination"))))))));
-        body.add(producer);
+                        .formatted(soapJmsQueue(
+                                soapJmsDestinationName(cx, channel.destination(), configPrefix))))))));
+        exchange.add(producer);
 
         VarDeclStatment correlationId = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 new FunctionCall("uuid:createType4AsString", List.of()));
-        body.add(correlationId);
+        exchange.add(correlationId);
 
         // TIBCO replies over a temporary queue created per request, but jms:Session exposes no way to create one and
         // then address it, so the reply queue has to be supplied by the operator instead.
         String replyToQueueName = configPrefix + "ReplyToQueue";
         cx.projectContext().addConfigurableVariable(replyToQueueName, replyToQueueName, STRING);
         String replyToQueue = soapJmsQueue(cx.getConfigVarName(replyToQueueName));
-        body.add(new Comment(("WARNING: TIBCO replies over a dynamically created temporary queue. Configure %s with a "
-                + "queue the service can reply to").formatted(cx.getConfigVarName(replyToQueueName))));
+        exchange.add(new Comment(("WARNING: TIBCO replies over a dynamically created temporary queue. Configure %s "
+                + "with a queue the service can reply to").formatted(cx.getConfigVarName(replyToQueueName))));
         cx.log(WARN, ("SOAPSendReceive '%s' is configured over JMS: the temporary reply queue was replaced by the "
                 + "configurable queue %s").formatted(jmsProducer.name(), cx.getConfigVarName(replyToQueueName)));
         cx.registerPartiallySupportedActivity(jmsProducer);
@@ -923,50 +930,61 @@ final class ActivityConverter {
                 new Check(new MethodCall(session.ref(), "createConsumer", List.of(exprFrom(
                         "destination = %s, messageSelector = string `JMSCorrelationID = '${%s}'`"
                                 .formatted(replyToQueue, correlationId.ref()))))));
-        body.add(consumer);
+        exchange.add(consumer);
 
         VarDeclStatment envelope = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
-        body.add(envelope);
+        exchange.add(envelope);
 
         channel.messageType().filter(type -> !type.equalsIgnoreCase("Text") && !type.equalsIgnoreCase("Bytes"))
-                .ifPresent(type -> body.add(new Comment(
+                .ifPresent(type -> exchange.add(new Comment(
                         "WARNING: Unsupported JMS message type: %s. Sending the SOAP envelope as a text message"
                                 .formatted(type))));
         channel.timeToLive().filter(timeToLive -> timeToLive != 0)
-                .ifPresent(timeToLive -> body.add(new Comment(
+                .ifPresent(timeToLive -> exchange.add(new Comment(
                         "WARNING: JMSTimeToLive (%d) is not supported".formatted(timeToLive))));
 
         VarDeclStatment message = soapJmsMessage(cx, jmsProducer, envelope.ref(), correlationId.ref(), replyToQueue);
-        body.add(message);
-        body.add(new CallStatement(
+        exchange.add(message);
+        exchange.add(new CallStatement(
                 new Check(new RemoteMethodCallAction(producer.ref(), "send", List.of(message.ref())))));
 
         VarDeclStatment reply = new VarDeclStatment(UnionTypeDesc.of(NIL, ConversionUtils.Constants.JMS_MESSAGE),
                 cx.getAnnonVarName(), new Check(new RemoteMethodCallAction(consumer.ref(), "receive",
                 List.of(exprFrom(soapJmsReceiveTimeout(cx, jmsProducer, configPrefix))))));
-        body.add(reply);
-        body.add(Statement.IfElseStatement.ifStatement(exprFrom("%s is ()".formatted(reply.ref())),
-                List.of(new Statement.Return<>(new FunctionCall("error",
-                        List.of(new StringConstant("Timed out waiting for the SOAP response")))))));
+        exchange.add(reply);
+        exchange.add(Statement.IfElseStatement.ifStatement(exprFrom("%s is ()".formatted(reply.ref())),
+                List.of(stmtFrom("fail error(\"Timed out waiting for the SOAP response\");"))));
 
         VarDeclStatment content = new VarDeclStatment(STRING, cx.getAnnonVarName());
-        body.add(content);
-        body.add(stmtFrom("""
+        exchange.add(content);
+        exchange.add(stmtFrom("""
                 if %1$s is jms:TextMessage {
                     %2$s = %1$s.content;
                 } else if %1$s is jms:BytesMessage {
                     %2$s = check string:fromBytes(%1$s.content);
                 } else {
-                    return error("Unexpected SOAP response message type");
+                    fail error("Unexpected SOAP response message type");
                 }
                 """.formatted(reply.ref(), content.ref())));
 
         VarDeclStatment response = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new Check(new FunctionCall("xml:fromString", List.of(content.ref()))));
-        body.add(response);
+        exchange.add(response);
+        exchange.add(new Statement.VarAssignStatement(exchangeResult.ref(),
+                exprFrom("%s/**/<soap:Body>/*".formatted(response.ref()))));
+
+        String failureVarName = cx.getAnnonVarName();
+        body.add(new Statement.DoStatement(exchange, new BallerinaModel.OnFailClause(
+                List.of(new Statement.VarAssignStatement(exchangeResult.ref(),
+                        new VariableReference(failureVarName))),
+                new BallerinaModel.TypeBindingPattern(ERROR, failureVarName))));
+        // Closing the connection cascades to the session, producer and consumer created from it, so this is the
+        // only cleanup needed on either the success or the failure path.
+        body.add(new CallStatement(new Check(new RemoteMethodCallAction(connection.ref(), "close", List.of()))));
+
         VarDeclStatment responseBody = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/**/<soap:Body>/*".formatted(response.ref())));
+                new Check(exchangeResult.ref()));
         body.add(responseBody);
         VarDeclStatment wrappedResponse = wrapWithRoot(cx, responseBody.ref());
         body.add(wrappedResponse);
@@ -991,29 +1009,58 @@ final class ActivityConverter {
 
     private static String soapJmsConnectionArgs(ActivityContext cx,
                                                 InlineActivity.SOAPSendReceive.JMSChannel channel,
-                                                String configPrefix) {
+                                                String jmsProducerName, String configPrefix) {
         List<String> args = new ArrayList<>();
         args.add("initialContextFactory = " + soapJmsConfigurableString(cx, channel.namingInitialContextFactory(),
                 configPrefix + "InitialContextFactory"));
         args.add("providerUrl = "
                 + soapJmsConfigurableString(cx, channel.namingURL(), configPrefix + "ProviderUrl"));
-        channel.connectionFactory()
-                .ifPresent(factory -> args.add("connectionFactoryName = \"%s\"".formatted(factory)));
-        channel.userName().ifPresent(userName -> args.add("username = \"%s\"".formatted(userName)));
-        channel.password().ifPresent(password -> args.add("password = \"%s\"".formatted(password)));
+        channel.connectionFactory().ifPresent(factory -> args.add("connectionFactoryName = \"%s\""
+                .formatted(ConversionUtils.escapeString(factory))));
+        channel.userName().ifPresent(userName -> args.add("username = \"%s\""
+                .formatted(ConversionUtils.escapeString(userName))));
+        channel.password().ifPresent(ignored -> args.add("password = "
+                + soapJmsCredential(cx, jmsProducerName, configPrefix + "Password")));
         List<String> namingProperties = new ArrayList<>();
-        channel.namingPrincipal().ifPresent(principal -> namingProperties
-                .add("\"java.naming.security.principal\": \"%s\"".formatted(principal)));
-        channel.namingCredential().ifPresent(credential -> namingProperties
-                .add("\"java.naming.security.credentials\": \"%s\"".formatted(credential)));
+        channel.namingPrincipal().ifPresent(principal -> namingProperties.add(
+                "\"java.naming.security.principal\": \"%s\"".formatted(ConversionUtils.escapeString(principal))));
+        channel.namingCredential().ifPresent(ignored -> namingProperties.add(
+                "\"java.naming.security.credentials\": "
+                        + soapJmsCredential(cx, jmsProducerName, configPrefix + "NamingCredential")));
         if (!namingProperties.isEmpty()) {
             args.add("properties = {%s}".formatted(String.join(", ", namingProperties)));
         }
         return String.join(", ", args);
     }
 
+    private static String soapJmsCredential(ActivityContext cx, String jmsProducerName, String configName) {
+        cx.projectContext().addConfigurableVariable(configName, configName, STRING);
+        cx.log(WARN, ("SOAPSendReceive '%s' carries a JMS credential in the source: it was replaced by the "
+                + "configurable variable %s, which has to be supplied at runtime")
+                .formatted(jmsProducerName, cx.getConfigVarName(configName)));
+        return cx.getConfigVarName(configName);
+    }
+
+    private static String soapJmsDestinationName(ActivityContext cx, Optional<String> destination,
+                                                String configPrefix) {
+        return destination.filter(value -> SUBSTITUTION_TOKEN.matcher(value).find())
+                .map(value -> soapJmsSubstitutedDestination(cx, value, configPrefix))
+                .orElseGet(() -> soapJmsConfigurableString(cx, destination, configPrefix + "Destination"));
+    }
+
+    private static String soapJmsSubstitutedDestination(ActivityContext cx, String destination, String configPrefix) {
+        String template = destination;
+        for (String token : SUBSTITUTION_TOKEN.matcher(destination).results().map(match -> match.group(1))
+                .distinct().toList()) {
+            String configName = configPrefix + ConversionUtils.sanitizes(token);
+            cx.projectContext().addConfigurableVariable(configName, configName, STRING);
+            template = template.replace("%%" + token + "%%", "${%s}".formatted(cx.getConfigVarName(configName)));
+        }
+        return new StringTemplate(template).toString();
+    }
+
     private static String soapJmsConfigurableString(ActivityContext cx, Optional<String> value, String onMissingName) {
-        return value.map("\"%s\""::formatted).orElseGet(() -> {
+        return value.map(literal -> "\"%s\"".formatted(ConversionUtils.escapeString(literal))).orElseGet(() -> {
             cx.projectContext().addConfigurableVariable(onMissingName, onMissingName, STRING);
             return cx.getConfigVarName(onMissingName);
         });

@@ -21,6 +21,7 @@ package tibco.parser;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -446,5 +447,48 @@ public class XmlToModelTests {
         InlineActivity.JSONParser jsonParser = (InlineActivity.JSONParser) actual;
         assertTrue(jsonParser.targetType().isEmpty());
         assertTrue(jsonParser.inputBinding() != null);
+    }
+
+    @Test
+    public void testParseSoapSendReceiveJmsTimeoutType() throws Exception {
+        InlineActivity.SOAPSendReceive.JMSProducer actual = (InlineActivity.SOAPSendReceive.JMSProducer)
+                XmlToTibcoModelParser.parseActivity(getProcessContext(),
+                        TestUtils.stringToElement(soapSendReceiveOverJms("milliseconds"))).get();
+        assertEquals(actual.timeoutType().get(), "milliseconds");
+    }
+
+    @Test
+    public void testParseSoapSendReceiveRejectsUnsupportedJmsTimeoutType() throws Exception {
+        List<String> logs = new ArrayList<>();
+        ProcessContext processContext = new ProcessContext(new ProjectContext(new ProjectConversionContext(
+                new ConversionContext("testOrg", false, true, message -> { }, logs::add), "test"),
+                "test-project"), ANON_PROCESS);
+        Scope.Flow.Activity actual = XmlToTibcoModelParser.parseActivity(processContext,
+                TestUtils.stringToElement(soapSendReceiveOverJms("Minutes"))).get();
+        assertTrue(actual instanceof InlineActivity.UnhandledInlineActivity);
+        assertTrue(logs.stream().anyMatch(log -> log.contains("Unsupported SOAPSendReceive timeoutType: Minutes")));
+    }
+
+    private static String soapSendReceiveOverJms(String timeoutType) {
+        return """
+                <pd:activity name="SOAPRequestReply" xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
+                	<pd:type>com.tibco.plugin.soap.SOAPSendReceiveActivity</pd:type>
+                	<config>
+                		<timeout>30</timeout>
+                		<timeoutType>%s</timeoutType>
+                		<sharedChannels>
+                			<jmsChannel>
+                				<NamingURL>tibjmsnaming://localhost:7222</NamingURL>
+                				<JMSTo>request.queue</JMSTo>
+                			</jmsChannel>
+                		</sharedChannels>
+                	</config>
+                	<pd:inputBindings>
+                		<inputMessage>
+                			<message>"foo"</message>
+                		</inputMessage>
+                	</pd:inputBindings>
+                </pd:activity>
+                """.formatted(timeoutType);
     }
 }

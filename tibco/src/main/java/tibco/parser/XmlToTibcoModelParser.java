@@ -576,7 +576,18 @@ public final class XmlToTibcoModelParser {
                         "SOAPSendReceive without either an endpointURL or a jmsChannel is not supported", element));
         return new InlineActivity.SOAPSendReceive.JMSProducer(element, name, inputBinding, soapAction,
                 parseSoapJmsChannel(jmsChannel), parseOptionalInt(config, "timeout"),
-                parseSoapJmsChannelValue(config, "timeoutType"), cx.fileName());
+                parseSoapJmsTimeoutType(config), cx.fileName());
+    }
+
+    private static Optional<String> parseSoapJmsTimeoutType(Element config) {
+        return parseSoapJmsChannelValue(config, "timeoutType").map(timeoutType -> {
+            if (!timeoutType.equalsIgnoreCase("Seconds") && !timeoutType.equalsIgnoreCase("Milliseconds")) {
+                throw new ParserException(
+                        "Unsupported SOAPSendReceive timeoutType: " + timeoutType
+                                + ". Only Seconds and Milliseconds are supported", config);
+            }
+            return timeoutType;
+        });
     }
 
     private static InlineActivity.SOAPSendReceive.JMSChannel parseSoapJmsChannel(Element jmsChannel) {

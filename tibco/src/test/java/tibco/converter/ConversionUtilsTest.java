@@ -223,6 +223,16 @@ public class ConversionUtilsTest {
     }
 
     @Test
+    public void testEscapeString() {
+        Assert.assertEquals(ConversionUtils.escapeString("pass\"word"), "pass\\\"word");
+        // The backslash has to be escaped before the quote, otherwise the backslash added for the quote is
+        // escaped again and the literal no longer round trips.
+        Assert.assertEquals(ConversionUtils.escapeString("DOMAIN\\admin"), "DOMAIN\\\\admin");
+        Assert.assertEquals(ConversionUtils.escapeString("a\\\"b"), "a\\\\\\\"b");
+        Assert.assertEquals(ConversionUtils.escapeString(null), "");
+    }
+
+    @Test
     public void testNameSpacePrefixCollision() {
         ProjectContext projectContext = newProjectContext("NamespaceCollision");
 

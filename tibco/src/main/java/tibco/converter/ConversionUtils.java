@@ -123,7 +123,7 @@ public final class ConversionUtils {
         if (value == null) {
             return "";
         }
-        return value.replace("\"", "\\\"");
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static boolean isReserved(String name) {
