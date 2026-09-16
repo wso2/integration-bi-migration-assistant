@@ -123,7 +123,7 @@ public final class ConversionUtils {
         if (value == null) {
             return "";
         }
-        return value.replace("\"", "\\\"");
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static boolean isReserved(String name) {
@@ -286,6 +286,8 @@ public final class ConversionUtils {
                 new BallerinaModel.TypeDesc.TypeReference("jms:Message");
         static final BallerinaModel.TypeDesc.TypeReference JMS_TEXT_MESSAGE =
                 new BallerinaModel.TypeDesc.TypeReference("jms:TextMessage");
+        static final BallerinaModel.TypeDesc.TypeReference JMS_BYTES_MESSAGE =
+                new BallerinaModel.TypeDesc.TypeReference("jms:BytesMessage");
 
         static final BallerinaModel.TypeDesc HTTP_RESPONSE = typeFrom("http:Response");
 

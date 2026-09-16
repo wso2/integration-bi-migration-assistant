@@ -98,6 +98,8 @@ import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 final class ActivityConverter {
 
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
+    // TIBCO global variables are referenced as %%name%% and can appear inside a larger value.
+    private static final Pattern SUBSTITUTION_TOKEN = Pattern.compile("%%([^%]+)%%");
 
     private ActivityConverter() {
     }
@@ -843,14 +845,24 @@ final class ActivityConverter {
 
     private static ActivityConversionResult convertSoapSendReceive(
             ActivityContext cx, VariableReference result, InlineActivity.SOAPSendReceive soapSendReceive) {
+        return switch (soapSendReceive) {
+            case InlineActivity.SOAPSendReceive.HTTPEndpoint httpEndpoint ->
+                    convertSoapSendReceiveOverHTTP(cx, result, httpEndpoint);
+            case InlineActivity.SOAPSendReceive.JMSProducer jmsProducer ->
+                    convertSoapSendReceiveOverJMS(cx, result, jmsProducer);
+        };
+    }
+
+    private static ActivityConversionResult convertSoapSendReceiveOverHTTP(
+            ActivityContext cx, VariableReference result, InlineActivity.SOAPSendReceive.HTTPEndpoint httpEndpoint) {
         String clientName = cx.getAnnonVarName();
-        List<Statement> body = new ArrayList<>(initSoapClient(cx, soapSendReceive, clientName));
+        List<Statement> body = new ArrayList<>(initSoapClient(cx, httpEndpoint, clientName));
 
         VarDeclStatment envelope = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
         body.add(envelope);
         BallerinaModel.Expression soapAction =
-                soapSendReceive.soapAction().map(action -> (BallerinaModel.Expression) new StringConstant(action))
+                httpEndpoint.soapAction().map(action -> (BallerinaModel.Expression) new StringConstant(action))
                         .orElseGet(BallerinaModel.Expression.NilConstant::new);
         VarDeclStatment res = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
                 new RemoteMethodCallAction(new VariableReference(clientName), "sendReceive",
@@ -863,11 +875,229 @@ final class ActivityConverter {
     }
 
     private static Collection<Statement> initSoapClient(ActivityContext cx,
-                                                        InlineActivity.SOAPSendReceive soapSendReceive,
+                                                        InlineActivity.SOAPSendReceive.HTTPEndpoint httpEndpoint,
                                                         String clientName) {
         cx.addLibraryImport(Library.SOAP);
         return List.of(stmtFrom("soap11:Client %s = check new (\"%s\");"
-                .formatted(clientName, soapSendReceive.endpointURL())));
+                .formatted(clientName, httpEndpoint.endpointURL())));
+    }
+
+    private static ActivityConversionResult convertSoapSendReceiveOverJMS(
+            ActivityContext cx, VariableReference result, InlineActivity.SOAPSendReceive.JMSProducer jmsProducer) {
+        cx.addLibraryImport(Library.JMS);
+        cx.addLibraryImport(Library.UUID);
+        InlineActivity.SOAPSendReceive.JMSChannel channel = jmsProducer.jmsChannel();
+        String configPrefix = ConversionUtils.sanitizes(jmsProducer.name());
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://schemas.xmlsoap.org/soap/envelope/\" as soap;"));
+
+        VarDeclStatment connection = new VarDeclStatment(ConversionUtils.Constants.JMS_CONNECTION,
+                cx.getAnnonVarName(),
+                new Check(exprFrom("new (%s)"
+                        .formatted(soapJmsConnectionArgs(cx, channel, jmsProducer.name(), configPrefix)))));
+        body.add(connection);
+
+        VarDeclStatment exchangeResult = new VarDeclStatment(UnionTypeDesc.of(XML, ERROR), cx.getAnnonVarName());
+        body.add(exchangeResult);
+
+        List<Statement> exchange = new ArrayList<>();
+        VarDeclStatment session = new VarDeclStatment(ConversionUtils.Constants.JMS_SESSION, cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(connection.ref(), "createSession", List.of())));
+        exchange.add(session);
+
+        VarDeclStatment producer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_PRODUCER,
+                cx.getAnnonVarName(),
+                new Check(new MethodCall(session.ref(), "createProducer", List.of(exprFrom("destination = %s"
+                        .formatted(soapJmsQueue(
+                                soapJmsDestinationName(cx, channel.destination(), configPrefix))))))));
+        exchange.add(producer);
+
+        VarDeclStatment correlationId = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                new FunctionCall("uuid:createType4AsString", List.of()));
+        exchange.add(correlationId);
+
+        // TIBCO replies over a temporary queue created per request, but jms:Session exposes no way to create one and
+        // then address it, so the reply queue has to be supplied by the operator instead.
+        String replyToQueueName = configPrefix + "ReplyToQueue";
+        cx.projectContext().addConfigurableVariable(replyToQueueName, replyToQueueName, STRING);
+        String replyToQueue = soapJmsQueue(cx.getConfigVarName(replyToQueueName));
+        exchange.add(new Comment(("WARNING: TIBCO replies over a dynamically created temporary queue. Configure %s "
+                + "with a queue the service can reply to").formatted(cx.getConfigVarName(replyToQueueName))));
+        cx.log(WARN, ("SOAPSendReceive '%s' is configured over JMS: the temporary reply queue was replaced by the "
+                + "configurable queue %s").formatted(jmsProducer.name(), cx.getConfigVarName(replyToQueueName)));
+        cx.registerPartiallySupportedActivity(jmsProducer);
+
+        VarDeclStatment consumer = new VarDeclStatment(ConversionUtils.Constants.JMS_MESSAGE_CONSUMER,
+                cx.getAnnonVarName(),
+                new Check(new MethodCall(session.ref(), "createConsumer", List.of(exprFrom(
+                        "destination = %s, messageSelector = string `JMSCorrelationID = '${%s}'`"
+                                .formatted(replyToQueue, correlationId.ref()))))));
+        exchange.add(consumer);
+
+        VarDeclStatment envelope = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate(ConversionUtils.createSoapEnvelope(result)));
+        exchange.add(envelope);
+
+        channel.messageType().filter(type -> !type.equalsIgnoreCase("Text") && !type.equalsIgnoreCase("Bytes"))
+                .ifPresent(type -> exchange.add(new Comment(
+                        "WARNING: Unsupported JMS message type: %s. Sending the SOAP envelope as a text message"
+                                .formatted(type))));
+        channel.timeToLive().filter(timeToLive -> timeToLive != 0)
+                .ifPresent(timeToLive -> exchange.add(new Comment(
+                        "WARNING: JMSTimeToLive (%d) is not supported".formatted(timeToLive))));
+
+        VarDeclStatment message = soapJmsMessage(cx, jmsProducer, envelope.ref(), correlationId.ref(), replyToQueue);
+        exchange.add(message);
+        exchange.add(new CallStatement(
+                new Check(new RemoteMethodCallAction(producer.ref(), "send", List.of(message.ref())))));
+
+        VarDeclStatment reply = new VarDeclStatment(UnionTypeDesc.of(NIL, ConversionUtils.Constants.JMS_MESSAGE),
+                cx.getAnnonVarName(), new Check(new RemoteMethodCallAction(consumer.ref(), "receive",
+                List.of(exprFrom(soapJmsReceiveTimeout(cx, jmsProducer, configPrefix))))));
+        exchange.add(reply);
+        exchange.add(Statement.IfElseStatement.ifStatement(exprFrom("%s is ()".formatted(reply.ref())),
+                List.of(stmtFrom("fail error(\"Timed out waiting for the SOAP response\");"))));
+
+        VarDeclStatment content = new VarDeclStatment(STRING, cx.getAnnonVarName());
+        exchange.add(content);
+        exchange.add(stmtFrom("""
+                if %1$s is jms:TextMessage {
+                    %2$s = %1$s.content;
+                } else if %1$s is jms:BytesMessage {
+                    %2$s = check string:fromBytes(%1$s.content);
+                } else {
+                    fail error("Unexpected SOAP response message type");
+                }
+                """.formatted(reply.ref(), content.ref())));
+
+        VarDeclStatment response = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall("xml:fromString", List.of(content.ref()))));
+        exchange.add(response);
+        exchange.add(new Statement.VarAssignStatement(exchangeResult.ref(),
+                exprFrom("%s/**/<soap:Body>/*".formatted(response.ref()))));
+
+        String failureVarName = cx.getAnnonVarName();
+        body.add(new Statement.DoStatement(exchange, new BallerinaModel.OnFailClause(
+                List.of(new Statement.VarAssignStatement(exchangeResult.ref(),
+                        new VariableReference(failureVarName))),
+                new BallerinaModel.TypeBindingPattern(ERROR, failureVarName))));
+        // Closing the connection cascades to the session, producer and consumer created from it, so this is the
+        // only cleanup needed on either the success or the failure path.
+        body.add(new CallStatement(new Check(new RemoteMethodCallAction(connection.ref(), "close", List.of()))));
+
+        VarDeclStatment responseBody = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(exchangeResult.ref()));
+        body.add(responseBody);
+        VarDeclStatment wrappedResponse = wrapWithRoot(cx, responseBody.ref());
+        body.add(wrappedResponse);
+        return new ActivityConversionResult(wrappedResponse.ref(), body);
+    }
+
+    private static String soapJmsQueue(String name) {
+        return "{'type: jms:QUEUE, name: %s}".formatted(name);
+    }
+
+    private static String soapJmsReceiveTimeout(ActivityContext cx,
+                                                InlineActivity.SOAPSendReceive.JMSProducer jmsProducer,
+                                                String configPrefix) {
+        boolean inMillis = jmsProducer.timeoutType().filter("Milliseconds"::equalsIgnoreCase).isPresent();
+        if (jmsProducer.timeout().isPresent()) {
+            return Integer.toString(inMillis ? jmsProducer.timeout().get() : jmsProducer.timeout().get() * 1000);
+        }
+        String configName = configPrefix + (inMillis ? "TimeoutInMillis" : "TimeoutInSeconds");
+        cx.projectContext().addConfigurableVariable(configName, configName, INT);
+        return inMillis ? cx.getConfigVarName(configName) : "%s * 1000".formatted(cx.getConfigVarName(configName));
+    }
+
+    private static String soapJmsConnectionArgs(ActivityContext cx,
+                                                InlineActivity.SOAPSendReceive.JMSChannel channel,
+                                                String jmsProducerName, String configPrefix) {
+        List<String> args = new ArrayList<>();
+        args.add("initialContextFactory = " + soapJmsConfigurableString(cx, channel.namingInitialContextFactory(),
+                configPrefix + "InitialContextFactory"));
+        args.add("providerUrl = "
+                + soapJmsConfigurableString(cx, channel.namingURL(), configPrefix + "ProviderUrl"));
+        channel.connectionFactory().ifPresent(factory -> args.add("connectionFactoryName = \"%s\""
+                .formatted(ConversionUtils.escapeString(factory))));
+        channel.userName().ifPresent(userName -> args.add("username = \"%s\""
+                .formatted(ConversionUtils.escapeString(userName))));
+        channel.password().ifPresent(ignored -> args.add("password = "
+                + soapJmsCredential(cx, jmsProducerName, configPrefix + "Password")));
+        List<String> namingProperties = new ArrayList<>();
+        channel.namingPrincipal().ifPresent(principal -> namingProperties.add(
+                "\"java.naming.security.principal\": \"%s\"".formatted(ConversionUtils.escapeString(principal))));
+        channel.namingCredential().ifPresent(ignored -> namingProperties.add(
+                "\"java.naming.security.credentials\": "
+                        + soapJmsCredential(cx, jmsProducerName, configPrefix + "NamingCredential")));
+        if (!namingProperties.isEmpty()) {
+            args.add("properties = {%s}".formatted(String.join(", ", namingProperties)));
+        }
+        return String.join(", ", args);
+    }
+
+    private static String soapJmsCredential(ActivityContext cx, String jmsProducerName, String configName) {
+        cx.projectContext().addConfigurableVariable(configName, configName, STRING);
+        cx.log(WARN, ("SOAPSendReceive '%s' carries a JMS credential in the source: it was replaced by the "
+                + "configurable variable %s, which has to be supplied at runtime")
+                .formatted(jmsProducerName, cx.getConfigVarName(configName)));
+        return cx.getConfigVarName(configName);
+    }
+
+    private static String soapJmsDestinationName(ActivityContext cx, Optional<String> destination,
+                                                String configPrefix) {
+        return destination.filter(value -> SUBSTITUTION_TOKEN.matcher(value).find())
+                .map(value -> soapJmsSubstitutedDestination(cx, value, configPrefix))
+                .orElseGet(() -> soapJmsConfigurableString(cx, destination, configPrefix + "Destination"));
+    }
+
+    private static String soapJmsSubstitutedDestination(ActivityContext cx, String destination, String configPrefix) {
+        String template = destination;
+        for (String token : SUBSTITUTION_TOKEN.matcher(destination).results().map(match -> match.group(1))
+                .distinct().toList()) {
+            String configName = configPrefix + ConversionUtils.sanitizes(token);
+            cx.projectContext().addConfigurableVariable(configName, configName, STRING);
+            template = template.replace("%%" + token + "%%", "${%s}".formatted(cx.getConfigVarName(configName)));
+        }
+        return new StringTemplate(template).toString();
+    }
+
+    private static String soapJmsConfigurableString(ActivityContext cx, Optional<String> value, String onMissingName) {
+        return value.map(literal -> "\"%s\"".formatted(ConversionUtils.escapeString(literal))).orElseGet(() -> {
+            cx.projectContext().addConfigurableVariable(onMissingName, onMissingName, STRING);
+            return cx.getConfigVarName(onMissingName);
+        });
+    }
+
+    private static VarDeclStatment soapJmsMessage(ActivityContext cx,
+                                                  InlineActivity.SOAPSendReceive.JMSProducer jmsProducer,
+                                                  VariableReference envelope, VariableReference correlationId,
+                                                  String replyToQueue) {
+        InlineActivity.SOAPSendReceive.JMSChannel channel = jmsProducer.jmsChannel();
+        List<String> fields = new ArrayList<>();
+        channel.deliveryMode().flatMap(ActivityConverter::toJmsDeliveryMode)
+                .ifPresent(mode -> fields.add("deliveryMode: " + mode));
+        channel.priority().ifPresent(priority -> fields.add("priority: " + priority));
+        fields.add("correlationId: " + correlationId);
+        fields.add("replyTo: " + replyToQueue);
+        jmsProducer.soapAction()
+                .ifPresent(action -> fields.add("properties: {\"SOAPAction\": \"%s\"}".formatted(action)));
+        boolean isBytesMessage = channel.messageType().filter("Bytes"::equalsIgnoreCase).isPresent();
+        fields.add("content: %s.toString()%s".formatted(envelope, isBytesMessage ? ".toBytes()" : ""));
+        return new VarDeclStatment(
+                isBytesMessage ? ConversionUtils.Constants.JMS_BYTES_MESSAGE
+                        : ConversionUtils.Constants.JMS_TEXT_MESSAGE,
+                cx.getAnnonVarName(), exprFrom("{%s}".formatted(String.join(", ", fields))));
+    }
+
+    // jms:Message.deliveryMode carries the raw JMS numeric constants, PERSISTENT is 2 and NON_PERSISTENT is 1.
+    private static Optional<Integer> toJmsDeliveryMode(String deliveryMode) {
+        if (deliveryMode.equalsIgnoreCase("PERSISTENT")) {
+            return Optional.of(2);
+        }
+        if (deliveryMode.equalsIgnoreCase("NON_PERSISTENT")) {
+            return Optional.of(1);
+        }
+        return Optional.empty();
     }
 
     private static ActivityConversionResult convertLoopGroup(
