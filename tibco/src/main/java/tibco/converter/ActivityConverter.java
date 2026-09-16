@@ -1491,19 +1491,26 @@ final class ActivityConverter {
         return finishWriteLogActivity(cx, input);
     }
 
+    private static final Set<String> KNOWN_PSG_LOG_LEVELS = Set.of("Info", "Warning", "Error", "Debug");
+
     private static ActivityConversionResult createPsgLogOperation(ActivityContext cx,
                                                                     VariableReference input,
                                                                     ActivityExtension.Config.PsgLog psgLog) {
+        if (!KNOWN_PSG_LOG_LEVELS.contains(psgLog.level())) {
+            cx.log(WARN, "bw.psglog.Log: unrecognized Level '%s', defaulting to Info severity"
+                    .formatted(psgLog.level()));
+        }
         List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
         VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                exprFrom("%s/**/<message>/*".formatted(input.varName())));
+                exprFrom("%s/**/<psglog:message>/*".formatted(input.varName())));
         body.add(message);
-        String psgLogFn = cx.getPsgLogFn();
-        body.add(new CallStatement(new FunctionCall(psgLogFn,
+        body.add(new CallStatement(new FunctionCall(cx.getPsgLogFn(),
                 List.of(new StringConstant(psgLog.level()),
-                        exprFrom("(%s/**/<targetSystem>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:targetSystem>/*).toString().trim()".formatted(input.varName())),
                         message.ref(),
-                        exprFrom("%s/**/<additionalLogParams>/**/<keyValuePair>".formatted(input.varName()))))));
+                        exprFrom("%s/**/<psglog:additionalLogParams>/**/<psglog:keyValuePair>"
+                                .formatted(input.varName()))))));
         return new ActivityConversionResult(message.ref(), body);
     }
 

@@ -315,13 +315,14 @@ public enum Intrinsics {
                     // (Level -> Ballerina log severity) is inferred from observed usage in the source project,
                     // not a spec. Review and adjust as needed.
                     function psgLog(string level, string targetSystem, xml message, xml<xml:Element> keyValuePairs) {
+                        xmlns "http://www.tibco.com/PSGLogActivities" as psglog;
                         log:KeyValues keyValues = {};
-                        keyValues["targetSystem"] = targetSystem;
                         foreach xml:Element pair in keyValuePairs {
-                            string paramKey = (pair/**/<key>/*).toString().trim();
-                            string paramValue = (pair/**/<value>/*).toString().trim();
+                            string paramKey = (pair/**/<psglog:key>/*).toString().trim();
+                            string paramValue = (pair/**/<psglog:value>/*).toString().trim();
                             keyValues[paramKey] = paramValue;
                         }
+                        keyValues["targetSystem"] = targetSystem;
                         match level {
                             "Warning" => {
                                 log:printWarn(message.toString(), keyValues = keyValues);
