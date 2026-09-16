@@ -348,6 +348,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record PsgLog(String level) implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.PSG_LOG;
+                        }
+                    }
+
                     record RenderXML() implements ActivityExtension.Config {
 
                         @Override
@@ -440,6 +448,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         JSON_PARSER,
                         JSON_RENDER,
                         LOG,
+                        PSG_LOG,
                         RENDER_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
@@ -454,6 +463,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.generalactivities.log" -> LOG;
+                                case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;

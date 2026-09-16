@@ -1306,6 +1306,7 @@ public final class XmlToTibcoModelParser {
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
             case LOG -> new Config.Log();
+            case PSG_LOG -> parsePsgLog(activity);
             case RENDER_XML -> new Config.RenderXML();
             case SEND_HTTP_RESPONSE -> parseSendHTTPResponse(config);
             case MAPPER -> new Config.Mapper();
@@ -1386,6 +1387,14 @@ public final class XmlToTibcoModelParser {
         Element values = getFirstChildWithTag(properties, "value");
         String httpClientResource = values.getAttribute("httpClientResource");
         return new Config.HTTPSend(httpClientResource);
+    }
+
+    private static Config.PsgLog parsePsgLog(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        String level = value.getAttribute("Level");
+        return new Config.PsgLog(level.isBlank() ? "Info" : level);
     }
 
     private static Config.SQL parasSqlActivityExtension(

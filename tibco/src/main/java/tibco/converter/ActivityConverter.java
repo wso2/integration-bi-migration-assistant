@@ -1359,6 +1359,7 @@ final class ActivityConverter {
                     createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
+            case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
@@ -1488,6 +1489,22 @@ final class ActivityConverter {
                                                                VariableReference input,
                                                                ActivityExtension.Config.Log log) {
         return finishWriteLogActivity(cx, input);
+    }
+
+    private static ActivityConversionResult createPsgLogOperation(ActivityContext cx,
+                                                                    VariableReference input,
+                                                                    ActivityExtension.Config.PsgLog psgLog) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<message>/*".formatted(input.varName())));
+        body.add(message);
+        String psgLogFn = cx.getPsgLogFn();
+        body.add(new CallStatement(new FunctionCall(psgLogFn,
+                List.of(new StringConstant(psgLog.level()),
+                        exprFrom("(%s/**/<targetSystem>/*).toString().trim()".formatted(input.varName())),
+                        message.ref(),
+                        exprFrom("%s/**/<additionalLogParams>/**/<keyValuePair>".formatted(input.varName()))))));
+        return new ActivityConversionResult(message.ref(), body);
     }
 
     private static ActivityConversionResult createFileWriteOperation(

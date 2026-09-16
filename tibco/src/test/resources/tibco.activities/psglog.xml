@@ -1,0 +1,31 @@
+<bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+                        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+    <tibex:activityExtension inputVariable="PsgLog-Input-Var" name="PsgLogWarning">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;http://www.tibco.com/PSGLogActivities&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;PsgLogTemplate&quot; match=&quot;/&quot;>&lt;tns:LogInput>&lt;tns:targetSystem>&lt;xsl:value-of select=&quot;'DAS'&quot;/>&lt;/tns:targetSystem>&lt;tns:message>&lt;xsl:value-of select=&quot;'Something went wrong'&quot;/>&lt;/tns:message>&lt;tns:additionalLogParams>&lt;tns:keyValuePair>&lt;tns:key>&lt;xsl:value-of select=&quot;'PAYLOAD'&quot;/>&lt;/tns:key>&lt;tns:value>&lt;xsl:value-of select=&quot;'payload-data'&quot;/>&lt;/tns:value>&lt;/tns:keyValuePair>&lt;/tns:additionalLogParams>&lt;/tns:LogInput>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity
+                    activityTypeID="bw.psglog.Log"
+                    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                    xmlns:psglog="http://ns.tibco.com/bw/palette/psglog"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/psglog#//Log"/>
+                        <value Level="Warning" Phase="Generic" xsi:type="psglog:Log"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
