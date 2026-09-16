@@ -120,7 +120,6 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         }
         List<String> matches = qualifiedMatches.isEmpty() ? bareMatches : qualifiedMatches;
         if (matches.isEmpty()) {
-            // If not found, return the original name (fallback)
             return resourceName;
         }
         matches.sort(String::compareTo);

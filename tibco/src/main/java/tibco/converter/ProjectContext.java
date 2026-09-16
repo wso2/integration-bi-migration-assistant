@@ -81,6 +81,7 @@ public class ProjectContext implements LoggingContext {
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
+    private final Map<String, String> configurableVarNamesByLogicalName = new HashMap<>();
     private final Map<String, BallerinaModel.Listener> utilityListeners = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleTypeDef> utilityTypeDefs = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
@@ -463,14 +464,15 @@ public class ProjectContext implements LoggingContext {
         return new SharedVariableInfo(sharedVariable.name(), new VariableReference(name));
     }
 
-    public String addConfigurableVariable(String name, String source) {
+    public @NotNull String addConfigurableVariable(String name, String source) {
         return addConfigurableVariable(name, source, STRING);
     }
 
-    public String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
+    public @NotNull String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
         String uniqueName =
                 ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames());
-        utilityVars.put(name, BallerinaModel.ModuleVar.configurable(uniqueName, type));
+        utilityVars.put(uniqueName, BallerinaModel.ModuleVar.configurable(uniqueName, type));
+        configurableVarNamesByLogicalName.put(name, uniqueName);
         return uniqueName;
     }
 
@@ -494,13 +496,13 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getConfigVarName(String varName) {
-        var varDecl = utilityVars.get(varName);
-        if (varDecl == null) {
+        String uniqueName = configurableVarNamesByLogicalName.get(varName);
+        if (uniqueName == null) {
             log(LoggingUtils.Level.SEVERE,
                     "WARNING: Failed to find configurable variable for " + varName + ". Returning placeholder name.");
             return "placeholder_" + varName;
         }
-        return varDecl.name();
+        return uniqueName;
     }
 
     Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {

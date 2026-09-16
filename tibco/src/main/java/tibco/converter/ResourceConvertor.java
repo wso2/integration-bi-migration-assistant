@@ -218,7 +218,7 @@ final class ResourceConvertor {
         return getOptionalConfigurableValue(cx, configValue, onMissingName, STRING, StringConstant::new);
     }
 
-    private static <T> Expression getOptionalConfigurableValue(ProjectContext cx, Optional<T> configValue,
+    private static <T> @NotNull Expression getOptionalConfigurableValue(ProjectContext cx, Optional<T> configValue,
             String onMissingName, BallerinaModel.TypeDesc type, Function<T, Expression> toExpr) {
         return configValue.map(toExpr).orElseGet(() ->
                 new Expression.VariableReference(cx.addConfigurableVariable(onMissingName, onMissingName, type))

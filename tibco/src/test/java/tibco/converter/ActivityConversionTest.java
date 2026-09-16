@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -121,7 +122,7 @@ public class ActivityConversionTest {
         return new TestProcessContext(new TestProjectContext(cx, Map.of()), activity);
     }
 
-    private static ProcessContext getProcessContextWithoutDefaultClient(Scope.Flow.Activity activity) {
+    private static @NotNull ProcessContext getProcessContextWithoutDefaultClient(Scope.Flow.Activity activity) {
         Logger logger = createVerboseLogger("test");
         var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
         var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
@@ -195,7 +196,7 @@ public class ActivityConversionTest {
         }
 
         @Override
-        Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
+        @NotNull Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
             return Optional.empty();
         }
     }

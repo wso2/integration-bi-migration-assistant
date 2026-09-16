@@ -246,7 +246,7 @@ public final class ConversionUtils {
 
     // Passes an explicit "boolean" typedesc argument to xmldata:transform instead of relying on
     // inference from the surrounding context.
-    static Expression xPathBoolean(ProcessContext cx, Expression value, Expression.VariableReference context,
+    static @NotNull Expression xPathBoolean(ProcessContext cx, Expression value, Expression.VariableReference context,
                             Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
         Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());

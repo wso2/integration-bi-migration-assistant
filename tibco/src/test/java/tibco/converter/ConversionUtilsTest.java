@@ -305,6 +305,29 @@ public class ConversionUtilsTest {
     }
 
     @Test(groups = { "tibco", "converter" })
+    public void testDuplicateLogicalNameConfigurableVariablesAreBothEmitted() {
+        ProjectContext projectContext = newProjectContext();
+        String nameOne = projectContext.addConfigurableVariable("prop", "Resources/AWS/SendMail");
+        String nameTwo = projectContext.addConfigurableVariable("prop", "Resources/AWS/ReceiveMail");
+
+        Assert.assertNotEquals(nameTwo, nameOne,
+                "configurable variables sharing a logical name but different sources must get distinct emitted names");
+
+        BallerinaModel.Module module = projectContext.serialize(List.of());
+        BallerinaModel.TextDocument utilsFile = module.textDocuments().stream()
+                .filter(doc -> doc.documentName().equals("utils.bal"))
+                .findFirst().orElseThrow();
+        Set<String> emittedNames = utilsFile.moduleVars().stream()
+                .map(BallerinaModel.ModuleVar::name)
+                .collect(java.util.stream.Collectors.toSet());
+
+        Assert.assertTrue(emittedNames.contains(nameOne),
+                "declaration from the first addConfigurableVariable call must not be dropped");
+        Assert.assertTrue(emittedNames.contains(nameTwo),
+                "declaration from the second addConfigurableVariable call must be emitted");
+    }
+
+    @Test(groups = { "tibco", "converter" })
     public void testComplexTypeFieldNameCollidingWithKeywordIsQuoted() {
         XSD.XSDType.ComplexType complexType = new XSD.XSDType.ComplexType(
                 new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(List.of(

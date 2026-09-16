@@ -262,7 +262,7 @@ final class ActivityConverter {
         return new JDBCSetupResult(query, client);
     }
 
-    private static VariableReference declarePlaceholderClient(ActivityContext cx, List<Statement> body,
+    private static @NotNull VariableReference declarePlaceholderClient(ActivityContext cx, List<Statement> body,
                                                                String balClientType, Library library,
                                                                String resourceKind, String resourceName) {
         cx.addLibraryImport(library);
@@ -304,7 +304,7 @@ final class ActivityConverter {
         return new ActivityConversionResult(result.ref(), body);
     }
 
-    private static VarDeclStatment configuredParameterizedQuery(ActivityContext cx, String configName) {
+    private static @NotNull VarDeclStatment configuredParameterizedQuery(ActivityContext cx, String configName) {
         return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
                 exprFrom("`${%s}`".formatted(cx.projectContext().addConfigurableVariable(configName, configName))));
     }
