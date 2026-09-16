@@ -118,6 +118,79 @@ public class XmlToModelTests {
     }
 
     @Test
+    public void testParseCatchFaultHandler() throws Exception {
+        String processXml = """
+                <bpws:process name="test.process"
+                        xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+                        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:scope name="MainScope">
+                        <bpws:faultHandlers>
+                            <bpws:catch faultElement="ns:SomeFault" faultName="ns:SomeFault"
+                                    faultVariable="FaultVar" tibex:xpdlId="153f7b81-af4e-49f3-86d6-33d67660bc6d">
+                                <bpws:scope name="scope3">
+                                    <bpws:flow name="flow5"/>
+                                </bpws:scope>
+                            </bpws:catch>
+                        </bpws:faultHandlers>
+                    </bpws:scope>
+                </bpws:process>
+                """;
+        Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                TestUtils.stringToElement(processXml));
+        assertTrue(processOpt.isPresent());
+        tibco.model.Process6 process = (tibco.model.Process6) processOpt.get();
+        var faultHandlers = process.scope().faultHandlers();
+        assertEquals(faultHandlers.size(), 1);
+        Scope.Flow.Activity.Catch catchHandler = (Scope.Flow.Activity.Catch) faultHandlers.iterator().next();
+        assertEquals(catchHandler.scope().name(), "scope3");
+        assertEquals(catchHandler.faultName(), "ns:SomeFault");
+        assertEquals(catchHandler.faultVariable().get(), "FaultVar");
+    }
+
+    @Test
+    public void testParseThrowCapturesFaultName() throws Exception {
+        String activityXml = """
+                <bpws:throw faultName="ns:SomeFault" name="Throw"
+                        xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:inputBindings xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <tibex:inputBinding expression="&lt;root/&gt;"
+                                expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                </bpws:throw>
+                """;
+        Scope.Flow.Activity actual = XmlToTibcoModelParser.parseActivity(getProcessContext(),
+                TestUtils.stringToElement(activityXml)).get();
+        assertEquals(((Scope.Flow.Activity.Throw) actual).faultName(), "ns:SomeFault");
+    }
+
+    @Test
+    public void testParseFaultHandlerIsolatesUnsupported() throws Exception {
+        String processXml = """
+                <bpws:process name="test.process"
+                        xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <bpws:scope name="MainScope">
+                        <bpws:faultHandlers>
+                            <bpws:someFutureUnsupportedHandler/>
+                            <bpws:catchAll tibex:xpdlId="d2f8ec88-ac18-419c-a271-11640d31ae16"
+                                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                                <bpws:scope name="scope4">
+                                    <bpws:flow name="flow6"/>
+                                </bpws:scope>
+                            </bpws:catchAll>
+                        </bpws:faultHandlers>
+                    </bpws:scope>
+                </bpws:process>
+                """;
+        Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                TestUtils.stringToElement(processXml));
+        assertTrue(processOpt.isPresent());
+        tibco.model.Process6 process = (tibco.model.Process6) processOpt.get();
+        var faultHandlers = process.scope().faultHandlers();
+        assertEquals(faultHandlers.size(), 1);
+        assertTrue(faultHandlers.iterator().next() instanceof Scope.Flow.Activity.CatchAll);
+    }
+
+    @Test
     public void testParseMapperActivity() throws Exception {
         String activityXml = """
                  <pd:activity name="Failed tests count">
