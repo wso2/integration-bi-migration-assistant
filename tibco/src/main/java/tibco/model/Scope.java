@@ -350,6 +350,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
                     record PsgLog(String level) implements ActivityExtension.Config {
 
+                        public PsgLog {
+                            assert level != null;
+                        }
+
                         @Override
                         public ExtensionKind kind() {
                             return ExtensionKind.PSG_LOG;
