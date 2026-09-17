@@ -142,10 +142,10 @@ public class MigrateLogicAppsCommand implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
-        stringBuilder.append("Migrate LogicApp to Ballerina Integrator\n\n");
+        stringBuilder.append("Migrate LogicApp to WSO2 Integrator\n\n");
         stringBuilder.append("This command accepts a LogicApp `.json` file path\n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
-                " that can be opened in Ballerina Integrator.\n\n");
+                " that can be opened in WSO2 Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
         stringBuilder.append("  --out, -o               Specify the output directory for the generated Ballerina " +
                 "project\n");

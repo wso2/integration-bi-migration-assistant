@@ -1,6 +1,6 @@
 ## Tool Overview
-The `migrate-logicapps` tool enables the conversion of [Azure Logic Apps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview) applications into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
-It accepts either a project directory which contains multiple Logic App JSON files or a single Logic App JSON file as input and produces an equivalent Ballerina Integrator application.
+The `migrate-logicapps` tool enables the conversion of [Azure Logic Apps](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview) applications into Ballerina packages compatible with the [WSO2 Integrator](https://wso2.com/integrator/bi/).
+It accepts either a project directory which contains multiple Logic App JSON files or a single Logic App JSON file as input and produces an equivalent WSO2 Integrator application.
 
 ## Installation
 
