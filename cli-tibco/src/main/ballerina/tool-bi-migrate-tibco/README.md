@@ -202,6 +202,7 @@ This will create a Ballerina package with organization name `myorg` and project 
     - `bw.file.write`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
+    - `bw.psglog.SetAndLog`
     - `bw.xml.renderxml`
     - `bw.generalactivities.mapper`
     - `bw.internal.accumulateend`

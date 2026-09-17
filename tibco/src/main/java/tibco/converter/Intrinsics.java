@@ -340,6 +340,39 @@ public enum Intrinsics {
                     }
                     """
     ),
+    PSG_SET_AND_LOG(
+            "psgSetAndLog",
+            """
+                    // TIBCO's `bw.psglog.SetAndLog` is a custom (non-stock) logging activity, so this mapping
+                    // (Level -> Ballerina log severity) is inferred from observed usage in the source project,
+                    // not a spec. Review and adjust as needed.
+                    function psgSetAndLog(string level, string targetSystem, xml message, string sessionId,
+                            string correlationId, string trackingId, string sender, string serviceScope) {
+                        log:KeyValues keyValues = {
+                            targetSystem: targetSystem,
+                            sessionId: sessionId,
+                            correlationId: correlationId,
+                            trackingId: trackingId,
+                            sender: sender,
+                            serviceScope: serviceScope
+                        };
+                        match level {
+                            "Warning" => {
+                                log:printWarn(message.toString(), keyValues = keyValues);
+                            }
+                            "Error" => {
+                                log:printError(message.toString(), keyValues = keyValues);
+                            }
+                            "Debug" => {
+                                log:printDebug(message.toString(), keyValues = keyValues);
+                            }
+                            _ => {
+                                log:printInfo(message.toString(), keyValues = keyValues);
+                            }
+                        }
+                    }
+                    """
+    ),
     PSG_EXCEPTION_LOG(
             "psgExceptionLog",
             """

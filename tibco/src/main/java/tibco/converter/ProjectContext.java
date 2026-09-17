@@ -750,6 +750,12 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.PSG_EXCEPTION_LOG.name;
     }
 
+    public String getPsgSetAndLogFn() {
+        importLibraryIfNeededToUtility(Library.LOG);
+        utilityIntrinsics.add(Intrinsics.PSG_SET_AND_LOG);
+        return Intrinsics.PSG_SET_AND_LOG.name;
+    }
+
     public String getGetSharedVariableFn() {
         utilityIntrinsics.add(Intrinsics.GET_SHARED_VARIABLE);
         return Intrinsics.GET_SHARED_VARIABLE.name;

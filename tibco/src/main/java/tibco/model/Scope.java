@@ -364,7 +364,19 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
                         @Override
                         public ExtensionKind kind() {
-                            return ExtensionKind.EXCEPTION_LOG;
+                            return ExtensionKind.PSG_EXCEPTION_LOG;
+                        }
+                    }
+
+                    record PsgSetAndLog(String level) implements ActivityExtension.Config {
+
+                        public PsgSetAndLog {
+                            assert level != null;
+                        }
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.PSG_SET_AND_LOG;
                         }
                     }
 
@@ -455,13 +467,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                     enum ExtensionKind {
                         ACCUMULATE_END,
                         END,
-                        EXCEPTION_LOG,
                         FILE_WRITE,
                         HTTP_SEND,
                         JSON_PARSER,
                         JSON_RENDER,
                         LOG,
+                        PSG_EXCEPTION_LOG,
                         PSG_LOG,
+                        PSG_SET_AND_LOG,
                         RENDER_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
@@ -477,7 +490,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
-                                case "bw.psglog.ExceptionLog" -> EXCEPTION_LOG;
+                                case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
+                                case "bw.psglog.SetAndLog" -> PSG_SET_AND_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;

@@ -43,6 +43,14 @@ public class IntrinsicsTest {
     }
 
     @Test(groups = { "tibco", "converter" })
+    public void testPsgSetAndLogLevelToSeverity() {
+        String body = Intrinsics.PSG_SET_AND_LOG.body;
+        assertLevelMapsToSeverity(body, "Warning", "log:printWarn");
+        assertLevelMapsToSeverity(body, "Error", "log:printError");
+        assertLevelMapsToSeverity(body, "Debug", "log:printDebug");
+    }
+
+    @Test(groups = { "tibco", "converter" })
     public void testPsgExceptionLogLogsError() {
         String body = Intrinsics.PSG_EXCEPTION_LOG.body;
         Assert.assertTrue(body.contains("error psgError = error(errorMessage"),
