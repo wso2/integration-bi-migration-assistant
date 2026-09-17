@@ -97,10 +97,10 @@ public class MigrateTibcoCommand implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
-        stringBuilder.append("Migrate TIBCO BusinessWorks project or `.bwp` file to Ballerina Integrator\n\n");
+        stringBuilder.append("Migrate TIBCO BusinessWorks project or `.bwp` file to WSO2 Integrator\n\n");
         stringBuilder.append("This command accepts a TIBCO BusinessWorks project directory or `.bwp` file path \n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
-                " that can be opened in Ballerina Integrator.\n\n");
+                " that can be opened in WSO2 Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
         stringBuilder.append("  --keep-structure, -k     Keep process structure\n");
         stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");
