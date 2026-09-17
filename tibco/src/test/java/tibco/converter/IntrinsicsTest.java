@@ -24,7 +24,7 @@ import org.testng.annotations.Test;
 public class IntrinsicsTest {
 
     @Test(groups = { "tibco", "converter" })
-    public void testPsgLogMapsEachLevelToTheMatchingLogSeverity() {
+    public void testPsgLogLevelToSeverity() {
         String body = Intrinsics.PSG_LOG.body;
         assertLevelMapsToSeverity(body, "Warning", "log:printWarn");
         assertLevelMapsToSeverity(body, "Error", "log:printError");
@@ -40,5 +40,22 @@ public class IntrinsicsTest {
         String armBody = body.substring(armStart, nextArmIndex == -1 ? body.length() : nextArmIndex);
         Assert.assertTrue(armBody.contains(logFunction),
                 "Expected Level \"%s\" to call %s".formatted(level, logFunction));
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testPsgExceptionLogLogsError() {
+        String body = Intrinsics.PSG_EXCEPTION_LOG.body;
+        Assert.assertTrue(body.contains("error psgError = error(errorMessage"),
+                "Expected a synthesized error built from the extracted fault fields");
+        Assert.assertTrue(body.contains("log:printError(errorMessage, 'error = psgError"),
+                "Expected the synthesized error to be logged via log:printError");
+        Assert.assertTrue(body.contains("tibcoStackTrace = stackTrace"),
+                "Expected the TIBCO stack trace text to be logged under a non-colliding key name");
+        int logCallIndex = body.indexOf("log:printError(errorMessage");
+        Assert.assertTrue(logCallIndex >= 0, "Expected a log:printError(errorMessage, ...) call");
+        String logCall = body.substring(logCallIndex);
+        Assert.assertFalse(logCall.contains("stackTrace = stackTrace"),
+                "stackTrace is a reserved log:printError parameter (error:StackFrame[]?); "
+                        + "passing a string there is a type mismatch");
     }
 }

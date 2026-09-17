@@ -360,6 +360,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ExceptionLog() implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.EXCEPTION_LOG;
+                        }
+                    }
+
                     record RenderXML() implements ActivityExtension.Config {
 
                         @Override
@@ -447,6 +455,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                     enum ExtensionKind {
                         ACCUMULATE_END,
                         END,
+                        EXCEPTION_LOG,
                         FILE_WRITE,
                         HTTP_SEND,
                         JSON_PARSER,
@@ -468,6 +477,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
+                                case "bw.psglog.ExceptionLog" -> EXCEPTION_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;

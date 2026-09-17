@@ -452,6 +452,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return projectContext.getPsgLogFn();
     }
 
+    public String getPsgExceptionLogFn() {
+        return projectContext.getPsgExceptionLogFn();
+    }
+
     public Optional<NameSpace> getNameSpaceByUri(String uri) {
         return nameSpaces.stream()
                 .filter(ns -> ns.uri().equals(uri))

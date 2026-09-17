@@ -174,6 +174,10 @@ public class ActivityContext implements LoggingContext {
         return processContext.getPsgLogFn();
     }
 
+    public String getPsgExceptionLogFn() {
+        return processContext.getPsgExceptionLogFn();
+    }
+
     public Optional<NameSpace> getNameSpaceByUri(String uri) {
         return processContext.getNameSpaceByUri(uri);
     }

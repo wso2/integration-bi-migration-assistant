@@ -1360,6 +1360,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
+            case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
@@ -1512,6 +1513,27 @@ final class ActivityConverter {
                         exprFrom("%s/**/<psglog:additionalLogParams>/**/<psglog:keyValuePair>"
                                 .formatted(input.varName()))))));
         return new ActivityConversionResult(message.ref(), body);
+    }
+
+    private static ActivityConversionResult createExceptionLogOperation(ActivityContext cx,
+                                                                          VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment errorCode = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorCode>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment errorMessage = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorMessage>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment processStack = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:processStack>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment stackTrace = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:stackTrace>/*).toString().trim()".formatted(input.varName())));
+        body.add(errorCode);
+        body.add(errorMessage);
+        body.add(processStack);
+        body.add(stackTrace);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgExceptionLogFn(),
+                List.of(errorCode.ref(), errorMessage.ref(), processStack.ref(), stackTrace.ref()))));
+        return new ActivityConversionResult(errorMessage.ref(), body);
     }
 
     private static ActivityConversionResult createFileWriteOperation(

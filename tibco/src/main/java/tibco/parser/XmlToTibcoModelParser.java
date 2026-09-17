@@ -1307,6 +1307,7 @@ public final class XmlToTibcoModelParser {
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
             case LOG -> new Config.Log();
             case PSG_LOG -> parsePsgLog(activity);
+            case EXCEPTION_LOG -> new Config.ExceptionLog();
             case RENDER_XML -> new Config.RenderXML();
             case SEND_HTTP_RESPONSE -> parseSendHTTPResponse(config);
             case MAPPER -> new Config.Mapper();
