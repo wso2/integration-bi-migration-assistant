@@ -307,6 +307,38 @@ public enum Intrinsics {
                         return headerMap;
                     }
                     """
+    ),
+    PSG_LOG(
+            "psgLog",
+            """
+                    // TIBCO's `bw.psglog.Log` is a custom (non-stock) logging activity, so this mapping
+                    // (Level -> Ballerina log severity) is inferred from observed usage in the source project,
+                    // not a spec. Review and adjust as needed.
+                    function psgLog(string level, string targetSystem, xml message, xml<xml:Element> keyValuePairs) {
+                        xmlns "http://www.tibco.com/PSGLogActivities" as psglog;
+                        log:KeyValues keyValues = {};
+                        foreach xml:Element pair in keyValuePairs {
+                            string paramKey = (pair/**/<psglog:key>/*).toString().trim();
+                            string paramValue = (pair/**/<psglog:value>/*).toString().trim();
+                            keyValues[paramKey] = paramValue;
+                        }
+                        keyValues["targetSystem"] = targetSystem;
+                        match level {
+                            "Warning" => {
+                                log:printWarn(message.toString(), keyValues = keyValues);
+                            }
+                            "Error" => {
+                                log:printError(message.toString(), keyValues = keyValues);
+                            }
+                            "Debug" => {
+                                log:printDebug(message.toString(), keyValues = keyValues);
+                            }
+                            _ => {
+                                log:printInfo(message.toString(), keyValues = keyValues);
+                            }
+                        }
+                    }
+                    """
     );
     public final String body;
     public final String name;

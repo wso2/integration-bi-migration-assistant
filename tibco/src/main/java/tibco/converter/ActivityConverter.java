@@ -1589,6 +1589,7 @@ final class ActivityConverter {
                     createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
+            case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
@@ -1718,6 +1719,29 @@ final class ActivityConverter {
                                                                VariableReference input,
                                                                ActivityExtension.Config.Log log) {
         return finishWriteLogActivity(cx, input);
+    }
+
+    private static final Set<String> KNOWN_PSG_LOG_LEVELS = Set.of("Info", "Warning", "Error", "Debug");
+
+    private static ActivityConversionResult createPsgLogOperation(ActivityContext cx,
+                                                                    VariableReference input,
+                                                                    ActivityExtension.Config.PsgLog psgLog) {
+        if (!KNOWN_PSG_LOG_LEVELS.contains(psgLog.level())) {
+            cx.log(WARN, "bw.psglog.Log: unrecognized Level '%s', defaulting to Info severity"
+                    .formatted(psgLog.level()));
+        }
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<psglog:message>/*".formatted(input.varName())));
+        body.add(message);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgLogFn(),
+                List.of(new StringConstant(psgLog.level()),
+                        exprFrom("(%s/**/<psglog:targetSystem>/*).toString().trim()".formatted(input.varName())),
+                        message.ref(),
+                        exprFrom("%s/**/<psglog:additionalLogParams>/**/<psglog:keyValuePair>"
+                                .formatted(input.varName()))))));
+        return new ActivityConversionResult(message.ref(), body);
     }
 
     private static ActivityConversionResult createFileWriteOperation(

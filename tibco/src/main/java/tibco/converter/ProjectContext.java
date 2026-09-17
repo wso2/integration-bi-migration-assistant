@@ -738,6 +738,12 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.SET_SHARED_VARIABLE.name;
     }
 
+    public String getPsgLogFn() {
+        importLibraryIfNeededToUtility(Library.LOG);
+        utilityIntrinsics.add(Intrinsics.PSG_LOG);
+        return Intrinsics.PSG_LOG.name;
+    }
+
     public String getGetSharedVariableFn() {
         utilityIntrinsics.add(Intrinsics.GET_SHARED_VARIABLE);
         return Intrinsics.GET_SHARED_VARIABLE.name;
