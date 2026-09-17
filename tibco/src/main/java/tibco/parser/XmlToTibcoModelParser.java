@@ -1344,6 +1344,7 @@ public final class XmlToTibcoModelParser {
         return switch (kind) {
             case END -> new Config.End();
             case FILE_WRITE -> new Config.FileWrite();
+            case FILE_RENAME -> parseFileRename(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
@@ -1354,6 +1355,13 @@ public final class XmlToTibcoModelParser {
             case SQL -> parasSqlActivityExtension(config);
             case ACCUMULATE_END -> parseAccumulateEnd(activity);
         };
+    }
+
+    private static Config.@NotNull FileRename parseFileRename(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        return new Config.FileRename(Boolean.parseBoolean(value.getAttribute("overwrite")));
     }
 
     private static Config.@NotNull SendHTTPResponse parseSendHTTPResponse(Element config) {

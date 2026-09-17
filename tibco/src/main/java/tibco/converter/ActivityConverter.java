@@ -1588,6 +1588,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.SendHTTPResponse sendHTTPResponse ->
                     createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
+            case ActivityExtension.Config.FileRename fileRename -> createFileRenameOperation(cx, result, fileRename);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
@@ -1723,6 +1724,29 @@ final class ActivityConverter {
     private static ActivityConversionResult createFileWriteOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.FileWrite fileWrite) {
         return finishFileWrite(cx, result, false);
+    }
+
+    private static ActivityConversionResult createFileRenameOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.FileRename fileRename) {
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment fromFileName = new VarDeclStatment(STRING, "fromFileName",
+                exprFrom("(%s/**/<fromFileName>/*).toString()".formatted(result.varName())));
+        body.add(fromFileName);
+        VarDeclStatment toFileName = new VarDeclStatment(STRING, "toFileName",
+                exprFrom("(%s/**/<toFileName>/*).toString()".formatted(result.varName())));
+        body.add(toFileName);
+        cx.addLibraryImport(Library.FILE);
+        if (fileRename.overwrite()) {
+            body.add(stmtFrom("""
+                    if check %s(%s, %s) {
+                        check %s(%s);
+                    }
+                    """.formatted(FileConstants.FILE_TEST_FUNCTION, toFileName.ref(), FileConstants.EXISTS_OPTION,
+                    FileConstants.FILE_REMOVE_FUNCTION, toFileName.ref())));
+        }
+        body.add(new CallStatement(new Check(new FunctionCall(FileConstants.FILE_RENAME_FUNCTION,
+                List.of(fromFileName.ref(), toFileName.ref())))));
+        return new ActivityConversionResult(result, body);
     }
 
     private static ActivityConversionResult createSQLOperation(
@@ -2187,6 +2211,18 @@ final class ActivityConverter {
         static final String FILE_READ_FUNCTION = "io:fileReadString";
 
         private IOConstants() {
+
+        }
+    }
+
+    static final class FileConstants {
+
+        static final String FILE_RENAME_FUNCTION = "file:rename";
+        static final String FILE_REMOVE_FUNCTION = "file:remove";
+        static final String FILE_TEST_FUNCTION = "file:test";
+        static final String EXISTS_OPTION = "file:EXISTS";
+
+        private FileConstants() {
 
         }
     }
