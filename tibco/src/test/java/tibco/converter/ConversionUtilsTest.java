@@ -18,6 +18,8 @@
 
 package tibco.converter;
 
+import common.BallerinaModel;
+import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
@@ -30,8 +32,11 @@ import tibco.converter.ConversionUtils.LineCount;
 import tibco.model.NameSpace;
 import tibco.model.Process;
 import tibco.model.Variable;
+import tibco.model.XSD;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -214,6 +219,7 @@ public class ConversionUtilsTest {
                 {"type", "'type"},
                 {"Resources/AWS/SendMail/applicationId", "Resources_AWS_SendMail_applicationId"},
                 {"anagrafica_clienti_isu_das/LocalFilePathArchive", "anagrafica_clienti_isu_das_LocalFilePathArchive"},
+                {"", "unnamed"},
         };
     }
 
@@ -306,6 +312,46 @@ public class ConversionUtilsTest {
         Assert.assertEquals(nameOne, "Resources_AWS_SendMail");
         Assert.assertNotEquals(nameTwo, nameOne);
         Assert.assertFalse(nameTwo.contains("/") || nameTwo.contains("."));
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testDuplicateLogicalNameConfigurableVariablesAreBothEmitted() {
+        ProjectContext projectContext = newProjectContext();
+        String nameOne = projectContext.addConfigurableVariable("prop", "Resources/AWS/SendMail");
+        String nameTwo = projectContext.addConfigurableVariable("prop", "Resources/AWS/ReceiveMail");
+
+        Assert.assertNotEquals(nameTwo, nameOne,
+                "configurable variables sharing a logical name but different sources must get distinct emitted names");
+
+        BallerinaModel.Module module = projectContext.serialize(List.of());
+        BallerinaModel.TextDocument utilsFile = module.textDocuments().stream()
+                .filter(doc -> doc.documentName().equals("utils.bal"))
+                .findFirst().orElseThrow();
+        Set<String> emittedNames = utilsFile.moduleVars().stream()
+                .map(BallerinaModel.ModuleVar::name)
+                .collect(java.util.stream.Collectors.toSet());
+
+        Assert.assertTrue(emittedNames.contains(nameOne),
+                "declaration from the first addConfigurableVariable call must not be dropped");
+        Assert.assertTrue(emittedNames.contains(nameTwo),
+                "declaration from the second addConfigurableVariable call must be emitted");
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testComplexTypeFieldNameCollidingWithKeywordIsQuoted() {
+        XSD.XSDType.ComplexType complexType = new XSD.XSDType.ComplexType(
+                new XSD.XSDType.ComplexType.ComplexTypeBody.Sequence(List.of(
+                        new XSD.Element("applicationId", XSD.XSDType.BasicXSDType.STRING,
+                                Optional.empty(), Optional.empty()),
+                        new XSD.Element("function", XSD.XSDType.BasicXSDType.STRING,
+                                Optional.empty(), Optional.empty()))));
+
+        BallerinaModel.TypeDesc typeDesc = ConversionUtils.toTypeDesc(complexType);
+        Assert.assertTrue(typeDesc instanceof RecordTypeDesc);
+        List<String> fieldNames = ((RecordTypeDesc) typeDesc).fields().stream()
+                .map(RecordTypeDesc.RecordField::name)
+                .toList();
+        Assert.assertEquals(fieldNames, List.of("applicationId", "'function"));
     }
 
     @NotNull

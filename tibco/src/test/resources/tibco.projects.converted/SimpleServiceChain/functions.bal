@@ -128,7 +128,7 @@ function Bar_Receiver(Context cx) returns error? {
     addToContext(cx, "Bar-Receiver", var1);
 }
 
-function HTTP_Response_6(Context cx) returns error? {
+function HTTP_Response_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0">
@@ -163,7 +163,7 @@ function HTTP_Response_6(Context cx) returns error? {
 
 function scope0_1ActivityRunner(Context cx) returns error? {
     check Bar_Receiver(cx);
-    check HTTP_Response_6(cx);
+    check HTTP_Response_1(cx);
 }
 
 function scope0_1FaultHandler(error err, Context cx) returns () {
@@ -250,7 +250,7 @@ function Foo_Receiver(Context cx) returns error? {
     addToContext(cx, "Foo-Receiver", var1);
 }
 
-function HTTP_Response_11(Context cx) returns error? {
+function HTTP_Response_2(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="post"/><xsl:param name="BarMapper"/>     <xsl:template name="Transform3" match="/">
@@ -286,7 +286,7 @@ function HTTP_Response_11(Context cx) returns error? {
     addToContext(cx, "HTTP-Response", var4);
 }
 
-function Log1_8(Context cx) returns error? {
+function Log1_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
@@ -310,10 +310,10 @@ function Log1_8(Context cx) returns error? {
 
 function scope0_2ActivityRunner(Context cx) returns error? {
     check Foo_Receiver(cx);
-    check Log1_8(cx);
+    check Log1_1(cx);
     check Call_Bar(cx);
     check BarMapper(cx);
-    check HTTP_Response_11(cx);
+    check HTTP_Response_2(cx);
 }
 
 function scope0_2FaultHandler(error err, Context cx) returns () {

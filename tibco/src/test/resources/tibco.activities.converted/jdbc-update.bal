@@ -22,6 +22,7 @@ function JDBC_Update(Context cx) returns error? {
     
 // WARNING: Missing DB client resource '/CRUD/SharedResources/JDBCConnection.sharedjdbc'. Using placeholder client.
 
+    jdbc:Client placeholder_db_connection = checkpanic error("Missing DB client resource '/CRUD/SharedResources/JDBCConnection.sharedjdbc'. Cannot generate call.");
     xml var4;
     sql:ExecutionResult var5 = check placeholder_db_connection->execute(var3);
     xml var6 = xml`<root></root>`;
