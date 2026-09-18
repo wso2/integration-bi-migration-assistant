@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import tibco.LoggingContext;
 import tibco.model.NameSpace;
 import tibco.model.Resource;
@@ -172,6 +173,14 @@ public class ActivityContext implements LoggingContext {
 
     public String getPsgLogFn() {
         return processContext.getPsgLogFn();
+    }
+
+    public @NotNull String getPsgExceptionLogFn() {
+        return processContext.getPsgExceptionLogFn();
+    }
+
+    public String getPsgSetAndLogFn() {
+        return processContext.getPsgSetAndLogFn();
     }
 
     public Optional<NameSpace> getNameSpaceByUri(String uri) {

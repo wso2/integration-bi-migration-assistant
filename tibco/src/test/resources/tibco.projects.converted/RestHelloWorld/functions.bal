@@ -296,7 +296,7 @@ function start_Processes_MainProcessStarter_process(Context cx) returns () {
     return scope0ScopeFn(cx);
 }
 
-function HTTP_Receiver_12(Context cx) returns error? {
+function HTTP_Receiver_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = xml `<root>${var0}</root>`;
     addToContext(cx, "HTTP-Receiver", var1);
@@ -346,7 +346,7 @@ function InnerLogIndex(Context cx) returns error? {
     addToContext(cx, "InnerLogIndex", var3);
 }
 
-function Log_14(Context cx) returns error? {
+function Log_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="Mapper"/>     <xsl:template name="Transform1" match="/">
@@ -386,7 +386,7 @@ function Loop(Context cx) returns error? {
     addToContext(cx, "Loop", var1);
 }
 
-function Mapper_13(Context cx) returns error? {
+function Mapper_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json" version="2.0"><xsl:param name="runAllTests"/>     <xsl:template name="Transform0" match="/">
@@ -540,9 +540,9 @@ function SOAPSendReply(Context cx) returns error? {
 }
 
 function scope0_1ActivityRunner(Context cx) returns error? {
-    check HTTP_Receiver_12(cx);
-    check Mapper_13(cx);
-    check Log_14(cx);
+    check HTTP_Receiver_1(cx);
+    check Mapper_1(cx);
+    check Log_1(cx);
     check SOAPSendReply(cx);
 }
 

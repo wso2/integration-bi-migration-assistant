@@ -40,7 +40,7 @@ function activityExtension(Context cx) returns error? {
     addToContext(cx, "RenderOutput", var6);
 }
 
-function activityExtension_5(Context cx) returns error? {
+function activityExtension_1(Context cx) returns error? {
     xml var0 = getFromContext(cx, "RenderOutput");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
@@ -92,7 +92,7 @@ function pick(Context cx) returns error? {
 function repeatUntil(Context cx) returns error? {
     while true {
         repeatUntilScopeFn(cx);
-        boolean var0 = check xmldata:transform(xml `<root></root>`, `${getFromContext(cx, "post")}/lastSubset = true()`);
+        boolean var0 = checkpanic xmldata:transform(xml `<root></root>`, `${getFromContext(cx, "post")}/lastSubset = true()`, boolean);
         if var0 {
             break;
         }
@@ -116,7 +116,7 @@ function repeatUntilScopeFn(Context cx) returns () {
 function scope1ActivityRunner(Context cx) returns error? {
     check nestedScope(cx);
     check activityExtension(cx);
-    check activityExtension_5(cx);
+    check activityExtension_1(cx);
 }
 
 function scope1FaultHandler(error err, Context cx) returns () {

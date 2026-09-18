@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.Collection;
@@ -374,6 +375,26 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ExceptionLog() implements ActivityExtension.Config {
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.PSG_EXCEPTION_LOG;
+                        }
+                    }
+
+                    record PsgSetAndLog(String level) implements ActivityExtension.Config {
+
+                        public PsgSetAndLog {
+                            assert level != null;
+                        }
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.PSG_SET_AND_LOG;
+                        }
+                    }
+
                     record RenderXML() implements ActivityExtension.Config {
 
                         @Override
@@ -467,7 +488,9 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         JSON_PARSER,
                         JSON_RENDER,
                         LOG,
+                        PSG_EXCEPTION_LOG,
                         PSG_LOG,
+                        PSG_SET_AND_LOG,
                         RENDER_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
@@ -484,6 +507,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.file.rename" -> FILE_RENAME;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
+                                case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
+                                case "bw.psglog.SetAndLog" -> PSG_SET_AND_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;

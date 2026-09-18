@@ -20,6 +20,8 @@
     - `bw.file.rename`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
+    - `bw.psglog.ExceptionLog`
+    - `bw.psglog.SetAndLog`
     - `bw.xml.renderxml`
     - `bw.generalactivities.mapper`
     - `bw.internal.accumulateend`

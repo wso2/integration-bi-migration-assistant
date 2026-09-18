@@ -108,6 +108,9 @@ public final class ConversionUtils {
 
     public static @NotNull String sanitizes(String name) {
         String sanitized = name.replaceAll("[^a-zA-Z0-9]", "_");
+        if (sanitized.isEmpty()) {
+            sanitized = "unnamed";
+        }
         int start = 0;
         while (start < sanitized.length() && !Character.isAlphabetic(sanitized.charAt(start))) {
             start++;
@@ -132,10 +135,15 @@ public final class ConversionUtils {
 
     public static @NotNull String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {
         String sanitized = sanitizes(name);
-        String nameToCheck = sanitized;
-        if (allocatedNames.contains(nameToCheck)) {
-            nameToCheck = sanitized + "_" + allocatedNames.size();
+        if (!allocatedNames.contains(sanitized)) {
+            return sanitized;
         }
+        String nameToCheck;
+        int suffix = 1;
+        do {
+            nameToCheck = sanitized + "_" + suffix;
+            suffix++;
+        } while (allocatedNames.contains(nameToCheck));
         return nameToCheck;
     }
 
@@ -172,7 +180,8 @@ public final class ConversionUtils {
     }
 
     private static Expression templateExpression(
-            ProcessContext cx, Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context) {
+            Scope.Flow.Activity.Expression.XPath xPath, Expression.VariableReference context,
+            String getFromContextFn) {
         String xPathStr = xPath.expression();
         StringBuilder sb = new StringBuilder();
         char[] chars = xPathStr.toCharArray();
@@ -186,7 +195,7 @@ public final class ConversionUtils {
                     accum.append(chars[i]);
                     i++;
                 }
-                sb.append("${%s(%s, \"%s\")}".formatted(cx.getFromContextFn(), context, accum));
+                sb.append("${%s(%s, \"%s\")}".formatted(getFromContextFn, context, accum));
             } else {
                 sb.append(chars[i]);
                 i++;
@@ -231,8 +240,18 @@ public final class ConversionUtils {
     static Expression xPath(ProcessContext cx, Expression value, Expression.VariableReference context,
                             Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
-        Expression xPathExpr = templateExpression(cx, predicate, context);
-        return new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr));
+        Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());
+        return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr)));
+    }
+
+    // Passes an explicit "boolean" typedesc argument to xmldata:transform instead of relying on
+    // inference from the surrounding context.
+    static @NotNull Expression xPathBoolean(ProcessContext cx, Expression value, Expression.VariableReference context,
+                            Scope.Flow.Activity.Expression.XPath predicate) {
+        String predicateTestFn = cx.getXPathFunction();
+        Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());
+        return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn,
+                List.of(value, xPathExpr, new Expression.BallerinaExpression(BOOLEAN.toString()))));
     }
 
     public static @NotNull String baseName(String value) {
@@ -250,6 +269,23 @@ public final class ConversionUtils {
         }
         int lastDotIndex = baseFileName.lastIndexOf('.');
         return lastDotIndex > 0 ? baseFileName.substring(0, lastDotIndex) : baseFileName;
+    }
+
+    // TIBCO references a shared resource that lives in a subfolder using the folder-qualified
+    // form "<parentFolder>.<resourceBaseName>" (e.g. "DAS.JDBCConnectionResource" for
+    // Resources/DAS/JDBCConnectionResource.jdbcResource), not just the bare resource name.
+    // baseName must be resourceNameFromPath(path), passed in to avoid recomputing it.
+    public static @NotNull String qualifiedResourceNameFromPath(String path, String baseName) {
+        String[] parts = path.split("/");
+        int lastIndex = parts.length - 1;
+        while (lastIndex >= 0 && parts[lastIndex].isEmpty()) {
+            lastIndex--;
+        }
+        int parentIndex = lastIndex - 1;
+        if (parentIndex < 0 || parts[parentIndex].isEmpty()) {
+            return baseName;
+        }
+        return parts[parentIndex] + "." + baseName;
     }
 
     public static @NotNull String createSoapEnvelope(Expression.VariableReference body) {
@@ -355,7 +391,8 @@ public final class ConversionUtils {
 
     private static BallerinaModel.TypeDesc complexTypeToTD(XSD.XSDType.ComplexType complexType) {
         List<RecordTypeDesc.RecordField> fields = complexType.body().elements().stream()
-                .map(each -> new RecordTypeDesc.RecordField(each.name(), toTypeDesc(each.type()),
+                .map(each -> new RecordTypeDesc.RecordField(
+                        common.ConversionUtils.convertToBalIdentifier(each.name()), toTypeDesc(each.type()),
                         each.minOccur().map(minOccurs -> minOccurs == 0).orElse(false),
                         Optional.empty(), Optional.empty(),
                         each.type() == XSD.XSDType.BasicXSDType.ANY
