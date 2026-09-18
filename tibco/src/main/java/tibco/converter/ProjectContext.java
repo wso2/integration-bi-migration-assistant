@@ -744,7 +744,7 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.PSG_LOG.name;
     }
 
-    public String getPsgExceptionLogFn() {
+    public @NotNull String getPsgExceptionLogFn() {
         importLibraryIfNeededToUtility(Library.LOG);
         utilityIntrinsics.add(Intrinsics.PSG_EXCEPTION_LOG);
         return Intrinsics.PSG_EXCEPTION_LOG.name;

@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.Collection;
@@ -363,7 +364,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                     record ExceptionLog() implements ActivityExtension.Config {
 
                         @Override
-                        public ExtensionKind kind() {
+                        public @NotNull ExtensionKind kind() {
                             return ExtensionKind.PSG_EXCEPTION_LOG;
                         }
                     }

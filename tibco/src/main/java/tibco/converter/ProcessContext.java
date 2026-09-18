@@ -452,7 +452,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return projectContext.getPsgLogFn();
     }
 
-    public String getPsgExceptionLogFn() {
+    public @NotNull String getPsgExceptionLogFn() {
         return projectContext.getPsgExceptionLogFn();
     }
 

@@ -1377,6 +1377,27 @@ final class ActivityConverter {
         return body;
     }
 
+    private static @NotNull ActivityConversionResult createExceptionLogOperation(ActivityContext cx,
+                                                                                   VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment errorCode = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorCode>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment errorMessage = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorMessage>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment processStack = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:processStack>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment stackTrace = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:stackTrace>/*).toString().trim()".formatted(input.varName())));
+        body.add(errorCode);
+        body.add(errorMessage);
+        body.add(processStack);
+        body.add(stackTrace);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgExceptionLogFn(),
+                List.of(errorCode.ref(), errorMessage.ref(), processStack.ref(), stackTrace.ref()))));
+        return new ActivityConversionResult(errorMessage.ref(), body);
+    }
+
     private static ActivityConversionResult createSendHttpResponse(
             ActivityContext cx, VariableReference input, ActivityExtension.Config.SendHTTPResponse sendHTTPResponse) {
         List<Statement> body = new ArrayList<>();
@@ -1546,26 +1567,6 @@ final class ActivityConverter {
         return new ActivityConversionResult(message.ref(), body);
     }
 
-    private static ActivityConversionResult createExceptionLogOperation(ActivityContext cx,
-                                                                          VariableReference input) {
-        List<Statement> body = new ArrayList<>();
-        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
-        VarDeclStatment errorCode = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                exprFrom("(%s/**/<psglog:errorCode>/*).toString().trim()".formatted(input.varName())));
-        VarDeclStatment errorMessage = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                exprFrom("(%s/**/<psglog:errorMessage>/*).toString().trim()".formatted(input.varName())));
-        VarDeclStatment processStack = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                exprFrom("(%s/**/<psglog:processStack>/*).toString().trim()".formatted(input.varName())));
-        VarDeclStatment stackTrace = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                exprFrom("(%s/**/<psglog:stackTrace>/*).toString().trim()".formatted(input.varName())));
-        body.add(errorCode);
-        body.add(errorMessage);
-        body.add(processStack);
-        body.add(stackTrace);
-        body.add(new CallStatement(new FunctionCall(cx.getPsgExceptionLogFn(),
-                List.of(errorCode.ref(), errorMessage.ref(), processStack.ref(), stackTrace.ref()))));
-        return new ActivityConversionResult(errorMessage.ref(), body);
-    }
 
     private static ActivityConversionResult createFileWriteOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.FileWrite fileWrite) {

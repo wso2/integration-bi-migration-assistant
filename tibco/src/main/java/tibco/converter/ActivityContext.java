@@ -25,6 +25,7 @@ import tibco.model.NameSpace;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Type;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
@@ -174,7 +175,7 @@ public class ActivityContext implements LoggingContext {
         return processContext.getPsgLogFn();
     }
 
-    public String getPsgExceptionLogFn() {
+    public @NotNull String getPsgExceptionLogFn() {
         return processContext.getPsgExceptionLogFn();
     }
 
