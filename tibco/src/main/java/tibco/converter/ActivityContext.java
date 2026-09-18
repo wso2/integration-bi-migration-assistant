@@ -20,12 +20,12 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import tibco.LoggingContext;
 import tibco.model.NameSpace;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Type;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
