@@ -170,6 +170,10 @@ public class ActivityContext implements LoggingContext {
         return processContext.getGetSharedVariableFn();
     }
 
+    public String getPsgLogFn() {
+        return processContext.getPsgLogFn();
+    }
+
     public Optional<NameSpace> getNameSpaceByUri(String uri) {
         return processContext.getNameSpaceByUri(uri);
     }

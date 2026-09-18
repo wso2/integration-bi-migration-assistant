@@ -97,10 +97,10 @@ public class MigrateSynapseCommand implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
-        stringBuilder.append("Migrate WSO2 Synapse project or artifact file to Ballerina Integrator\n\n");
+        stringBuilder.append("Migrate WSO2 Synapse project or artifact file to WSO2 Integrator\n\n");
         stringBuilder.append("This command accepts a WSO2 Synapse (ESB/Micro Integrator) project directory or \n");
         stringBuilder.append("artifact file path as input and generates equivalent Ballerina code" +
-                " that can be opened in Ballerina Integrator.\n\n");
+                " that can be opened in WSO2 Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
         stringBuilder.append("  --keep-structure, -k     Keep artifact structure\n");
         stringBuilder.append("  --verbose, -v            Enable verbose output during conversion\n");

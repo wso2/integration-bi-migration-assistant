@@ -1,0 +1,32 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ResponseMoveCsvClientiToErrorLocal-input"
+                             name="ResponseMoveCsvClientiToErrorLocal"
+                             outputVariable="ResponseMoveCsvClientiToErrorLocal"
+                             tibex:xpdlId="5d86f23a-d035-40f4-a806-f8ed4736f8a1"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Log3ToResponseMoveCsvClientiToErrorLocal"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ResponseMoveCsvToErrorLocalToLog"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns5=&quot;http://www.tibco.com/namespaces/tnt/plugins/file&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;LocalWorkPath&quot;/>&lt;xsl:param name=&quot;LocalErrorPath&quot;/>&lt;xsl:param name=&quot;FileNameClientiCsv&quot;/>&lt;xsl:template name=&quot;ResponseMoveCsvClientiToErrorLocal-input&quot; match=&quot;/&quot;>&lt;tns5:RenameActivityConfig>&lt;fromFileName>&lt;xsl:value-of select=&quot;concat($LocalWorkPath, $FileNameClientiCsv)&quot;/>&lt;/fromFileName>&lt;toFileName>&lt;xsl:value-of select=&quot;concat($LocalErrorPath,  $FileNameClientiCsv)&quot;/>&lt;/toFileName>&lt;/tns5:RenameActivityConfig>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.file.rename"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:file="http://ns.tibco.com/bw/palette/file"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/file#//RenameFile"/>
+                        <value overwrite="true" xsi:type="file:RenameFile"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

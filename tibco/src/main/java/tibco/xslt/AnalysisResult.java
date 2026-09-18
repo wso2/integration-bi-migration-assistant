@@ -164,6 +164,10 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         return incrementWhile(value, index, Character::isWhitespace);
     }
 
+    private static boolean isNameChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.' || c == ':';
+    }
+
     private static int incrementWhile(String value, int startIndex, Predicate<Character> predicate) {
         int index = startIndex;
         while (index < value.length() && predicate.test(value.charAt(index))) {
@@ -188,7 +192,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                 }
                 case '$' -> {
                     int paramStart = index;
-                    index = incrementWhile(xPath, index + 1, Predicate.not((chr) -> chr.equals('/')));
+                    index = incrementWhile(xPath, index + 1, AnalysisResult::isNameChar);
                     parameters.add(new Chunk(xPath.substring(paramStart, index), paramStart + offset, index + offset));
                     start = index;
                     insidePath = true;

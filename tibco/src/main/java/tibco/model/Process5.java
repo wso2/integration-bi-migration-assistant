@@ -543,18 +543,43 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 }
             }
 
-            record SOAPSendReceive(Element element, String name, InputBinding inputBinding,
-                                   Optional<String> soapAction, String endpointURL, String fileName) implements
-                    ExplicitTransitionGroup.InlineActivity {
+            sealed interface SOAPSendReceive extends ExplicitTransitionGroup.InlineActivity {
+
+                Optional<String> soapAction();
 
                 @Override
-                public InlineActivityType type() {
+                default InlineActivityType type() {
                     return InlineActivityType.SOAP_SEND_RECEIVE;
                 }
 
-                @Override
-                public boolean hasInputBinding() {
-                    return inputBinding != null;
+                record HTTPEndpoint(Element element, String name, InputBinding inputBinding,
+                                    Optional<String> soapAction, String endpointURL, String fileName)
+                        implements SOAPSendReceive {
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                record JMSProducer(Element element, String name, InputBinding inputBinding,
+                                   Optional<String> soapAction, JMSChannel jmsChannel, Optional<Integer> timeout,
+                                   Optional<String> timeoutType, String fileName)
+                        implements SOAPSendReceive {
+
+                    @Override
+                    public boolean hasInputBinding() {
+                        return inputBinding != null;
+                    }
+                }
+
+                record JMSChannel(Optional<String> namingURL, Optional<String> namingInitialContextFactory,
+                                  Optional<String> namingPrincipal, Optional<String> namingCredential,
+                                  Optional<String> connectionFactory, Optional<String> destination,
+                                  Optional<String> messageType, Optional<String> deliveryMode,
+                                  Optional<Integer> priority, Optional<Integer> timeToLive,
+                                  Optional<String> userName, Optional<String> password) {
+
                 }
             }
 

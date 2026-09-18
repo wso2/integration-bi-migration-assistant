@@ -32,6 +32,7 @@ enum Library {
     FILE("ballerina", "file"),
     SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql"),
+    UUID("ballerina", "uuid"),
     TIME("ballerina", "time");
 
     public final String moduleName;

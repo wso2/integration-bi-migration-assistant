@@ -340,11 +340,31 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record FileRename(boolean overwrite) implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.FILE_RENAME;
+                        }
+                    }
+
                     record Log() implements ActivityExtension.Config {
 
                         @Override
                         public ExtensionKind kind() {
                             return ExtensionKind.LOG;
+                        }
+                    }
+
+                    record PsgLog(String level) implements ActivityExtension.Config {
+
+                        public PsgLog {
+                            assert level != null;
+                        }
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.PSG_LOG;
                         }
                     }
 
@@ -435,11 +455,13 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                     enum ExtensionKind {
                         ACCUMULATE_END,
                         END,
+                        FILE_RENAME,
                         FILE_WRITE,
                         HTTP_SEND,
                         JSON_PARSER,
                         JSON_RENDER,
                         LOG,
+                        PSG_LOG,
                         RENDER_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
@@ -453,7 +475,9 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.restjson.JsonParser" -> JSON_PARSER;
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                 case "bw.file.write" -> FILE_WRITE;
+                                case "bw.file.rename" -> FILE_RENAME;
                                 case "bw.generalactivities.log" -> LOG;
+                                case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;

@@ -104,7 +104,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("Migrate Mule project or standalone `.xml` file to Ballerina\n\n");
         stringBuilder.append("This command accepts a Mule project directory or a standalone Mule `.xml` file path\n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
-                " that can be opened in Ballerina Integrator.\n\n");
+                " that can be opened in WSO2 Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
         stringBuilder.append("  --out, -o                Output directory path\n");
         stringBuilder.append("  --force-version, -f      Force Mule version (3 or 4) if automatic detection fails\n");
