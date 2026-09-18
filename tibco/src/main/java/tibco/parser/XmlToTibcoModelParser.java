@@ -972,6 +972,7 @@ public final class XmlToTibcoModelParser {
             case "scope" -> parseNestedScope(cx, element);
             case "assign" -> parseAssign(cx, element);
             case "forEach" -> parseForeach(cx, element);
+            case "repeatUntil" -> parseRepeatUntil(cx, element);
             case "catchAll" -> parseCatchAll(cx, element);
             case "activity" -> parseInlineActivity(cx, element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
@@ -987,6 +988,14 @@ public final class XmlToTibcoModelParser {
         Scope scope = parseScope(cx, getFirstChildWithTag(element, "scope"));
         return new Flow.Activity.Foreach(counterName, scope, startCounterValue, finalCounterValue,
                 element, cx.fileName());
+    }
+
+    private static Flow.Activity.RepeatUntil parseRepeatUntil(ProcessContext cx, Element element) {
+        String counterName = element.getAttribute("tibex:counterName");
+        Flow.Activity.Expression.XPath condition = parseXPath(getFirstChildWithTag(element, "condition"));
+        Flow flow = parseFlow(cx, getFirstChildWithTag(element, "flow"));
+        Scope scope = new Scope(element.getAttribute("name"), List.of(flow), List.of(), List.of());
+        return new Flow.Activity.RepeatUntil(counterName, condition, scope, element, cx.fileName());
     }
 
     private static Flow.Activity.Assign parseAssign(ProcessContext cx, Element element) {

@@ -47,3 +47,8 @@ bin/
 .cursor
 
 .claude
+
+# Local dev scripts for swapping the tibco tool jar into WSO2 Integrator (BI)
+scripts/replace-tibco-jar-in-bi.ps1
+scripts/revert-tibco-jar-in-bi.ps1
+scripts/tibco-bi-jar-common.ps1
