@@ -80,6 +80,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
@@ -166,6 +167,7 @@ final class ActivityConverter {
             case Throw throwActivity -> convertThrowActivity(cx, throwActivity);
             case Activity.Assign assign -> convertAssign(cx, assign);
             case Activity.Foreach foreach -> convertForeach(cx, foreach);
+            case Activity.RepeatUntil repeatUntil -> convertRepeatUntil(cx, repeatUntil);
             case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
             case InlineActivity inlineActivity -> convertInlineActivity(cx, inlineActivity);
         };
@@ -1457,6 +1459,26 @@ final class ActivityConverter {
                 }
                 """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn,
                 cx.contextVarRef())));
+        return body;
+    }
+
+    private static @NotNull List<Statement> convertRepeatUntil(ActivityContext cx, Activity.RepeatUntil repeatUntil) {
+        List<Statement> body = new ArrayList<>();
+        String scopeFn = cx.processContext.getAnalysisResult().getControlFlowFunctions(repeatUntil.scope())
+                .scopeFn();
+        VarDeclStatment cond = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
+                new Check(ConversionUtils.xPath(cx.processContext, defaultEmptyXml(), cx.contextVarRef(),
+                        repeatUntil.condition())));
+        // repeatUntil.counterName() is not threaded into the context
+        body.add(stmtFrom("""
+                while true {
+                    %1$s(%2$s);
+                    %3$s
+                    if %4$s {
+                        break;
+                    }
+                }
+                """.formatted(scopeFn, cx.contextVarRef(), cond, cond.ref())));
         return body;
     }
 

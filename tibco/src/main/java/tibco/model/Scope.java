@@ -58,7 +58,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                 Activity.ActivityWithName, Activity.ActivityWithOutput, Activity.ActivityWithScope,
                 Activity.ActivityWithSources, Activity.ActivityWithTargets, Activity.Assign, Activity.Empty,
                 Activity.ExtActivity, Activity.Foreach, Activity.Invoke, Activity.NestedScope, Activity.Pick,
-                Activity.ReceiveEvent, Activity.Reply, Activity.StartActivity, Activity.Throw,
+                Activity.ReceiveEvent, Activity.RepeatUntil, Activity.Reply, Activity.StartActivity, Activity.Throw,
                 Activity.UnhandledActivity {
 
             Element element();
@@ -182,6 +182,12 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             record Foreach(String counterName, Scope scope, ValueSource startCounterValue,
                            ValueSource finalCounterValue, Element element, String fileName) implements Flow.Activity,
+                    Flow.Activity.ActivityWithScope {
+
+            }
+
+            record RepeatUntil(String counterName, Expression.XPath condition, Scope scope,
+                               Element element, String fileName) implements Flow.Activity,
                     Flow.Activity.ActivityWithScope {
 
             }
