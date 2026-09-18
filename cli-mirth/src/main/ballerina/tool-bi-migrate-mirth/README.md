@@ -1,6 +1,6 @@
 ## Tool Overview
-The `migrate-mirth` tool enables the conversion of Mirth Connect Channel into Ballerina packages compatible with the [WSO2 Ballerina Integrator](https://wso2.com/integrator/ballerina-integrator).
-It accepts a Mirth Channel XML file as input and produces an equivalent Ballerina Integrator application.
+The `migrate-mirth` tool enables the conversion of Mirth Connect Channel into Ballerina packages compatible with the [WSO2 Integrator](https://wso2.com/integration-platform/integrator/).
+It accepts a Mirth Channel XML file as input and produces an equivalent WSO2 Integrator application.
 
 ## Installation
 

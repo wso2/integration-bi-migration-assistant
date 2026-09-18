@@ -667,7 +667,7 @@ public class MuleMigrator {
 
         // 3. Rearrange BIR for BI Structure
         if (!ctx.keepStructure) {
-            ctx.logger.logState("Re-arranging BIR files to fit Ballerina Integrator project structure...");
+            ctx.logger.logState("Re-arranging BIR files to fit WSO2 Integrator project structure...");
             birTxtDocs =
                     new BICodeConverter(ctx.getContextImports()).convert(new BallerinaModel.Module("mock", birTxtDocs))
                             .textDocuments();

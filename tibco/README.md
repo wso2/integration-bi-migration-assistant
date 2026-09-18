@@ -16,6 +16,7 @@
     - `bw.restjson.JsonParser`
     - `bw.http.sendHTTPResponse`
     - `bw.file.write`
+    - `bw.file.rename`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`

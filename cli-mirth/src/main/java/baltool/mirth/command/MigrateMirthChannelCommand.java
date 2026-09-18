@@ -120,10 +120,10 @@ public class MigrateMirthChannelCommand implements BLauncherCmd {
 
     @Override
     public void printLongDesc(StringBuilder stringBuilder) {
-        stringBuilder.append("Migrate Mirth Connect channel to Ballerina Integrator\n\n");
+        stringBuilder.append("Migrate Mirth Connect channel to WSO2 Integrator\n\n");
         stringBuilder.append("This command accepts a Mirth Connect channel `.xml` file path\n");
         stringBuilder.append("as input and generates equivalent Ballerina code" +
-                " that can be opened in Ballerina Integrator.\n\n");
+                " that can be opened in WSO2 Integrator.\n\n");
         stringBuilder.append("Optional flags:\n");
         stringBuilder.append("  --out, -o               Specify the output directory for the generated Ballerina " +
                 "project\n");
