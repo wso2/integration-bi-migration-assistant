@@ -991,7 +991,7 @@ public final class XmlToTibcoModelParser {
     }
 
     private static Flow.Activity.RepeatUntil parseRepeatUntil(ProcessContext cx, Element element) {
-        String counterName = element.getAttribute("tibex:counterName");
+        String counterName = element.getAttributeNS("http://www.tibco.com/bpel/2007/extensions", "counterName");
         Flow.Activity.Expression.XPath condition = parseXPath(getFirstChildWithTag(element, "condition"));
         Flow flow = parseFlow(cx, getFirstChildWithTag(element, "flow"));
         Scope scope = new Scope(element.getAttribute("name"), List.of(flow), List.of(), List.of());
