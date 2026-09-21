@@ -420,15 +420,19 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 }
                 switch (predicate.get()) {
                     case XPath xPath -> {
-                        Expression expr = ConversionUtils.xPath(cx, value, new VariableReference("cx"), xPath);
+                        Expression expr = ConversionUtils.xPathBoolean(cx, value, new VariableReference("cx"), xPath);
                         prev = expr;
-                        accum.add(getTransitionPredicateFn(cx, xPath, expr));
+                        if (cx.isFirstPredicateFunctionUse(xPath)) {
+                            accum.add(getTransitionPredicateFn(cx, xPath, expr));
+                        }
                     }
                     case Activity.Source.Predicate.Else anElse -> {
                         // No preceding sibling condition to negate means this "otherwise" link is
                         // effectively the only/default transition, so it's unconditionally taken.
-                        accum.add(getTransitionPredicateFn(cx, anElse,
-                                prev != null ? new Expression.Not(prev) : exprFrom("true")));
+                        if (cx.isFirstPredicateFunctionUse(anElse)) {
+                            accum.add(getTransitionPredicateFn(cx, anElse,
+                                    prev != null ? new Expression.Not(prev) : exprFrom("true")));
+                        }
                     }
                 }
             }
@@ -441,7 +445,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             Activity.Source.Predicate predicate,
             Expression expr) {
         return new BallerinaModel.Function(cx.predicateFunction(predicate),
-                List.of(new Parameter("input", XML), new Parameter("cx", new TypeDesc.MapTypeDesc(XML))),
+                List.of(new Parameter("input", XML), new Parameter("cx", cx.contextType())),
                 BOOLEAN, List.of(new Return<>(expr)));
     }
 

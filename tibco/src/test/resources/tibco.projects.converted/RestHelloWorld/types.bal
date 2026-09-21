@@ -48,7 +48,9 @@ public type Foo record {|
 
 public type SequenceGroup record {|
     @xmldata:SequenceOrder {value: 1}
+    @xmldata:Element {minOccurs: 1, maxOccurs: 1}
     string foo;
     @xmldata:SequenceOrder {value: 2}
+    @xmldata:Element {minOccurs: 0, maxOccurs: 1}
     string bar?;
 |};

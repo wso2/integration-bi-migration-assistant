@@ -339,6 +339,56 @@ public enum Intrinsics {
                         }
                     }
                     """
+    ),
+    PSG_SET_AND_LOG(
+            "psgSetAndLog",
+            """
+                    // TIBCO's `bw.psglog.SetAndLog` is a custom (non-stock) logging activity, so this mapping
+                    // (Level -> Ballerina log severity) is inferred from observed usage in the source project,
+                    // not a spec. Review and adjust as needed.
+                    function psgSetAndLog(string level, string targetSystem, xml message, string sessionId,
+                            string correlationId, string trackingId, string sender, string serviceScope) {
+                        log:KeyValues keyValues = {
+                            targetSystem: targetSystem,
+                            sessionId: sessionId,
+                            correlationId: correlationId,
+                            trackingId: trackingId,
+                            sender: sender,
+                            serviceScope: serviceScope
+                        };
+                        match level {
+                            "Warning" => {
+                                log:printWarn(message.toString(), keyValues = keyValues);
+                            }
+                            "Error" => {
+                                log:printError(message.toString(), keyValues = keyValues);
+                            }
+                            "Debug" => {
+                                log:printDebug(message.toString(), keyValues = keyValues);
+                            }
+                            _ => {
+                                log:printInfo(message.toString(), keyValues = keyValues);
+                            }
+                        }
+                    }
+                    """
+    ),
+    PSG_EXCEPTION_LOG(
+            "psgExceptionLog",
+            """
+                    // TIBCO's `bw.psglog.ExceptionLog` reads fault details (errorCode/errorMessage/processStack/
+                    // stackTrace) off the active fault variable. There is no live Ballerina `error` in scope at
+                    // this point, so one is synthesized here purely to carry these fields into `log:printError`.
+                    function psgExceptionLog(string errorCode, string errorMessage, string processStack,
+                            string stackTrace) {
+                        error psgError = error(errorMessage, code = errorCode, processStack = processStack,
+                                stackTrace = stackTrace);
+                        // `stackTrace` is a reserved log:printError parameter name (error:StackFrame[]?), so the
+                        // TIBCO stack-trace text is logged under `tibcoStackTrace` to avoid the collision.
+                        log:printError(errorMessage, 'error = psgError, code = errorCode,
+                                processStack = processStack, tibcoStackTrace = stackTrace);
+                    }
+                    """
     );
     public final String body;
     public final String name;

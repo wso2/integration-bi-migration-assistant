@@ -102,7 +102,7 @@ function initContext(map<xml> initVariables = {},
 
 function responseFromContext(Context cx) returns http:Response {
     http:Response httpRes = new;
-    Response_21? res = cx.response;
+    Response_1? res = cx.response;
     if res is JSONResponse {
         httpRes.setJsonPayload(res.payload);
     } else if res is XMLResponse {

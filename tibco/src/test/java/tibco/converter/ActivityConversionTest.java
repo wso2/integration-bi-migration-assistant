@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -73,6 +74,24 @@ public class ActivityConversionTest {
         Assert.assertEquals(actual, expected);
     }
 
+    @Test(groups = { "tibco", "converter" })
+    public void testCallProcessWithoutDefaultClient() throws IOException, ParserConfigurationException, SAXException {
+        Path activityPath = Path.of("src", "test", "resources", "tibco.activities", "call-proc.xml");
+        Path expectedFunction = Path.of("src", "test", "resources", "tibco.activities.converted",
+                "call-proc-no-client.bal");
+        Element activityElement = stringToElement(fileContent(activityPath));
+        Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(getProcessContextForElement(activityElement),
+                activityElement).get();
+        ProcessContext cx = getProcessContextWithoutDefaultClient(activity);
+        BallerinaModel.Function result = ActivityConverter.convertActivity(cx, activity).get();
+        String actual = toString(result);
+        if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+            bless(expectedFunction, actual);
+        }
+        String expected = fileContent(expectedFunction);
+        Assert.assertEquals(actual, expected);
+    }
+
     private static void bless(Path expectedFunction, String value) {
         try {
             Files.writeString(expectedFunction, value);
@@ -101,6 +120,16 @@ public class ActivityConversionTest {
                 "testOrg", false, true, stateCallback, logCallback);
         ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
         return new TestProcessContext(new TestProjectContext(cx, Map.of()), activity);
+    }
+
+    private static @NotNull ProcessContext getProcessContextWithoutDefaultClient(Scope.Flow.Activity activity) {
+        Logger logger = createVerboseLogger("test");
+        var stateCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        var logCallback = LoggingUtils.wrapLoggerForStateCallback(logger);
+        ConversionContext conversionContext = new ConversionContext(
+                "testOrg", false, true, stateCallback, logCallback);
+        ProjectConversionContext cx = new ProjectConversionContext(conversionContext, "test");
+        return new TestProcessContext(new TestProjectContextWithoutDefaultClient(cx, Map.of()), activity);
     }
 
     private static String toString(BallerinaModel.Function function) {
@@ -156,6 +185,19 @@ public class ActivityConversionTest {
                     "post");
             client.isUsed = true;
             return Optional.of(client);
+        }
+    }
+
+    static class TestProjectContextWithoutDefaultClient extends TestProjectContext {
+
+        TestProjectContextWithoutDefaultClient(ProjectConversionContext conversionContext,
+                                                Map<Process, AnalysisResult> analysisResult) {
+            super(conversionContext, analysisResult);
+        }
+
+        @Override
+        @NotNull Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
+            return Optional.empty();
         }
     }
 

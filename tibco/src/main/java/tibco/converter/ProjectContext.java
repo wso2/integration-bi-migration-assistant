@@ -81,6 +81,7 @@ public class ProjectContext implements LoggingContext {
     private final List<BallerinaModel.Function> utilityFunctions = new ArrayList<>();
     private final Set<BallerinaModel.Import> utilityFunctionImports = new HashSet<>();
     private final Map<String, BallerinaModel.ModuleVar> utilityVars = new HashMap<>();
+    private final Map<String, String> configurableVarNamesByLogicalName = new HashMap<>();
     private final Map<String, BallerinaModel.Listener> utilityListeners = new HashMap<>();
     private final Map<String, BallerinaModel.ModuleTypeDef> utilityTypeDefs = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
@@ -245,14 +246,6 @@ public class ProjectContext implements LoggingContext {
 
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
         conversionContext.addJavaDependency(dependencies);
-    }
-
-    String getConvertToTypeFunction(BallerinaModel.TypeDesc targetType) {
-        importLibraryIfNeededToUtility(XML_DATA);
-        importLibraryIfNeededToUtility(JSON_DATA);
-        ComptimeFunction convertToType = new ConvertToType(targetType);
-        utilityCompTimeFunctions.add(convertToType);
-        return convertToType.functionName();
     }
 
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
@@ -473,14 +466,16 @@ public class ProjectContext implements LoggingContext {
         return new SharedVariableInfo(sharedVariable.name(), new VariableReference(name));
     }
 
-    public void addConfigurableVariable(String name, String source) {
-        addConfigurableVariable(name, source, STRING);
+    public @NotNull String addConfigurableVariable(String name, String source) {
+        return addConfigurableVariable(name, source, STRING);
     }
 
-    public void addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
-        utilityVars.put(name, BallerinaModel.ModuleVar.configurable(
-                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames()),
-                type));
+    public @NotNull String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
+        String uniqueName =
+                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames());
+        utilityVars.put(uniqueName, BallerinaModel.ModuleVar.configurable(uniqueName, type));
+        configurableVarNamesByLogicalName.put(name, uniqueName);
+        return uniqueName;
     }
 
     @NotNull
@@ -503,13 +498,13 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getConfigVarName(String varName) {
-        var varDecl = utilityVars.get(varName);
-        if (varDecl == null) {
+        String uniqueName = configurableVarNamesByLogicalName.get(varName);
+        if (uniqueName == null) {
             log(LoggingUtils.Level.SEVERE,
                     "WARNING: Failed to find configurable variable for " + varName + ". Returning placeholder name.");
             return "placeholder_" + varName;
         }
-        return varDecl.name();
+        return uniqueName;
     }
 
     Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
@@ -617,12 +612,10 @@ public class ProjectContext implements LoggingContext {
         }).orElseGet(() -> ConversionUtils.processFunctionName(processName)));
     }
 
-    record FunctionData(String name, BallerinaModel.TypeDesc inputType, BallerinaModel.TypeDesc returnType) {
+    record FunctionData(String name) {
 
         FunctionData {
             assert name != null && !name.isEmpty();
-            assert inputType != null;
-            assert returnType != null;
         }
     }
 
@@ -744,6 +737,18 @@ public class ProjectContext implements LoggingContext {
         importLibraryIfNeededToUtility(Library.LOG);
         utilityIntrinsics.add(Intrinsics.PSG_LOG);
         return Intrinsics.PSG_LOG.name;
+    }
+
+    public @NotNull String getPsgExceptionLogFn() {
+        importLibraryIfNeededToUtility(Library.LOG);
+        utilityIntrinsics.add(Intrinsics.PSG_EXCEPTION_LOG);
+        return Intrinsics.PSG_EXCEPTION_LOG.name;
+    }
+
+    public String getPsgSetAndLogFn() {
+        importLibraryIfNeededToUtility(Library.LOG);
+        utilityIntrinsics.add(Intrinsics.PSG_SET_AND_LOG);
+        return Intrinsics.PSG_SET_AND_LOG.name;
     }
 
     public String getGetSharedVariableFn() {

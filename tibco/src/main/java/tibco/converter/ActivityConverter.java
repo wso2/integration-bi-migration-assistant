@@ -21,11 +21,11 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Action.RemoteMethodCallAction;
 import common.BallerinaModel.Expression.Check;
+import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.StringTemplate;
-import common.BallerinaModel.Expression.Trap;
 import common.BallerinaModel.Expression.TypeCast;
 import common.BallerinaModel.Expression.TypeCheckExpression;
 import common.BallerinaModel.Expression.VariableReference;
@@ -70,6 +70,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -257,12 +258,25 @@ final class ActivityConverter {
             body.add(new Comment(
                     "WARNING: Missing DB client resource '" + connectionName
                             + "'. Using placeholder client."));
-            client = new VariableReference("placeholder_db_connection");
+            client = declarePlaceholderClient(cx, body, "jdbc:Client", Library.JDBC, "db", connectionName);
         } else {
             client = dbClientOpt.get();
         }
 
         return new JDBCSetupResult(query, client);
+    }
+
+    private static @NotNull VariableReference declarePlaceholderClient(ActivityContext cx, List<Statement> body,
+                                                               String balClientType, Library library,
+                                                               String resourceKind, String resourceName) {
+        cx.addLibraryImport(library);
+        VarDeclStatment placeholder = new VarDeclStatment(typeFrom(balClientType),
+                "placeholder_" + resourceKind + "_connection",
+                new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
+                        "Missing " + resourceKind.toUpperCase(Locale.ROOT) + " client resource '" + resourceName
+                                + "'. Cannot generate call.")))));
+        body.add(placeholder);
+        return placeholder.ref();
     }
 
     private static ActivityConversionResult convertJDBCQuery(ActivityContext cx, VariableReference input,
@@ -276,12 +290,7 @@ final class ActivityConverter {
         VarDeclStatment query = jdbcQuery.statement()
                 .map(value -> new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
                         cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
-                .orElseGet(() -> {
-                    String configName = configurableNames.apply("Statement");
-                    cx.projectContext().addConfigurableVariable(configName, configName);
-                    return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configName)));
-                });
+                .orElseGet(() -> configuredParameterizedQuery(cx, configurableNames.apply("Statement")));
 
         body.add(query);
         JDBCSetupResult jdbcSetup = setupJDBCConnection(cx, body, jdbcQuery.connection(), query.ref());
@@ -297,6 +306,11 @@ final class ActivityConverter {
         }
         body.add(new Statement.VarAssignStatement(result.ref(), streamingResult.result()));
         return new ActivityConversionResult(result.ref(), body);
+    }
+
+    private static @NotNull VarDeclStatment configuredParameterizedQuery(ActivityContext cx, String configName) {
+        return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE), cx.getAnnonVarName(),
+                exprFrom("`${%s}`".formatted(cx.projectContext().addConfigurableVariable(configName, configName))));
     }
 
     private static ActivityConversionResult convertListFilesActivity(
@@ -571,8 +585,8 @@ final class ActivityConverter {
                     .map(value -> (BallerinaModel.Expression) new StringConstant(value))
                     .orElseGet(() -> {
                         String varName = connectionName + "NamingInitialContextFactory";
-                        projectContext.addConfigurableVariable(varName, varName, STRING);
-                        return new VariableReference(varName);
+                        return new VariableReference(
+                                projectContext.addConfigurableVariable(varName, varName, STRING));
                     });
             sb.append("initialContextFactory = ").append(initialContextFactory).append(",");
             BallerinaModel.Expression providerUrl = jmsSharedResource.namingEnvironment().flatMap(
@@ -581,8 +595,8 @@ final class ActivityConverter {
                     .orElseGet(() -> {
 
                         String varName = connectionName + "ProviderUrl";
-                        projectContext.addConfigurableVariable(varName, varName, STRING);
-                        return new VariableReference(varName);
+                        return new VariableReference(
+                                projectContext.addConfigurableVariable(varName, varName, STRING));
                     });
             sb.append("providerUrl = ").append(providerUrl);
             jmsSharedResource.connectionAttributes().flatMap(
@@ -723,12 +737,7 @@ final class ActivityConverter {
         VarDeclStatment query = jdbcUpdate.statement()
                 .map(value -> new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
                         cx.getAnnonVarName(), exprFrom("`%s`".formatted(value))))
-                .orElseGet(() -> {
-                    String configName = configurableNames.apply("Statement");
-                    cx.projectContext().addConfigurableVariable(configName, configName);
-                    return new VarDeclStatment(cx.processContext.getTypeByName(PARAMETERIZED_QUERY_TYPE),
-                            cx.getAnnonVarName(), exprFrom("`${%s}`".formatted(configName)));
-                });
+                .orElseGet(() -> configuredParameterizedQuery(cx, configurableNames.apply("Statement")));
 
         body.add(query);
 
@@ -1231,16 +1240,17 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
         List<Statement> body = new ArrayList<>();
         body.add(addToContext(cx, input, "$Start"));
-        String processFn = cx.getProcessFunction(callProcess.processName())
-                .orElseGet(() -> {
-                            body.add(new Comment(
-                                    "FIXME: failed to find process for %s using placeholder".formatted(
-                                            callProcess.processName())));
-                            return "placeholder_process_for_" + ConversionUtils.sanitizes(callProcess.processName());
-                        }
-                );
-
-        body.add(new CallStatement(new FunctionCall(processFn, List.of(cx.contextVarRef()))));
+        Optional<String> processFn = cx.getProcessFunction(callProcess.processName());
+        if (processFn.isPresent()) {
+            body.add(new CallStatement(new FunctionCall(processFn.get(), List.of(cx.contextVarRef()))));
+        } else {
+            cx.log(SEVERE, "WARNING: Failed to find process for " + callProcess.processName()
+                    + ". Using placeholder call.");
+            body.add(new Comment(
+                    "WARNING: Missing process '" + callProcess.processName() + "'. Cannot generate call."));
+            body.add(new CallStatement(new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
+                    "Missing process '" + callProcess.processName() + "'. Cannot generate call."))))));
+        }
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
@@ -1444,8 +1454,6 @@ final class ActivityConverter {
         List<Statement> body = new ArrayList<>();
         BallerinaModel.Expression init = convertValueSource(cx, foreach.startCounterValue(), body, INT);
         BallerinaModel.Expression end = convertValueSource(cx, foreach.finalCounterValue(), body, INT);
-        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
-        body.add(result);
         Statement contextUpdate = addToContext(cx,
                 new XMLTemplate("<root>${%s}</root>".formatted(foreach.counterName())),
                 foreach.counterName());
@@ -1453,9 +1461,9 @@ final class ActivityConverter {
         body.add(stmtFrom("""
                 foreach int %1$s in %2$s ..< %3$s {
                     %4$s
-                    %5$s = %6$s(%7$s);
+                    check %5$s(%6$s);
                 }
-                """.formatted(foreach.counterName(), init, end, contextUpdate, result.ref(), scopeFn,
+                """.formatted(foreach.counterName(), init, end, contextUpdate, scopeFn,
                 cx.contextVarRef())));
         return body;
     }
@@ -1591,6 +1599,9 @@ final class ActivityConverter {
             case ActivityExtension.Config.FileRename fileRename -> createFileRenameOperation(cx, result, fileRename);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
+            case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
+            case ActivityExtension.Config.PsgSetAndLog setAndLog ->
+                    createPsgSetAndLogOperation(cx, result, setAndLog);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
@@ -1603,6 +1614,27 @@ final class ActivityConverter {
         activityExtension.outputVariable()
                 .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
         return body;
+    }
+
+    private static @NotNull ActivityConversionResult createExceptionLogOperation(ActivityContext cx,
+                                                                                   VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment errorCode = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorCode>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment errorMessage = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorMessage>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment processStack = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:processStack>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment stackTrace = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:stackTrace>/*).toString().trim()".formatted(input.varName())));
+        body.add(errorCode);
+        body.add(errorMessage);
+        body.add(processStack);
+        body.add(stackTrace);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgExceptionLogFn(),
+                List.of(errorCode.ref(), errorMessage.ref(), processStack.ref(), stackTrace.ref()))));
+        return new ActivityConversionResult(errorMessage.ref(), body);
     }
 
     private static ActivityConversionResult createSendHttpResponse(
@@ -1724,26 +1756,56 @@ final class ActivityConverter {
 
     private static final Set<String> KNOWN_PSG_LOG_LEVELS = Set.of("Info", "Warning", "Error", "Debug");
 
+    private static String normalizePsgLogLevel(ActivityContext cx, String activityLabel, String level) {
+        for (String knownLevel : KNOWN_PSG_LOG_LEVELS) {
+            if (knownLevel.equalsIgnoreCase(level)) {
+                return knownLevel;
+            }
+        }
+        cx.log(WARN, "%s: unrecognized Level '%s', defaulting to Info severity".formatted(activityLabel, level));
+        return "Info";
+    }
+
     private static ActivityConversionResult createPsgLogOperation(ActivityContext cx,
                                                                     VariableReference input,
                                                                     ActivityExtension.Config.PsgLog psgLog) {
-        if (!KNOWN_PSG_LOG_LEVELS.contains(psgLog.level())) {
-            cx.log(WARN, "bw.psglog.Log: unrecognized Level '%s', defaulting to Info severity"
-                    .formatted(psgLog.level()));
-        }
+        String level = normalizePsgLogLevel(cx, "bw.psglog.Log", psgLog.level());
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
         VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 exprFrom("%s/**/<psglog:message>/*".formatted(input.varName())));
         body.add(message);
         body.add(new CallStatement(new FunctionCall(cx.getPsgLogFn(),
-                List.of(new StringConstant(psgLog.level()),
+                List.of(new StringConstant(level),
                         exprFrom("(%s/**/<psglog:targetSystem>/*).toString().trim()".formatted(input.varName())),
                         message.ref(),
                         exprFrom("%s/**/<psglog:additionalLogParams>/**/<psglog:keyValuePair>"
                                 .formatted(input.varName()))))));
         return new ActivityConversionResult(message.ref(), body);
     }
+
+    private static ActivityConversionResult createPsgSetAndLogOperation(ActivityContext cx,
+                                                                          VariableReference input,
+                                                                          ActivityExtension.Config.PsgSetAndLog
+                                                                                  setAndLog) {
+        String level = normalizePsgLogLevel(cx, "bw.psglog.SetAndLog", setAndLog.level());
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<psglog:message>/*".formatted(input.varName())));
+        body.add(message);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgSetAndLogFn(),
+                List.of(new StringConstant(level),
+                        exprFrom("(%s/**/<psglog:targetSystem>/*).toString().trim()".formatted(input.varName())),
+                        message.ref(),
+                        exprFrom("(%s/**/<psglog:sessionId>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:correlationId>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:trackingId>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:sender>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:serviceScope>/*).toString().trim()".formatted(input.varName()))))));
+        return new ActivityConversionResult(message.ref(), body);
+    }
+
 
     private static ActivityConversionResult createFileWriteOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.FileWrite fileWrite) {
@@ -1789,7 +1851,8 @@ final class ActivityConverter {
                     + ". Creating placeholder client.");
             body.add(new Comment("WARNING: Missing DB client resource '" + sql.sharedResourcePropertyName() +
                     "'. Using placeholder client."));
-            dbClient = new VariableReference("placeholder_db_connection");
+            dbClient = declarePlaceholderClient(cx, body, "jdbc:Client", Library.JDBC, "db",
+                    sql.sharedResourcePropertyName());
         } else {
             dbClient = dbClientOpt.get();
         }
@@ -1907,7 +1970,8 @@ final class ActivityConverter {
                     + ". Creating placeholder client.");
             body.add(new Comment("WARNING: Missing HTTP client resource '" + httpSend.httpClientResource()
                     + "'. Using placeholder client."));
-            client = new VariableReference("placeholder_http_connection");
+            client = declarePlaceholderClient(cx, body, "http:Client", Library.HTTP, "http",
+                    httpSend.httpClientResource());
         } else {
             client = clientOpt.get();
         }
@@ -2040,44 +2104,46 @@ final class ActivityConverter {
         String targetProcess = extActivity.callProcess().subprocessName();
         Optional<ProcessContext.DefaultClientDetails> client = cx.getDefaultClientDetails(targetProcess);
 
-        VarDeclStatment resultDecl = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
+        ActivityConversionResult callResult = client.map(cl -> callProcessUsingClient(cx, cl, finalResult))
                 .orElseGet(() -> callProcessDirectlyUsingStartFunction(
                         cx, cx.getProcessStartFunctionName(targetProcess), finalResult));
-        body.add(resultDecl);
-        VarDeclStatment wrappedResult = wrapWithRoot(cx, resultDecl.ref());
+        body.addAll(callResult.body());
+        VarDeclStatment wrappedResult = wrapWithRoot(cx, callResult.result());
         body.add(wrappedResult);
         body.add(addToContext(cx, wrappedResult.ref(), extActivity.outputVariable()));
         return body;
     }
 
-    private static @NotNull VarDeclStatment callProcessUsingClient(ActivityContext cx,
+    private static @NotNull ActivityConversionResult callProcessUsingClient(ActivityContext cx,
                                                                    ProcessContext.DefaultClientDetails client,
                                                                    VariableReference result) {
+        VarDeclStatment resultDecl;
         if (client.method.equalsIgnoreCase("get")) {
             // TODO: properly set path parameters
-            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+            resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                     new Check(
                             new RemoteMethodCallAction(client.ref(),
                                     client.method,
                                     List.of(new StringConstant("")))));
         } else {
-            return new VarDeclStatment(XML, cx.getAnnonVarName(),
+            resultDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
                     new Check(
                             new RemoteMethodCallAction(client.ref(),
                                     client.method,
                                     List.of(new StringConstant(""), result))));
         }
+        return new ActivityConversionResult(resultDecl.ref(), List.of(resultDecl));
     }
 
-    private static @NotNull VarDeclStatment callProcessDirectlyUsingStartFunction(
-            ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference result) {
-        String convertToTypeFunction = cx.processContext.getConvertToTypeFunction(startFunction.inputType());
-        FunctionCall convertToTypeFunctionCall = new FunctionCall(convertToTypeFunction, List.of(result));
-
-        return new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
-                new FunctionCall(cx.processContext.getToXmlFunction(), List.of(new Check(
-                        new Trap(new FunctionCall(startFunction.name(),
-                                List.of(convertToTypeFunctionCall))))))));
+    private static @NotNull ActivityConversionResult callProcessDirectlyUsingStartFunction(
+            ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        body.add(addToContext(cx, input, "$Start"));
+        body.add(new CallStatement(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef()))));
+        VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
+        body.add(result);
+        return new ActivityConversionResult(result.ref(), body);
     }
 
     private static InputBindingResult convertInputBindings(ActivityContext cx, VariableReference input,
