@@ -89,6 +89,7 @@ public class ProjectContext implements LoggingContext {
 
     private String toXMLFunction = null;
     private String jsonToXMLFunction = null;
+    private InitContext initContextFn = null;
     private int nextPort = 8080;
     private int typeCount = 0;
     private int annonVarCount = 0;
@@ -401,11 +402,12 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getInitContextFn() {
-        Collection<SharedVariableInfo> sharedVariables = getProjectSharedVariables().map(this::addProjectSharedVariable)
-                .toList();
-        ComptimeFunction initContext = new InitContext(sharedVariables);
-        utilityCompTimeFunctions.add(initContext);
-        return initContext.functionName();
+        if (initContextFn == null) {
+            initContextFn = new InitContext(
+                    getProjectSharedVariables().map(this::addProjectSharedVariable).toList());
+        }
+        utilityCompTimeFunctions.add(initContextFn);
+        return initContextFn.functionName();
     }
 
     public String getPredicateTestFunction() {

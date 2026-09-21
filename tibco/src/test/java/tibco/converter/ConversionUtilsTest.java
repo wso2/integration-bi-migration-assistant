@@ -18,6 +18,7 @@
 
 package tibco.converter;
 
+import common.BallerinaModel;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
@@ -29,8 +30,10 @@ import tibco.analyzer.AnalysisResult;
 import tibco.converter.ConversionUtils.LineCount;
 import tibco.model.NameSpace;
 import tibco.model.Process;
+import tibco.model.Resource;
 import tibco.model.Variable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -306,6 +309,31 @@ public class ConversionUtilsTest {
         Assert.assertEquals(nameOne, "Resources_AWS_SendMail");
         Assert.assertNotEquals(nameTwo, nameOne);
         Assert.assertFalse(nameTwo.contains("/") || nameTwo.contains("."));
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testInitContextIsGeneratedOnceForEveryEntryPoint() {
+        ProjectContext projectContext = newProjectContext("InitContextSingleDefinition");
+        projectContext.addSharedVariable(new Resource.SharedVariable("sharedVar",
+                "/Resources/sharedVar.sharedvariable", false, "<root/>", true));
+
+        projectContext.getInitContextFn();
+        projectContext.getInitContextFn();
+
+        BallerinaModel.TextDocument utils = utilsFile(projectContext);
+        Assert.assertEquals(utils.intrinsics().stream()
+                        .filter(each -> each.stripLeading().startsWith("function initContext(")).count(), 1,
+                "initContext must be emitted once however many entry points request it");
+        Assert.assertEquals(utils.moduleVars().stream()
+                        .filter(moduleVar -> moduleVar.name().startsWith("sharedVar")).count(), 1,
+                "a project shared variable must be declared once, not re-registered per entry point");
+    }
+
+    @NotNull
+    private static BallerinaModel.TextDocument utilsFile(ProjectContext projectContext) {
+        return projectContext.serialize(List.of()).textDocuments().stream()
+                .filter(each -> each.documentName().equals("utils.bal"))
+                .findFirst().orElseThrow();
     }
 
     @NotNull
