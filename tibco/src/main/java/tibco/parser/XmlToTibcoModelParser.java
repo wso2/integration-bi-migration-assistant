@@ -1194,6 +1194,8 @@ public final class XmlToTibcoModelParser {
         String language = node.getAttribute("expressionLanguage");
         if (language.contains("xslt")) {
             return parseXSLTExpression(node);
+        } else if (language.contains("xpath")) {
+            return parseXPathExpressionNode(node);
         } else {
             throw new ParserException("Unsupported expression language: " + language, node);
         }
@@ -1208,6 +1210,11 @@ public final class XmlToTibcoModelParser {
         }
         expression = unEscapeXml(expression);
         return new Flow.Activity.Expression.XSLT(expression);
+    }
+
+    private static Flow.Activity.Expression.XPath parseXPathExpressionNode(Element node) {
+        return new Flow.Activity.Expression.XPath(
+                node.hasAttribute("expression") ? node.getAttribute("expression") : node.getTextContent());
     }
 
     private static String unEscapeXml(String escapedXml) {
@@ -1355,6 +1362,7 @@ public final class XmlToTibcoModelParser {
             case RENDER_XML -> new Config.RenderXML();
             case SEND_HTTP_RESPONSE -> parseSendHTTPResponse(config);
             case MAPPER -> new Config.Mapper();
+            case BW_ASSIGN -> new Config.BwAssign();
             case SQL -> parasSqlActivityExtension(config);
             case ACCUMULATE_END -> parseAccumulateEnd(activity);
         };

@@ -405,6 +405,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record BwAssign() implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.BW_ASSIGN;
+                        }
+                    }
+
                     record AccumulateEnd(String activityName) implements ActivityExtension.Config {
 
                         @Override
@@ -488,6 +496,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         RENDER_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
+                        BW_ASSIGN,
                         SQL;
 
                         public static ActivityExtension.Config.ExtensionKind fromTypeId(String typeId) {
@@ -505,6 +514,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.psglog.SetAndLog" -> PSG_SET_AND_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
+                                case "bw.generalactivities.bwassign" -> BW_ASSIGN;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;
                                 default -> patternMatch(typeId);
                             };
@@ -557,12 +567,6 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
                 record CompleteBinding(Flow.Activity.Expression expression) implements Flow.Activity.InputBinding {
 
-                    public Flow.Activity.Expression.XSLT xslt() {
-                        if (expression instanceof Flow.Activity.Expression.XSLT xslt) {
-                            return xslt;
-                        }
-                        throw new IllegalStateException("Not an XSLT expression: " + expression);
-                    }
                 }
 
                 record PartialBindings(List<Flow.Activity.Expression> expressions) implements
