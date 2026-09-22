@@ -18,12 +18,14 @@
 
 package tibco.model;
 
+import java.util.Locale;
+
 public enum XmlInputStyle {
     TEXT,
     BINARY;
 
     public static XmlInputStyle from(String s) {
-        return switch (s.toLowerCase()) {
+        return switch (s.toLowerCase(Locale.ROOT)) {
             case "text" -> TEXT;
             case "binary" -> BINARY;
             default -> throw new IllegalArgumentException("Unknown XML input style: " + s);

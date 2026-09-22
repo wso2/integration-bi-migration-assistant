@@ -1317,12 +1317,12 @@ final class ActivityConverter {
         return finishXmlParseActivity(cx, result, xmlParseActivity.inputStyle());
     }
 
-    private static ActivityConversionResult createParseXmlOperation(
+    private static @NotNull ActivityConversionResult createParseXmlOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.ParseXML parseXml) {
         return finishXmlParseActivity(cx, result, parseXml.inputStyle());
     }
 
-    private static ActivityConversionResult finishXmlParseActivity(
+    private static @NotNull ActivityConversionResult finishXmlParseActivity(
             ActivityContext cx, VariableReference result, XmlInputStyle inputStyle) {
         List<Statement> body = new ArrayList<>();
 

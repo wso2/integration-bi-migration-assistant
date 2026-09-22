@@ -693,10 +693,9 @@ public final class XmlToTibcoModelParser {
 
     private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        String inputStyleValue = getInlineActivityConfigValue(element, "inputStyle");
         XmlInputStyle inputStyle;
         try {
-            inputStyle = XmlInputStyle.from(inputStyleValue);
+            inputStyle = XmlInputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
         } catch (IllegalArgumentException ex) {
             throw new ParserException(ex.getMessage(), element);
         }

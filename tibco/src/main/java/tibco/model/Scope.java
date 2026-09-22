@@ -399,8 +399,12 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
                     record ParseXML(XmlInputStyle inputStyle) implements ActivityExtension.Config {
 
+                        public ParseXML {
+                            assert inputStyle != null;
+                        }
+
                         @Override
-                        public ExtensionKind kind() {
+                        public @NotNull ExtensionKind kind() {
                             return ExtensionKind.PARSE_XML;
                         }
                     }
