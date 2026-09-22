@@ -1212,7 +1212,7 @@ public final class XmlToTibcoModelParser {
         return new Flow.Activity.Expression.XSLT(expression);
     }
 
-    private static Flow.Activity.Expression.XPath parseXPathExpressionNode(Element node) {
+    private static @NotNull Flow.Activity.Expression.XPath parseXPathExpressionNode(Element node) {
         return new Flow.Activity.Expression.XPath(
                 node.hasAttribute("expression") ? node.getAttribute("expression") : node.getTextContent());
     }

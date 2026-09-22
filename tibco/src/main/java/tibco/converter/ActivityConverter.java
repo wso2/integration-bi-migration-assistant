@@ -2166,7 +2166,7 @@ final class ActivityConverter {
                         }
                         case Activity.Expression.XPath xPath -> {
                             VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                                    ConversionUtils.xPath(cx.processContext, defaultEmptyXml(),
+                                    ConversionUtils.xPath(cx.processContext, last,
                                             cx.contextVarRef(), xPath));
                             statements.add(varDecl);
                             last = varDecl.ref();
