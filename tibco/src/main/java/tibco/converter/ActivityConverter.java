@@ -59,6 +59,7 @@ import tibco.model.Scope.Flow.Activity.Throw;
 import tibco.model.Scope.Flow.Activity.UnhandledActivity;
 import tibco.model.ValueSource;
 import tibco.model.XSD;
+import tibco.model.XmlInputStyle;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
@@ -1313,20 +1314,24 @@ final class ActivityConverter {
 
     private static ActivityConversionResult convertXmlParseActivity(
             ActivityContext cx, VariableReference result, InlineActivity.XMLParseActivity xmlParseActivity) {
+        return finishXmlParseActivity(cx, result, xmlParseActivity.inputStyle());
+    }
+
+    private static ActivityConversionResult createParseXmlOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.ParseXML parseXml) {
+        return finishXmlParseActivity(cx, result, parseXml.inputStyle());
+    }
+
+    private static ActivityConversionResult finishXmlParseActivity(
+            ActivityContext cx, VariableReference result, XmlInputStyle inputStyle) {
         List<Statement> body = new ArrayList<>();
 
-        VariableReference stringRepr;
-        if (xmlParseActivity.inputStyle() == InlineActivity.XMLParseActivity.InputStyle.TEXT) {
-            VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("%s/<xmlString>/*".formatted(result.varName())));
-            body.add(xmlString);
-            VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    new MethodCall(xmlString.ref(), "toString", List.of()));
-            body.add(asString);
-            stringRepr = asString.ref();
+        BallerinaModel.Expression stringRepr;
+        if (inputStyle == XmlInputStyle.TEXT) {
+            stringRepr = new MethodCall(exprFrom("(%s/*)".formatted(result.varName())), "toString", List.of());
         } else {
             VarDeclStatment bytes = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("%s/<bytes>/*".formatted(result.varName())));
+                    exprFrom("%s/*".formatted(result.varName())));
             body.add(bytes);
             VarDeclStatment byteArr = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(
                     BallerinaModel.TypeDesc.BuiltinType.BYTE), cx.getAnnonVarName());
@@ -1334,16 +1339,11 @@ final class ActivityConverter {
             body.add(new Comment(
                     "WARNING: xml parse from bytes detected properly initialize %s using %s".formatted(byteArr.ref(),
                             bytes.ref())));
-            VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    new Check(new FunctionCall("string:fromBytes", List.of(byteArr.ref()))));
-            body.add(stringValue);
-            stringRepr = stringValue.ref();
+            stringRepr = new Check(new FunctionCall("string:fromBytes", List.of(byteArr.ref())));
         }
-        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new FunctionCall("xml:fromString", List.of(stringRepr))));
-        body.add(xmlValue);
         VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));
+                new XMLTemplate("<root>${%s}</root>".formatted(
+                        new Check(new FunctionCall("xml:fromString", List.of(stringRepr))))));
         body.add(wrappedValue);
         return new ActivityConversionResult(wrappedValue.ref(), body);
     }
@@ -1603,6 +1603,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.PsgSetAndLog setAndLog ->
                     createPsgSetAndLogOperation(cx, result, setAndLog);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
+            case ActivityExtension.Config.ParseXML parseXml -> createParseXmlOperation(cx, result, parseXml);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
                     accumulateEnd,

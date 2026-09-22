@@ -397,6 +397,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ParseXML(XmlInputStyle inputStyle) implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.PARSE_XML;
+                        }
+                    }
+
                     record Mapper() implements ActivityExtension.Config {
 
                         @Override
@@ -486,6 +494,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         PSG_LOG,
                         PSG_SET_AND_LOG,
                         RENDER_XML,
+                        PARSE_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
                         SQL;
@@ -504,6 +513,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
                                 case "bw.psglog.SetAndLog" -> PSG_SET_AND_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
+                                case "bw.xml.parsexml" -> PARSE_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;
                                 default -> patternMatch(typeId);
