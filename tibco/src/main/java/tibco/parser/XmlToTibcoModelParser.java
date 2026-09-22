@@ -357,6 +357,12 @@ public final class XmlToTibcoModelParser {
                     transitionGroup = transitionGroup.append(parseTransition(cx, element));
                 }
                 case "starter" -> transitionGroup = transitionGroup.setStartActivity(parseInlineActivity(cx, element));
+                case "startName" -> {
+                    String startName = element.getTextContent();
+                    if (startName != null && !startName.isBlank()) {
+                        transitionGroup = transitionGroup.setStartName(startName.strip());
+                    }
+                }
                 case "returnBindings" -> {
                     if (!isEmpty(element)) {
                         transitionGroup = transitionGroup.setReturnBindings(parseReturnBindings(cx, element));

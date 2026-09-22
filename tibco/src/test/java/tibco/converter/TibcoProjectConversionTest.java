@@ -516,6 +516,64 @@ public class TibcoProjectConversionTest {
         Assert.assertTrue(result3.containsKey("error"), "Should return error for missing parameters");
     }
 
+    @Test(groups = {"tibco", "converter"})
+    public void testStarterLessProcessesProduceCallableFunctionsWithoutServices() throws Exception {
+        Path tibcoProject = Path.of("src", "test", "resources", "tibco.projects", "CallableSubprocess");
+        Path tempDir = Files.createTempDirectory("tibco-subprocess-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", "CallableSubprocess"),
+                    tibcoProject.toString(), tempDir.toString());
+
+            String generated;
+            try (Stream<Path> balFiles = Files.walk(tempDir)) {
+                List<Path> paths = balFiles.filter(p -> p.toString().endsWith(".bal")).sorted().toList();
+                StringBuilder sb = new StringBuilder();
+                for (Path p : paths) {
+                    sb.append(Files.readString(p));
+                }
+                generated = sb.toString();
+            }
+
+            Assert.assertFalse(generated.contains("http:Listener"),
+                    "A project of starter-less subprocesses must not declare an http:Listener");
+            Assert.assertFalse(generated.contains("service "),
+                    "A project of starter-less subprocesses must not declare a service");
+
+            Assert.assertTrue(generated.contains("function start_Processes_FanOut_process(Context cx)"),
+                    "Starter-less subprocess must still produce a callable start function");
+            Assert.assertTrue(generated.contains("function start_Processes_BeginFlow_process(Context cx)"),
+                    "Starter-less subprocess must still produce a callable start function");
+
+            assertActivityRunnerCalls(generated, "scope0ActivityRunner",
+                    List.of("Init", "BranchA", "BranchB", "Merge"));
+            assertActivityRunnerCalls(generated, "scope0_2ActivityRunner", List.of("FirstStep", "SecondStep"));
+            Assert.assertEquals(activityRunnerBody(generated, "scope0_1ActivityRunner").strip(), "",
+                    "A starter-less process with no transitions must still produce an empty activity runner");
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
+    private void assertActivityRunnerCalls(String generated, String runner, List<String> expectedActivities) {
+        String body = activityRunnerBody(generated, runner);
+        Assert.assertFalse(body.strip().isEmpty(), runner + " must not be empty");
+        for (String activity : expectedActivities) {
+            Assert.assertTrue(body.contains("check " + activity + "(cx);"),
+                    runner + " must call " + activity + ", but body was:\n" + body);
+        }
+    }
+
+    private String activityRunnerBody(String generated, String runner) {
+        String header = "function " + runner + "(Context cx) returns error? {\n";
+        int start = generated.indexOf(header);
+        Assert.assertTrue(start >= 0, "Could not find " + runner + " in generated output");
+        int bodyStart = start + header.length();
+        int end = generated.indexOf("\n}", bodyStart - 1);
+        Assert.assertTrue(end >= 0, "Could not find end of " + runner);
+        return generated.substring(bodyStart, end + 1);
+    }
+
     @DataProvider
     public Object[][] projectTestCaseProvider() throws IOException {
         Path projectTestCaseDir = Path.of("src", "test", "resources", "tibco.projects");
