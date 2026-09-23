@@ -18,7 +18,7 @@ function Call_Worker(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
-    addToContext(cx, "$Start", var2);
+    addToContext(cx, "Start", var2);
     start_Processes_Worker_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "Call-Worker", var3);

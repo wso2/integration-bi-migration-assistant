@@ -528,7 +528,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             ExplicitTransitionGroup group) {
         try {
             return analysisResult.sortedActivities(group).toList();
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             cx.log(LoggingUtils.Level.SEVERE, "Unable to order activities for process \""
                     + cx.getProcessStartFunction().name() + "\": " + e.getMessage()
                     + ". Generating an empty activity runner for this process.");
