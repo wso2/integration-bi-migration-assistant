@@ -1239,7 +1239,7 @@ final class ActivityConverter {
     private static ActivityConversionResult convertCallProcess(
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
         List<Statement> body = new ArrayList<>();
-        body.add(addToContext(cx, input, "$Start"));
+        body.add(addToContext(cx, input, "Start"));
         Optional<String> processFn = cx.getProcessFunction(callProcess.processName());
         if (processFn.isPresent()) {
             body.add(new CallStatement(new FunctionCall(processFn.get(), List.of(cx.contextVarRef()))));
@@ -2138,7 +2138,7 @@ final class ActivityConverter {
     private static @NotNull ActivityConversionResult callProcessDirectlyUsingStartFunction(
             ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference input) {
         List<Statement> body = new ArrayList<>();
-        body.add(addToContext(cx, input, "$Start"));
+        body.add(addToContext(cx, input, "Start"));
         body.add(new CallStatement(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef()))));
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
