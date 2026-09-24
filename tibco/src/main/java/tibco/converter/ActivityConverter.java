@@ -1604,6 +1604,7 @@ final class ActivityConverter {
                     createPsgSetAndLogOperation(cx, result, setAndLog);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.BwAssign ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
                     accumulateEnd,
                     activityExtension.outVariableName().orElseThrow(
@@ -2153,13 +2154,24 @@ final class ActivityConverter {
         for (InputBinding transform : inputBindings) {
             switch (transform) {
                 case InputBinding.CompleteBinding completeBinding -> {
-                    XsltTransformResult transformResult = xsltTransform(cx, last, completeBinding.xslt());
-                    addNonStandardXsltWarning(transformResult.nonStandardFunctions(), statements);
-                    statements.addAll(transformResult.statements());
-                    VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                            transformResult.expression());
-                    statements.add(varDecl);
-                    last = varDecl.ref();
+                    switch (completeBinding.expression()) {
+                        case Activity.Expression.XSLT xslt -> {
+                            XsltTransformResult transformResult = xsltTransform(cx, last, xslt);
+                            addNonStandardXsltWarning(transformResult.nonStandardFunctions(), statements);
+                            statements.addAll(transformResult.statements());
+                            VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                                    transformResult.expression());
+                            statements.add(varDecl);
+                            last = varDecl.ref();
+                        }
+                        case Activity.Expression.XPath xPath -> {
+                            VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                                    ConversionUtils.xPath(cx.processContext, last,
+                                            cx.contextVarRef(), xPath));
+                            statements.add(varDecl);
+                            last = varDecl.ref();
+                        }
+                    }
                 }
                 case InputBinding.PartialBindings partialBindings -> {
                     InputBindingResult partialResult = convertPartialInputBinding(cx, partialBindings, last);
