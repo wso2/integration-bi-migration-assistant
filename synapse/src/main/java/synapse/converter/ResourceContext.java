@@ -24,11 +24,6 @@ package synapse.converter;
 public final class ResourceContext extends ScopeContext {
 
     public ResourceContext(ConversionContext shared) {
-        this(shared, true);
-    }
-
-    public ResourceContext(ConversionContext shared, boolean supportsReply) {
         super(shared);
-        setSupportsReply(supportsReply);
     }
 }

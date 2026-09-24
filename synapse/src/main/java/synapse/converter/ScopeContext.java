@@ -42,7 +42,7 @@ public abstract class ScopeContext {
     private boolean contextParam;
     private boolean contextInitialized;
     private boolean responded;
-    private boolean supportsReply = true;
+    private boolean hasCaller;
 
     protected ScopeContext(ConversionContext shared) {
         assert shared != null : "shared ConversionContext must not be null";
@@ -73,16 +73,19 @@ public abstract class ScopeContext {
     public void initContext() {
         statements.add(new Statement.BallerinaStatement("Context ctx = {variables: {}, caller: caller};"));
         setContextInitialized(true);
+        hasCaller = true;
     }
 
     /**
      * Declares the {@code Context ctx} local at the top of a resource body for a protocol with no
      * {@code http:Caller} to seed it with (e.g. a jms/file inbound endpoint) — {@code ctx.caller} is left
-     * unset. See {@link #setSupportsReply(boolean)} for how such a resource also disables {@code respond}.
+     * unset. The generated {@code respond} utility checks for this at runtime and reports an error
+     * instead of attempting to reply.
      */
     public void initContextWithoutCaller() {
         statements.add(new Statement.BallerinaStatement("Context ctx = {variables: {}};"));
         setContextInitialized(true);
+        hasCaller = false;
     }
 
     /**
@@ -151,17 +154,10 @@ public abstract class ScopeContext {
     }
 
     /**
-     * Whether this scope has a reply transport to respond on. {@code true} for an HTTP resource, whose
-     * {@code ctx.caller} is an {@code http:Caller}; {@code false} for a protocol with no reply transport
-     * (e.g. a jms/file inbound endpoint), where {@link synapse.converter.bir.mediators.RespondConverter}
-     * reports a {@code <respond/>} as unsupported instead of converting it, and the default fault handler
-     * only logs instead of also responding.
+     * Whether {@code ctx.caller} was actually seeded — {@code true} after {@link #initContext()},
+     * {@code false} after {@link #initContextWithoutCaller()}.
      */
-    public boolean supportsReply() {
-        return supportsReply;
-    }
-
-    public void setSupportsReply(boolean supportsReply) {
-        this.supportsReply = supportsReply;
+    public boolean hasCaller() {
+        return hasCaller;
     }
 }

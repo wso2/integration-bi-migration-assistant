@@ -28,11 +28,13 @@ import common.BallerinaModel.Listener.FileListener;
 import common.BallerinaModel.Listener.HTTPListener;
 import common.BallerinaModel.Listener.JMSListener;
 import common.BallerinaModel.ModuleVar;
+import common.BallerinaModel.OnFailClause;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Remote;
 import common.BallerinaModel.Resource;
 import common.BallerinaModel.Service;
 import common.BallerinaModel.Statement;
+import common.BallerinaModel.TypeBindingPattern;
 import common.BallerinaModel.TypeDesc;
 import common.ConversionUtils;
 import org.jetbrains.annotations.NotNull;
@@ -95,10 +97,21 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
     private static final String ON_MESSAGE_FUNCTION = "onMessage";
 
     private static final String FILE_URI_PARAM = "transport.vfs.FileURI";
+    private static final String FILE_CONTENT_TYPE_PARAM = "transport.vfs.ContentType";
+    private static final String FILE_ACTION_AFTER_PROCESS_PARAM = "transport.vfs.ActionAfterProcess";
+    private static final String FILE_MOVE_AFTER_PROCESS_PARAM = "transport.vfs.MoveAfterProcess";
+    private static final String FILE_ACTION_MOVE = "MOVE";
+    private static final String FILE_ACTION_DELETE = "DELETE";
     private static final String LOCAL_FILE_SCHEME = "file";
     private static final String SCHEME_SEPARATOR = "://";
     private static final Import FILE_MODULE_IMPORT = new Import("ballerina", "file");
+    private static final Import FILE_IO_MODULE_IMPORT = new Import("ballerina", "io");
+    private static final Import LOG_MODULE_IMPORT = new Import("ballerina", "log");
+    private static final String SCAN_ERROR_VAR = "err";
+    private static final TypeBindingPattern SCAN_ERROR_BINDING =
+            new TypeBindingPattern(new TypeDesc.BallerinaType("error"), SCAN_ERROR_VAR);
     private static final String FILE_EVENT_PARAM = "event";
+    private static final String FILE_PATH_PARAM = "path";
     private static final String ON_CREATE_FUNCTION = "onCreate";
 
     private static final String LISTENER_SUFFIX = "Listener";
@@ -196,9 +209,11 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
     }
 
     // A Synapse jms inbound endpoint is a fire-and-forget consumer with no reply transport: its
-    // resourceContext is built with supportsReply=false, so a <respond/> reached while converting
-    // its sequence is reported instead of converted (see RespondConverter), and its default fault
-    // handler only logs (see FaultSequenceConverter).
+    // resourceContext's ctx never gets a caller (see initContextWithoutCaller), so a <respond/>
+    // reached while converting its sequence, directly or via a called sequence, is still converted,
+    // but the generated respond() reports an error at runtime instead of attempting to reply. That keeps
+    // the generated code safe to compile, but it's still guaranteed to fail there at runtime, so
+    // reportUnsupportedRespondIfNeeded also flags it in the migration report for manual review.
     private static void convertJms(InboundEndpoint inboundEndpoint, ConversionContext context) {
         String baseName = ConversionUtils.lowerFirst(inboundEndpoint.name());
         String listenerName = baseName + LISTENER_SUFFIX;
@@ -254,7 +269,7 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
             context.addImports(ConversionContext.MAIN_BAL_FILE, List.of(JMS_ACTIVEMQ_DRIVER_IMPORT));
         }
 
-        ResourceContext resourceContext = new ResourceContext(context, false);
+        ResourceContext resourceContext = new ResourceContext(context);
         resourceContext.initContextWithoutCaller();
         resourceContext.statements().add(new Statement.BallerinaStatement(
                 "if message !is jms:TextMessage { fail error(\"Unsupported JMS message type: expected a "
@@ -296,17 +311,26 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
         };
     }
 
-    // A Synapse file (VFS) inbound endpoint polls and processes each discovered file exactly once
-    // (poll -> mediate -> move/delete) with no create/modify distinction, so only onCreate is generated.
+    // A Synapse file (VFS) inbound endpoint polls a directory and processes every file found there
+    // exactly once, then applies ActionAfterProcess. file:Listener only reports files created after
+    // it starts, so the per-file work is extracted into <baseName>ProcessFile and reused both by
+    // onCreate (files created after startup) and by a one-time directory scan contributed to the
+    // project's combined init() (files already present at startup) — see the comment attached to the
+    // generated service for what is still not equivalent to Synapse's own VFS polling.
     private static void convertFile(InboundEndpoint inboundEndpoint, ConversionContext context) {
         String baseName = ConversionUtils.lowerFirst(inboundEndpoint.name());
         String listenerName = baseName + LISTENER_SUFFIX;
         Optional<String> fileUri = Optional.empty();
+        Optional<String> contentType = Optional.empty();
+        Optional<String> actionAfterProcess = Optional.empty();
+        Optional<String> moveAfterProcessUri = Optional.empty();
         for (Param parameter : inboundEndpoint.parameters()) {
-            if (FILE_URI_PARAM.equals(parameter.name())) {
-                fileUri = Optional.of(parameter.value());
-            } else {
-                reportUnsupportedParameter(inboundEndpoint, parameter, context);
+            switch (parameter.name()) {
+                case FILE_URI_PARAM -> fileUri = Optional.of(parameter.value());
+                case FILE_CONTENT_TYPE_PARAM -> contentType = Optional.of(parameter.value());
+                case FILE_ACTION_AFTER_PROCESS_PARAM -> actionAfterProcess = Optional.of(parameter.value());
+                case FILE_MOVE_AFTER_PROCESS_PARAM -> moveAfterProcessUri = Optional.of(parameter.value());
+                default -> reportUnsupportedParameter(inboundEndpoint, parameter, context);
             }
         }
         if (fileUri.isEmpty()) {
@@ -325,26 +349,114 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
                 new StringConstant(toLocalPath(fileUri.orElse("")))));
         context.addListener(new FileListener(listenerName, new VariableReference(pathVar), false));
         context.addImports(ConversionContext.MAIN_BAL_FILE, List.of(FILE_MODULE_IMPORT));
+        context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, List.of(FILE_MODULE_IMPORT, FILE_IO_MODULE_IMPORT));
 
-        ResourceContext resourceContext = new ResourceContext(context, false);
+        ResourceContext resourceContext = new ResourceContext(context);
         resourceContext.initContextWithoutCaller();
+        resourceContext.statements().add(new Statement.BallerinaStatement(readFileContentStatement(contentType)));
         MediatorConverters.convertMediators(
                 List.of(new SequenceMediator(inboundEndpoint.sequenceKey())), resourceContext);
         boolean respondedInMainSequence = resourceContext.isResponded();
+        addActionAfterProcessStatement(inboundEndpoint, baseName, actionAfterProcess, moveAfterProcessUri,
+                resourceContext, context);
         FaultSequenceConverter.wrap(resourceContext, context, inboundEndpoint.onErrorRef(), "onError",
                 "inbound endpoint", false);
         reportUnsupportedRespondIfNeeded(inboundEndpoint,
                 respondedInMainSequence || resourceContext.isResponded(), context);
 
-        context.addImports(ConversionContext.MAIN_BAL_FILE, resourceContext.importStatements());
+        context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, resourceContext.importStatements());
+        String processFileFunction = baseName + "ProcessFile";
+        context.addFunction(new Function(processFileFunction, List.of(new Parameter(FILE_PATH_PARAM, STRING)),
+                new TypeDesc.BallerinaType(ERROR_OPTIONAL_TYPE), resourceContext.statements()));
+
         List<Parameter> parameters = List.of(
                 new Parameter(FILE_EVENT_PARAM, new TypeDesc.BallerinaType("file:FileEvent")));
         Function onCreate = new Function(ON_CREATE_FUNCTION, parameters,
-                new TypeDesc.BallerinaType(ERROR_OPTIONAL_TYPE), resourceContext.statements());
+                new TypeDesc.BallerinaType(ERROR_OPTIONAL_TYPE), List.of(new Statement.BallerinaStatement(
+                        "return " + processFileFunction + "(" + FILE_EVENT_PARAM + ".name);")));
         Statement.Comment comment = new Statement.Comment("Synapse VFS inbound endpoints process each "
-                + "discovered file exactly once; there is no onModify equivalent.");
+                + "discovered file exactly once. file:Listener only reports files created after it starts, "
+                + "so pre-existing files are instead handled by a one-time directory scan in this project's "
+                + "init() function. A file created in the brief window between that scan and this listener "
+                + "actually starting, or one still being written when detected, may be missed or read "
+                + "prematurely - file:Listener has no equivalent to Synapse's file-locking/stability checks.");
         context.addService(new Service("", List.of(listenerName), Optional.empty(), List.of(),
                 List.of(), List.of(), List.of(new Remote(onCreate)), Optional.of(comment)));
+
+        context.addModuleInitStatements(
+                existingFilesScanStatements(inboundEndpoint, baseName, pathVar, processFileFunction, context));
+    }
+
+    // Absent/text content is read as a string; any other declared content type is read as raw bytes.
+    // A transport.vfs.ContentType this doesn't recognize as text still gets one of these two fallbacks
+    // rather than being reported as unsupported, since some read is always possible.
+    private static String readFileContentStatement(Optional<String> contentType) {
+        return "ctx.payload = check "
+                + (contentType.isPresent() && !contentType.get().toLowerCase(Locale.ROOT).startsWith("text/")
+                        ? "io:fileReadBytes" : "io:fileReadString")
+                + "(" + FILE_PATH_PARAM + ");";
+    }
+
+    // Runs only after mediation of the file's content succeeds, matching Synapse's own ActionAfterProcess,
+    // which does not apply on failure.
+    private static void addActionAfterProcessStatement(InboundEndpoint inboundEndpoint, String baseName,
+                                                        Optional<String> actionAfterProcess,
+                                                        Optional<String> moveAfterProcessUri,
+                                                        ResourceContext resourceContext,
+                                                        ConversionContext context) {
+        if (actionAfterProcess.isEmpty()) {
+            return;
+        }
+        String action = actionAfterProcess.get();
+        if (FILE_ACTION_DELETE.equalsIgnoreCase(action)) {
+            resourceContext.statements().add(new Statement.BallerinaStatement(
+                    "check file:remove(" + FILE_PATH_PARAM + ");"));
+        } else if (FILE_ACTION_MOVE.equalsIgnoreCase(action)) {
+            if (moveAfterProcessUri.isEmpty()) {
+                reportMissingParameter(inboundEndpoint, FILE_MOVE_AFTER_PROCESS_PARAM, context);
+            } else {
+                Optional<String> moveScheme = vfsScheme(moveAfterProcessUri.get());
+                if (moveScheme.isPresent() && !LOCAL_FILE_SCHEME.equalsIgnoreCase(moveScheme.get())) {
+                    reportUnsupportedRemoteVfsScheme(inboundEndpoint,
+                            new Param(FILE_MOVE_AFTER_PROCESS_PARAM, moveAfterProcessUri.get()), moveScheme.get(),
+                            context);
+                } else {
+                    String moveDirVar = baseName + "MoveAfterProcessPath";
+                    context.addModuleVar(ModuleVar.configurable(moveDirVar, STRING,
+                            new StringConstant(toLocalPath(moveAfterProcessUri.get()))));
+                    resourceContext.statements().add(new Statement.BallerinaStatement(
+                            "check file:rename(" + FILE_PATH_PARAM + ", check file:joinPath(" + moveDirVar
+                                    + ", check file:basename(" + FILE_PATH_PARAM + ")));"));
+                }
+            }
+        } else {
+            reportUnsupportedParameter(inboundEndpoint,
+                    new Param(FILE_ACTION_AFTER_PROCESS_PARAM, action), context);
+        }
+    }
+
+    // file:Listener has no way to replay files that already existed when it starts, so this backfill is
+    // contributed to the project's single combined init() (see SynapseConverter#addModuleInitFunction)
+    // instead. It is started asynchronously so a large backlog, or slow mediation, does not delay any
+    // other listener's startup, and runs in its own do/on-fail so a failure - file:readDir itself, or
+    // any file's mediation - is logged and swallowed there instead of aborting the combined init().
+    private static List<Statement> existingFilesScanStatements(InboundEndpoint inboundEndpoint, String baseName,
+                                                                 String pathVar, String processFileFunction,
+                                                                 ConversionContext context) {
+        String scanFunction = baseName + "ScanExistingFiles";
+        String existingFilesVar = baseName + "ExistingFiles";
+        List<Statement> scanBody = List.of(
+                new Statement.BallerinaStatement("file:MetaData[] & readonly " + existingFilesVar
+                        + " = check file:readDir(" + pathVar + ");"),
+                new Statement.BallerinaStatement("foreach file:MetaData m in " + existingFilesVar + " {"
+                        + " if !m.dir { check " + processFileFunction + "(m.absPath); } }"));
+        List<Statement> onFailBody = List.of(new Statement.BallerinaStatement(
+                "log:printError(\"Failed to process pre-existing files for inbound endpoint '"
+                        + inboundEndpoint.name() + "'\", 'error = " + SCAN_ERROR_VAR + ");"));
+        context.addImports(ConversionContext.FUNCTIONS_BAL_FILE, List.of(LOG_MODULE_IMPORT));
+        context.addFunction(new Function(scanFunction, List.of(),
+                List.of(new Statement.DoStatement(scanBody, new OnFailClause(onFailBody, SCAN_ERROR_BINDING)))));
+        return List.of(new Statement.BallerinaStatement("_ = start " + scanFunction + "();"));
     }
 
     // transport.vfs.FileURI legitimately carries a non-"file" scheme (ftp/sftp/ftps/smb/webdav/zip): a
@@ -379,7 +491,7 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
     // one that would silently fail to connect.
     private static void reportUnsupportedRemoteVfsScheme(InboundEndpoint inboundEndpoint, Param parameter,
                                                          String scheme, ConversionContext context) {
-        String detail = "Inbound endpoint '" + inboundEndpoint.name() + "' parameter '" + FILE_URI_PARAM
+        String detail = "Inbound endpoint '" + inboundEndpoint.name() + "' parameter '" + parameter.name()
                 + "' uses the \"" + scheme + "\" scheme, which has no generated Ballerina listener equivalent "
                 + "yet (file:Listener only supports local paths); manual conversion required.";
         String snippet = "<parameter name=\"" + parameter.name() + "\">" + parameter.value() + "</parameter>";
@@ -461,12 +573,12 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
     }
 
     // A referenced sequence may already have been converted standalone, assuming an http:Caller, before
-    // this inbound endpoint's protocol was known - RespondConverter had no chance to report a <respond/>
-    // there, so this surfaces that residual risk instead, even though the shared code can't be fixed here.
+    // this inbound endpoint's protocol was known - the generated respond() only reports an error at
+    // runtime there, so this surfaces the residual risk in the migration report instead.
     //
     // responded is captured by the caller rather than read off resourceContext directly, since
     // FaultSequenceConverter.wrapInFaultHandler resets isResponded() to false before converting fault
-    // mediators; reading it only after wrap() returns would miss a respond from the main sequence.
+    // mediators.
     private static void reportUnsupportedRespondIfNeeded(InboundEndpoint inboundEndpoint, boolean responded,
                                                           ConversionContext context) {
         if (!responded) {

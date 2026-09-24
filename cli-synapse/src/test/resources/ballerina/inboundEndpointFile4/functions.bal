@@ -1,4 +1,7 @@
 import ballerina/http;
+import ballerina/file;
+import ballerina/io;
+import ballerina/log;
 
 function FileErrorSequence() returns error? {
     // TODO: Unsupported Synapse mediator '<log>' (from FileErrorSequence.xml). Mediator not supported; manual conversion required.
@@ -20,7 +23,37 @@ function FileProcessSequence() returns error? {
     // <drop xmlns="http://ws.apache.org/ns/synapse"/>
 }
 
+function fileInboundEndpointProcessFile(string path) returns error? {
+    Context ctx = {variables: {}};
+    do {
+        ctx.payload = check io:fileReadString(path);
+        check FileProcessSequence();
+        check file:rename(path, check file:joinPath(fileInboundEndpointMoveAfterProcessPath, check file:basename(path)));
+    } on fail error err {
+        ctx.variables.ERROR_MESSAGE = err.message();
+        check FileErrorSequence();
+    }
+}
+
+function fileInboundEndpointScanExistingFiles() {
+    do {
+        file:MetaData[] & readonly fileInboundEndpointExistingFiles = check file:readDir(fileInboundEndpointPath);
+        foreach file:MetaData m in fileInboundEndpointExistingFiles {
+            if !m.dir {
+                check fileInboundEndpointProcessFile(m.absPath);
+            }
+        }
+    } on fail error err {
+        log:printError("Failed to process pre-existing files for inbound endpoint 'FileInboundEndpoint'", 'error = err);
+    }
+}
+
 function respond(Context ctx) returns error? {
+    http:Caller? caller = ctx.caller;
+    if caller is () {
+        log:printError("Cannot send response: no reply transport available for this message");
+        return error("Cannot send response: no reply transport available for this message");
+    }
     http:Response response = new;
     response.setPayload(ctx.payload);
     foreach [string, string] [name, value] in ctx.headers.entries() {
@@ -30,7 +63,7 @@ function respond(Context ctx) returns error? {
     if statusCode is int {
         response.statusCode = statusCode;
     }
-    check (<http:Caller>ctx.caller)->respond(response);
+    check caller->respond(response);
 }
 
 function emitPayload(Context ctx, http:Request request) returns error? {
@@ -44,4 +77,8 @@ function emitPayload(Context ctx, http:Request request) returns error? {
     } else {
         ctx.payload = check request.getBinaryPayload();
     }
+}
+
+function init() returns error? {
+    _ = start fileInboundEndpointScanExistingFiles();
 }

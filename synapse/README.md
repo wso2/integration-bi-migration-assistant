@@ -52,7 +52,7 @@ The migration tool currently supports the following Synapse elements:
 | `<inSequence>` | resource function body |
 | `<inboundEndpoint>` (`protocol="http"`/`"https"`) | dedicated `http:Listener` (port from the `inbound.http.port` parameter) plus a wildcard service forwarding every request to the referenced `sequence` |
 | `<inboundEndpoint>` (`protocol="jms"`) | dedicated `jms:Listener` (from `java.naming.factory.initial`, `java.naming.provider.url`, `transport.jms.Destination`, `transport.jms.UserName`/`Password`) plus a service with a single `onMessage` remote function forwarding every message to the referenced `sequence` |
-| `<inboundEndpoint>` (`protocol="file"`) | dedicated `file:Listener` (from `transport.vfs.FileURI`) plus a service with a single `onCreate` remote function forwarding every discovered file to the referenced `sequence` |
+| `<inboundEndpoint>` (`protocol="file"`) | dedicated `file:Listener` (from `transport.vfs.FileURI`) plus a service with a single `onCreate` remote function reading each newly-created file into the payload (as text, or as bytes when `transport.vfs.ContentType` is not a `text/…` type) and forwarding it to the referenced `sequence`; files already present when the service starts are handled once by a one-time directory scan in the project's `init()` function; `transport.vfs.ActionAfterProcess` `MOVE`/`DELETE` (with `MoveAfterProcess` for the target directory) is applied after a file is mediated successfully. There is no equivalent to Synapse's own poll interval, file locking/stability check, or `ActionAfterFailure`/`MoveAfterFailure` — see [Known limitations](#known-limitations). |
 
 ### Mediators
 
@@ -79,7 +79,7 @@ translation is surfaced as a TODO so the generated package still builds around t
   `mqtt`, a `class=…` custom Java endpoint) have no generated listener equivalent yet and are reported
   in `migration_report.md` the same way an unsupported top-level artifact is. An `inboundEndpoint`
   parameter not mapped by its protocol (e.g. `transport.jms.ConnectionFactoryJNDIName`, `interval`,
-  `transport.vfs.ActionAfterProcess`) is likewise reported rather than silently ignored.
+  `transport.vfs.FileNamePattern`) is likewise reported rather than silently ignored.
 - **A `<respond/>` mediator reached while converting a `jms`/`file` inbound endpoint's sequence** (there
   is no reply transport on these protocols) becomes an inline `// TODO` comment and is recorded in the
   report, instead of being converted; the default/implicit fault handler for these protocols only logs
@@ -152,3 +152,12 @@ a case, drop `synapse/<Name>/<Name>.xml` and the expected `ballerina/<Name>` pac
   `jms`/`file` inbound endpoint is converted once, independent of caller. A `<respond/>` inside such a
   shared sequence's main body (as opposed to its fault path) is not caught by the jms/file
   unsupported-respond check described above — verify manually if a sequence is reused this way.
+- A `file` inbound endpoint's pre-existing-file backfill (a one-time `file:readDir` scan in the
+  project's `init()`) and its `file:Listener` (which only reports files created after it starts) are
+  not atomic with each other: a file created in the brief window between the two may be processed
+  twice or missed entirely. Neither the backfill nor `onCreate` waits for a file to finish being
+  written before reading it — `file:Listener` has no equivalent to Synapse's own file-locking/stability
+  checks, so a file read while still being written may be read incomplete. There is also no equivalent
+  to Synapse's configurable poll interval (`file:Listener` is event-driven, not interval-polling), and
+  `transport.vfs.ActionAfterFailure`/`MoveAfterFailure` (the failure-path counterparts of
+  `ActionAfterProcess`/`MoveAfterProcess`) are not implemented — a failed file is left in place.
