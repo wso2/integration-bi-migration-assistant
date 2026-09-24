@@ -22,6 +22,7 @@
     - `bw.psglog.ExceptionLog`
     - `bw.psglog.SetAndLog`
     - `bw.xml.renderxml`
+    - `bw.xml.parsexml`
     - `bw.generalactivities.mapper`
     - `bw.internal.accumulateend`
   - `extActivity`

@@ -48,6 +48,7 @@ import tibco.model.Type;
 import tibco.model.ValueSource;
 import tibco.model.Variable;
 import tibco.model.XSD;
+import tibco.model.XmlInputStyle;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -698,8 +699,12 @@ public final class XmlToTibcoModelParser {
 
     private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        XMLParseActivity.InputStyle inputStyle =
-                XMLParseActivity.InputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
+        XmlInputStyle inputStyle;
+        try {
+            inputStyle = XmlInputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
+        } catch (IllegalArgumentException ex) {
+            throw new ParserException(ex.getMessage(), element);
+        }
         return new XMLParseActivity(element, name, inputBinding, inputStyle, cx.fileName());
     }
 
@@ -1366,6 +1371,7 @@ public final class XmlToTibcoModelParser {
             case PSG_EXCEPTION_LOG -> new Config.ExceptionLog();
             case PSG_SET_AND_LOG -> parsePsgSetAndLog(activity);
             case RENDER_XML -> new Config.RenderXML();
+            case PARSE_XML -> parseXmlParseExtension(activity);
             case SEND_HTTP_RESPONSE -> parseSendHTTPResponse(config);
             case MAPPER -> new Config.Mapper();
             case BW_ASSIGN -> new Config.BwAssign();
@@ -1379,6 +1385,17 @@ public final class XmlToTibcoModelParser {
         Element properties = getFirstChildWithTag(activityConfig, "properties");
         Element value = getFirstChildWithTag(properties, "value");
         return new Config.FileRename(Boolean.parseBoolean(value.getAttribute("overwrite")));
+    }
+
+    private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        try {
+            return new Config.ParseXML(XmlInputStyle.from(value.getAttribute("inputStyle")));
+        } catch (IllegalArgumentException ex) {
+            throw new ParserException(ex.getMessage(), value);
+        }
     }
 
     private static Config.@NotNull SendHTTPResponse parseSendHTTPResponse(Element config) {
