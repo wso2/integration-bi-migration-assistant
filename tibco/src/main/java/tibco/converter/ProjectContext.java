@@ -606,10 +606,12 @@ public class ProjectContext implements LoggingContext {
     }
 
     public Optional<String> getProcessFunction(String processName) {
+        // The symbol comes from the resolved process, not from the reference: a reference may be
+        // an absolute or partial form of the path the target's function name was derived from.
         return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
             utilityFunctionImports.add(imp);
-            return imp.moduleName() + ":" + ConversionUtils.processFunctionName(processName);
-        }).orElseGet(() -> ConversionUtils.processFunctionName(processName)));
+            return imp.moduleName() + ":" + result.symbol();
+        }).orElseGet(result::symbol));
     }
 
     record FunctionData(String name) {

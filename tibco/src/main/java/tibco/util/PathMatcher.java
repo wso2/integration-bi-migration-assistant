@@ -31,7 +31,7 @@ public final class PathMatcher {
 
     /**
      * Matches two paths with flexible path resolution.
-     * 
+     *
      * @param resourcePath the full resource path
      * @param lookupPath the path being looked up
      * @return true if the paths match, false otherwise
@@ -40,22 +40,23 @@ public final class PathMatcher {
         assert resourcePath != null : "resourcePath cannot be null";
         assert lookupPath != null : "lookupPath cannot be null";
 
-        // Normalize both paths by removing leading '/'
-        String normalizedResourcePath = normalizePath(resourcePath);
-        String normalizedLookupPath = normalizePath(lookupPath);
-
-        // Check if resource path ends with lookup path
-        return normalizedResourcePath.endsWith(normalizedLookupPath);
+        String normalizedResourcePath = normalize(resourcePath);
+        String normalizedLookupPath = normalize(lookupPath);
+        if (normalizedResourcePath.equals(normalizedLookupPath)) {
+            return true;
+        }
+        // A shorter lookup path may only match on a segment boundary, so that a reference to
+        // "Worker.process" does not resolve to "Other/Deep/NotWorker.process".
+        return !normalizedLookupPath.isEmpty() && normalizedResourcePath.endsWith("/" + normalizedLookupPath);
     }
 
     /**
      * Normalizes a path by removing leading slash if present.
-     * 
+     *
      * @param path the path to normalize
      * @return the normalized path
      */
-    private static String normalizePath(String path) {
+    public static String normalize(String path) {
         return path.startsWith("/") ? path.substring(1) : path;
     }
 }
-

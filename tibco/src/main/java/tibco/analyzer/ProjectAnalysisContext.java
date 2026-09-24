@@ -26,6 +26,7 @@ import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.XSD;
+import tibco.util.PathResolver;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -177,9 +178,7 @@ public class ProjectAnalysisContext implements LoggingContext {
     }
 
     private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {
-        return currentProcesses.stream()
-                .filter(identifier::matches)
-                .findFirst();
+        return PathResolver.resolve(currentProcesses, Process::lookupPaths, identifier.name()).match();
     }
 
     /**
