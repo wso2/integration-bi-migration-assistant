@@ -468,14 +468,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                     case "SMALLINT", "INT2" -> SMALLINT;
                                     case "DECIMAL", "DEC" -> DECIMAL;
                                     case "NUMERIC", "NUMBER" -> NUMERIC;
-                                    case "REAL", "FLOAT4" -> REAL;
+                                    case "REAL", "FLOAT4", "FLOAT" -> REAL;
                                     case "DOUBLE", "FLOAT8" -> DOUBLE;
                                     case "VARCHAR", "VARCHAR2", "NVARCHAR" -> VARCHAR;
                                     case "CHAR", "CHARACTER" -> CHAR;
                                     case "TEXT" -> TEXT;
                                     case "DATE" -> DATE;
                                     case "TIME" -> TIME;
-                                    case "TIMESTAMP", "DATETIME" -> TIMESTAMP;
+                                    case "TIMESTAMP", "DATETIME", "DATETIME2" -> TIMESTAMP;
                                     case "BOOLEAN", "BOOL" -> BOOLEAN;
                                     case "BLOB", "BINARY LARGE OBJECT" -> BLOB;
                                     case "CLOB", "CHARACTER LARGE OBJECT" -> CLOB;
