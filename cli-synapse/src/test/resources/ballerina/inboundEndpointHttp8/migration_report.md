@@ -1,16 +1,21 @@
 # Synapse to Ballerina migration report
 
-1 Synapse construct could not be automatically converted and was left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
+2 Synapse constructs could not be automatically converted and were left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
 
-## Unsupported inbound endpoint parameter (1)
+## Unsupported inbound endpoint parameter (2)
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="sequential">` — inbound.xml
 
-Inbound endpoint 'PlainHttpInbound' parameter 'keystore' is not mapped to any Ballerina construct; manual conversion required.
+Inbound endpoint 'DispatchInbound' parameter 'sequential' is not mapped to any Ballerina construct; manual conversion required.
 
 ```xml
-<parameter name="keystore">repository/resources/security/wso2carbon.jks
-                JKS
-                wso2carbon
-                wso2carbon</parameter>
+<parameter name="sequential">true</parameter>
+```
+
+### `<parameter name="coordination">` — inbound.xml
+
+Inbound endpoint 'DispatchInbound' parameter 'coordination' is not mapped to any Ballerina construct; manual conversion required.
+
+```xml
+<parameter name="coordination">true</parameter>
 ```

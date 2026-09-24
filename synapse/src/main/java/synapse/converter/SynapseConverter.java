@@ -186,12 +186,16 @@ public final class SynapseConverter {
         ConversionContext context = new ConversionContext();
         context.setDependencyGraph(dependencyGraph);
         context.setJavaSourceResolver(new JavaSourceResolver(javaSourceRoots, javaArchives, decompiler));
+        Path sourceRoot = sourceRoot(sourcePath);
+        // Must run before any artifact converts: <api> and <inboundEndpoint> have no dependency edge, so
+        // their conversion order isn't guaranteed, and each artifact's output is discarded right after
+        // it's flushed.
+        DispatchFilterIndexer.index(dependencyGraph, context, sourceRoot);
         // Reserved before any artifact is converted, so a class mediator stub can never collide with
         // these fixed functions
         context.reserveFunctionName(RESPOND_FUNCTION);
         context.reserveFunctionName(EMIT_PAYLOAD_FUNCTION);
 
-        Path sourceRoot = sourceRoot(sourcePath);
         registerUnsupportedArtifacts(dependencyGraph, context, sourceRoot);
 
         if (dryRun) {
@@ -267,7 +271,7 @@ public final class SynapseConverter {
     }
 
     @NotNull
-    private static String relativePath(Path sourceRoot, Path file) {
+    static String relativePath(Path sourceRoot, Path file) {
         if (file == null) {
             return "";
         }

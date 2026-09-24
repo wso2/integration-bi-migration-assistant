@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api xmlns="http://ws.apache.org/ns/synapse"
+     name="OrdersApi"
+     context="/orders">
+    <resource methods="GET" uri-template="/status">
+        <inSequence>
+            <payloadFactory media-type="json">
+                <format>{"status":"UP"}</format>
+                <args/>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <faultSequence/>
+    </resource>
+</api>
