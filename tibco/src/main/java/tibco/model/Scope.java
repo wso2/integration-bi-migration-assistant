@@ -210,8 +210,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Empty(String name, Element element, String fileName) 
-                    implements Flow.Activity, Flow.Activity.ActivityWithName {
+            record Empty(String name, List<Flow.Activity.Source> sources,
+                         Collection<Flow.Activity.Target> targets, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithName, Flow.Activity.ActivityWithSources,
+                    Flow.Activity.ActivityWithTargets {
 
                 @Override
                 public Optional<String> getName() {

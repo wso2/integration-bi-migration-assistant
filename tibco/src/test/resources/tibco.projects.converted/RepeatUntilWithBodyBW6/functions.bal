@@ -1,6 +1,7 @@
 import ballerina/data.jsondata;
 import ballerina/data.xmldata;
 import ballerina/http;
+import ballerina/log;
 import ballerina/xslt;
 
 function RepeatActivityRunner(Context cx) returns error? {
@@ -20,6 +21,23 @@ function RepeatScopeFn(Context cx) returns () {
 }
 
 function activityExtension(Context cx) returns error? {
+    xml var0 = getFromContext(cx, "LogIteration-input");
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0">
+    <xsl:template name="LogIteration-input" match="/">
+        <tns:ActivityInput>
+            <message>
+                <xsl:value-of select="concat('Processing: ', $post/request)"/>
+            </message>
+        </tns:ActivityInput>
+    </xsl:template>
+</xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+}
+
+function activityExtension_1(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/test/api" version="2.0">
@@ -40,7 +58,7 @@ function activityExtension(Context cx) returns error? {
     addToContext(cx, "RenderOutput", var6);
 }
 
-function activityExtension_1(Context cx) returns error? {
+function activityExtension_2(Context cx) returns error? {
     xml var0 = getFromContext(cx, "RenderOutput");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
@@ -87,9 +105,6 @@ function empty_1(Context cx) returns error? {
 function empty_2(Context cx) returns error? {
 }
 
-function empty_3(Context cx) returns error? {
-}
-
 function nestedScope(Context cx) returns error? {
     RepeatScopeFn(cx);
 }
@@ -110,8 +125,8 @@ function repeatUntil(Context cx) returns error? {
 
 function repeatUntilActivityRunner(Context cx) returns error? {
     check empty_1(cx);
+    check activityExtension(cx);
     check empty_2(cx);
-    check empty_3(cx);
 }
 
 function repeatUntilFaultHandler(error err, Context cx) returns () {
@@ -127,8 +142,8 @@ function repeatUntilScopeFn(Context cx) returns () {
 
 function scope1ActivityRunner(Context cx) returns error? {
     check nestedScope(cx);
-    check activityExtension(cx);
     check activityExtension_1(cx);
+    check activityExtension_2(cx);
 }
 
 function scope1FaultHandler(error err, Context cx) returns () {

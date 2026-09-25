@@ -1122,7 +1122,13 @@ public final class XmlToTibcoModelParser {
 
     private static Flow.Activity.Empty parseEmpty(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
-        return new Flow.Activity.Empty(name, element, cx.fileName());
+        Collection<Flow.Activity.Target> targets = ElementIterable.of(element).stream()
+                .filter(each -> getTagNameWithoutNameSpace(each).equals("targets"))
+                .map(XmlToTibcoModelParser::parseTargets).flatMap(Collection::stream).toList();
+        List<Flow.Activity.Source> sources = ElementIterable.of(element).stream()
+                .filter(each -> getTagNameWithoutNameSpace(each).equals("sources"))
+                .map(XmlToTibcoModelParser::parseSources).flatMap(Collection::stream).toList();
+        return new Flow.Activity.Empty(name, sources, targets, element, cx.fileName());
     }
 
     private static Flow.Activity.Pick parsePick(ProcessContext cx, Element element) {
