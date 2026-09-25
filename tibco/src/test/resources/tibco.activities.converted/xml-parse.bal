@@ -11,9 +11,6 @@ function Parse(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
-    xml var3 = var2/<xmlString>/*;
-    string var4 = var3.toString();
-    xml var5 = check xml:fromString(var4);
-    xml var6 = xml`<root>${var5}</root>`;
-    addToContext(cx, "Parse", var6);
+    xml var3 = xml`<root>${check xml:fromString((var2/*).toString())}</root>`;
+    addToContext(cx, "Parse", var3);
 }

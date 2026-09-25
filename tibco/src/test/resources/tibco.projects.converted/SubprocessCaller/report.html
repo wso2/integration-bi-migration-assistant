@@ -337,11 +337,11 @@ table code {
                 <div class="coverage-breakdown">
                   <div>
                     <span class="breakdown-label">Total activity(s):</span>
-                    <span class="breakdown-value">22</span>
+                    <span class="breakdown-value">5</span>
                   </div>
                   <div>
                     <span class="breakdown-label">Migratable activity(s):</span>
-                    <span class="breakdown-value">22</span>
+                    <span class="breakdown-value">5</span>
                   </div>
                   <div>
                     <span class="breakdown-label">Non-migratable activity(s):</span>
@@ -349,7 +349,7 @@ table code {
                   </div>
                   <div>
                     <span class="breakdown-label">Lines Generated:</span>
-                    <span class="breakdown-value">621</span>
+                    <span class="breakdown-value">171</span>
                   </div>
                 </div>
               </div>
@@ -425,23 +425,15 @@ table code {
     </div>
 </div>
 <div class="summary-container">
-    <h2>Activities that may require manual adjustments</h2>
+    <h2>Activities that may require manual changes</h2>
     <div id="partiallySupportedSection">
-        <table>
+        <table class="hidden">
             <tr><th>Activity name</th><th>Frequency</th></tr>
-        <tr>
-            <td><code>com.tibco.plugin.jdbc.JDBCGeneralActivity</code></td>
-            <td>1</td>
-        </tr>
-        <tr>
-            <td><code>com.tibco.plugin.json.activities.JSONParserActivity</code></td>
-            <td>1</td>
-        </tr>
         </table>
-        <p class="empty-message hidden" id="partiallySupportedEmpty">
+        <p class="empty-message visible" id="partiallySupportedEmpty">
             No partially supported activities found
         </p>
-        <div class="estimation-notes">
+        <div class="estimation-notes hidden">
             <p><strong>Note:</strong> These activities are converted but may require manual review or adjustments.</p>
         </div>
     </div>
