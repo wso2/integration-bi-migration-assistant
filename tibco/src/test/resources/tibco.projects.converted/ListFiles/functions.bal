@@ -24,7 +24,7 @@ function List_Files(Context cx) returns error? {
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     // WARNING: Only fileName and fullName are supported in ListFilesActivity output.
     string var3 = (var2/**/<fileName>/*).toString().trim();
-    FileData[] var4 = check filesInPath(var3, false);
+    FileData[] var4 = check filesInPath(var3, true, false);
     xml var5 = xml ``;
     foreach FileData file in var4 {
         var5 += xml `<fileInfo>
@@ -68,26 +68,45 @@ function getFileName(string absPath) returns string {
     return absPath.substring(index + 1, absPath.length());
 }
 
-function filesInPath(string path, boolean allowDir) returns FileData[]|error {
+function wildcardToRegex(string pattern) returns string {
+    string regexPattern = "";
+    foreach string:Char c in pattern {
+        if c == "*" {
+            regexPattern += ".*";
+        } else if "\\^$.|?+()[]{}".includes(c) {
+            regexPattern += "\\" + c;
+        } else {
+            regexPattern += c;
+        }
+    }
+    return regexPattern;
+}
+
+function filesInPath(string path, boolean includeFiles, boolean includeDirs)
+        returns FileData[]|error {
     string basePath = path;
     string? pattern = ();
     if path.includes("*") {
         int? index = path.lastIndexOf("/");
         if index == () {
             basePath = ".";
-            pattern = path;
+            pattern = wildcardToRegex(path);
         } else {
             basePath = path.substring(0, index);
-            pattern = path.substring(index + 1, path.length());
+            pattern = wildcardToRegex(path.substring(index + 1, path.length()));
         }
-    }
-    if pattern != () {
-        pattern = regex:replaceAll(pattern, "\\*", ".*");
+    } else {
+        file:MetaData metaData = check file:getMetaData(path);
+        if !metaData.dir {
+            return includeFiles
+                ? [{fileName: getFileName(metaData.absPath), fullName: metaData.absPath}]
+                : [];
+        }
     }
     file:MetaData[] entries = check file:readDir(basePath);
     FileData[] result = [];
     foreach file:MetaData entry in entries {
-        if entry.dir && !allowDir {
+        if entry.dir ? !includeDirs : !includeFiles {
             continue;
         }
         string fileName = getFileName(entry.absPath);

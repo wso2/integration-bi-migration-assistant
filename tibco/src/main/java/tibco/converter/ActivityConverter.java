@@ -93,7 +93,6 @@ import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static common.LoggingUtils.Level.SEVERE;
 import static common.LoggingUtils.Level.WARN;
-import static tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
@@ -326,8 +325,9 @@ final class ActivityConverter {
         VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
                 cx.getAnnonVarName(),
                 new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                        new BallerinaModel.Expression.BooleanConstant(listFilesActivity.mode().includesFiles()),
                         new BallerinaModel.Expression.BooleanConstant(
-                                listFilesActivity.mode() == FILES_AND_DIRECTORIES)))));
+                                listFilesActivity.mode().includesDirectories())))));
         body.add(files);
         VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
         body.add(resultBody);
@@ -1849,8 +1849,8 @@ final class ActivityConverter {
         VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
                 cx.getAnnonVarName(),
                 new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
-                        new BallerinaModel.Expression.BooleanConstant(
-                                listFiles.mode() == FILES_AND_DIRECTORIES)))));
+                        new BallerinaModel.Expression.BooleanConstant(listFiles.mode().includesFiles()),
+                        new BallerinaModel.Expression.BooleanConstant(listFiles.mode().includesDirectories())))));
         body.add(files);
         VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
         body.add(resultBody);

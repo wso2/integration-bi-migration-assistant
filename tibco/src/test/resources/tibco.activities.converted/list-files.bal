@@ -16,7 +16,7 @@ function List_Files_Test(Context cx) returns error? {
 // WARNING: Only fileName and fullName are supported in ListFilesActivity output.
 
     string var3 = (var2/**/<fileName>/*).toString().trim();
-    FileData[] var4 = check filesInPath(var3, false);
+    FileData[] var4 = check filesInPath(var3, true, false);
     xml var5 = xml``;
     foreach FileData file in var4 {
     var5 += xml `<fileInfo>

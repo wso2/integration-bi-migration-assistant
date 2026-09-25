@@ -7,7 +7,7 @@ function activityExtension(Context cx) returns error? {
 // WARNING: Only fileName and fullName are supported in ListFiles output.
 
     string var3 = (var2/**/<fileName>/*).toString().trim();
-    FileData[] var4 = check filesInPath(var3, true, false);
+    FileData[] var4 = check filesInPath(var3, false, true);
     xml var5 = xml``;
     foreach FileData file in var4 {
     var5 += xml `<fileInfo>

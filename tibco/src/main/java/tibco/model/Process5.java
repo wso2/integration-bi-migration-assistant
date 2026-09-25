@@ -967,14 +967,24 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                     implements ExplicitTransitionGroup.InlineActivity {
                 public enum Mode {
                     FILES_AND_DIRECTORIES,
-                    ONLY_FILES;
+                    ONLY_FILES,
+                    ONLY_DIRECTORIES;
 
                     public static Mode from(String s) {
                         return switch (s) {
                             case "files-and-directories" -> FILES_AND_DIRECTORIES;
                             case "only-files" -> ONLY_FILES;
+                            case "only-directories" -> ONLY_DIRECTORIES;
                             default -> throw new IllegalArgumentException("Unknown ListFilesActivity mode: " + s);
                         };
+                    }
+
+                    public boolean includesFiles() {
+                        return this != ONLY_DIRECTORIES;
+                    }
+
+                    public boolean includesDirectories() {
+                        return this != ONLY_FILES;
                     }
                 }
 

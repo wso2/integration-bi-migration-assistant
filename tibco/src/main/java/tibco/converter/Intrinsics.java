@@ -30,26 +30,45 @@ public enum Intrinsics {
                         return absPath.substring(index + 1, absPath.length());
                     }
 
-                    function filesInPath(string path, boolean allowDir) returns FileData[]|error {
+                    function wildcardToRegex(string pattern) returns string {
+                        string regexPattern = "";
+                        foreach string:Char c in pattern {
+                            if c == "*" {
+                                regexPattern += ".*";
+                            } else if "\\\\^$.|?+()[]{}".includes(c) {
+                                regexPattern += "\\\\" + c;
+                            } else {
+                                regexPattern += c;
+                            }
+                        }
+                        return regexPattern;
+                    }
+
+                    function filesInPath(string path, boolean includeFiles, boolean includeDirs)
+                            returns FileData[]|error {
                         string basePath = path;
                         string? pattern = ();
                         if path.includes("*") {
                             int? index = path.lastIndexOf("/");
                             if index == () {
                                 basePath = ".";
-                                pattern = path;
+                                pattern = wildcardToRegex(path);
                             } else {
                                 basePath = path.substring(0, index);
-                                pattern = path.substring(index + 1, path.length());
+                                pattern = wildcardToRegex(path.substring(index + 1, path.length()));
                             }
-                        }
-                        if pattern != () {
-                            pattern = regex:replaceAll(pattern, "\\\\*", ".*");
+                        } else {
+                            file:MetaData metaData = check file:getMetaData(path);
+                            if !metaData.dir {
+                                return includeFiles
+                                    ? [{fileName: getFileName(metaData.absPath), fullName: metaData.absPath}]
+                                    : [];
+                            }
                         }
                         file:MetaData[] entries = check file:readDir(basePath);
                         FileData[] result = [];
                         foreach file:MetaData entry in entries {
-                            if entry.dir && !allowDir {
+                            if entry.dir ? !includeDirs : !includeFiles {
                                 continue;
                             }
                             string fileName = getFileName(entry.absPath);
