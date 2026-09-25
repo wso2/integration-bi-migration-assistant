@@ -69,35 +69,35 @@ function getFileName(string absPath) returns string {
 }
 
 function filesInPath(string path, boolean allowDir) returns FileData[]|error {
-string basePath = path;
-string? pattern = ();
-if path.includes("*") {
-int? index = path.lastIndexOf("/");
-if index == () {
-basePath = ".";
-pattern = path;
-} else {
-basePath = path.substring(0, index);
-pattern = path.substring(index + 1, path.length());
-}
-}
-if pattern != () {
-pattern = regex:replaceAll(pattern, "\\*", ".*");
-}
-file:MetaData[] entries = check file:readDir(basePath);
-FileData[] result = [];
-foreach file:MetaData entry in entries {
-if entry.dir && !allowDir {
-continue;
-}
-string fileName = getFileName(entry.absPath);
-if pattern == () {
-result.push({fileName: fileName, fullName: entry.absPath});
-} else if regex:matches(fileName, pattern) {
-result.push({fileName: fileName, fullName: entry.absPath});
-}
-}
-return result;
+    string basePath = path;
+    string? pattern = ();
+    if path.includes("*") {
+        int? index = path.lastIndexOf("/");
+        if index == () {
+            basePath = ".";
+            pattern = path;
+        } else {
+            basePath = path.substring(0, index);
+            pattern = path.substring(index + 1, path.length());
+        }
+    }
+    if pattern != () {
+        pattern = regex:replaceAll(pattern, "\\*", ".*");
+    }
+    file:MetaData[] entries = check file:readDir(basePath);
+    FileData[] result = [];
+    foreach file:MetaData entry in entries {
+        if entry.dir && !allowDir {
+            continue;
+        }
+        string fileName = getFileName(entry.absPath);
+        if pattern == () {
+            result.push({fileName: fileName, fullName: entry.absPath});
+        } else if regex:matches(fileName, pattern) {
+            result.push({fileName: fileName, fullName: entry.absPath});
+        }
+    }
+    return result;
 }
 
 function addToContext(Context context, string varName, xml value) {

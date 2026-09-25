@@ -667,49 +667,49 @@ function xmlToJson(xml value) returns json {
 }
 
 function toJsonInner(xml value) returns json {
-json result;
-if (value is xml:Element) {
-result = toJsonElement(value);
-} else {
-result = value.toJson();
-}
-return result;
+    json result;
+    if (value is xml:Element) {
+        result = toJsonElement(value);
+    } else {
+        result = value.toJson();
+    }
+    return result;
 }
 
 function toJsonElement(xml:Element element) returns json {
-XMLElementParseResult parseResult = parseElement(element);
-string name = parseResult.name;
+    XMLElementParseResult parseResult = parseElement(element);
+    string name = parseResult.name;
 
-xml children = element/*;
-map<json> body = {};
-map<json> result = {};
-foreach xml child in children {
-json r = toJsonInner(child);
-if child !is xml:Element {
-result[name] = r;
-return result;
-}
-string childName = parseElement(child).name;
-if r !is map<json> {
-panic error("unexpected");
-} else {
-r = r.get(childName);
-}
-if body.hasKey(childName) {
-json current = body.get(childName);
-if current !is json[] {
-json[] n = [body.get(childName)];
-n.push(r);
-body[childName] = n;
-} else {
-current.push(r);
-}
-} else {
-body[childName] = r;
-}
-}
-result[name] = body;
-return result;
+    xml children = element/*;
+    map<json> body = {};
+    map<json> result = {};
+    foreach xml child in children {
+        json r = toJsonInner(child);
+        if child !is xml:Element {
+            result[name] = r;
+            return result;
+        }
+        string childName = parseElement(child).name;
+        if r !is map<json> {
+            panic error("unexpected");
+        } else {
+            r = r.get(childName);
+        }
+        if body.hasKey(childName) {
+            json current = body.get(childName);
+            if current !is json[] {
+                json[] n = [body.get(childName)];
+                n.push(r);
+                body[childName] = n;
+            } else {
+                current.push(r);
+            }
+        } else {
+            body[childName] = r;
+        }
+    }
+    result[name] = body;
+    return result;
 }
 
 function parseElement(xml:Element element) returns XMLElementParseResult {
