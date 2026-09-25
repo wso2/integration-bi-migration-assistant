@@ -94,7 +94,6 @@ import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static common.LoggingUtils.Level.SEVERE;
 import static common.LoggingUtils.Level.WARN;
-import static tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
@@ -327,8 +326,9 @@ final class ActivityConverter {
         VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
                 cx.getAnnonVarName(),
                 new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                        new BallerinaModel.Expression.BooleanConstant(listFilesActivity.mode().includesFiles()),
                         new BallerinaModel.Expression.BooleanConstant(
-                                listFilesActivity.mode() == FILES_AND_DIRECTORIES)))));
+                                listFilesActivity.mode().includesDirectories())))));
         body.add(files);
         VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
         body.add(resultBody);
@@ -1597,6 +1597,7 @@ final class ActivityConverter {
                     createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.FileRename fileRename -> createFileRenameOperation(cx, result, fileRename);
+            case ActivityExtension.Config.ListFiles listFiles -> createListFilesOperation(cx, result, listFiles);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -1835,6 +1836,43 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new FunctionCall(FileConstants.FILE_RENAME_FUNCTION,
                 List.of(fromFileName.ref(), toFileName.ref())))));
         return new ActivityConversionResult(result, body);
+    }
+
+    private static ActivityConversionResult createListFilesOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.ListFiles listFiles) {
+        List<Statement> body = new ArrayList<>();
+        cx.log(WARN, "ListFiles: only fileName and fullName are supported in output.");
+        body.add(new Comment("WARNING: Only fileName and fullName are supported in ListFiles output."));
+        VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(result.varName())));
+        body.add(fileName);
+        String filesInPath = cx.getFilesInPathFunction();
+        BallerinaModel.TypeDesc.TypeReference fileDataTy = ConversionUtils.Constants.FILE_DATA;
+        VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
+                cx.getAnnonVarName(),
+                new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                        new BallerinaModel.Expression.BooleanConstant(listFiles.mode().includesFiles()),
+                        new BallerinaModel.Expression.BooleanConstant(listFiles.mode().includesDirectories())))));
+        body.add(files);
+        VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
+        body.add(resultBody);
+        body.add(stmtFrom("""
+                foreach %s file in %s {
+                    %s += xml `<fileInfo>
+                                    <fileName>${file.fileName}</fileName>
+                                    <fullName>${file.fullName}</fullName>
+                               </fileInfo>`;
+                }
+                """.formatted(fileDataTy, files.ref(), resultBody.ref())));
+        VarDeclStatment listFilesResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("""
+                        <root>
+                            <ListFilesActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                                <files>${%s}</files>
+                            </ListFilesActivityOutput>
+                        </root>""".formatted(resultBody.ref())));
+        body.add(listFilesResult);
+        return new ActivityConversionResult(listFilesResult.ref(), body);
     }
 
     private static ActivityConversionResult createSQLOperation(

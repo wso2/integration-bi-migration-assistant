@@ -1363,6 +1363,7 @@ public final class XmlToTibcoModelParser {
             case END -> new Config.End();
             case FILE_WRITE -> new Config.FileWrite();
             case FILE_RENAME -> parseFileRename(activity);
+            case LIST_FILES -> parseListFiles(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
@@ -1387,6 +1388,14 @@ public final class XmlToTibcoModelParser {
         return new Config.FileRename(Boolean.parseBoolean(value.getAttribute("overwrite")));
     }
 
+    private static Config.@NotNull ListFiles parseListFiles(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        String mode = value.hasAttribute("mode") ? value.getAttribute("mode") : "files-and-directories";
+        return new Config.ListFiles(InlineActivity.ListFilesActivity.Mode.from(mode));
+    }
+  
     private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
