@@ -38,7 +38,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
     public record ExplicitTransitionGroup(List<ExplicitTransitionGroup.InlineActivity> activities,
                                           List<ExplicitTransitionGroup.Transition> transitions,
                                           ExplicitTransitionGroup.InlineActivity start,
-                                          Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings) {
+                                          Optional<Scope.Flow.Activity.Expression.XSLT> returnBindings,
+                                          Optional<String> startName) {
 
         public ExplicitTransitionGroup() {
             this(null);
@@ -53,10 +54,11 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
         }
 
         ExplicitTransitionGroup(ExplicitTransitionGroup.InlineActivity startActivity) {
-            this(List.of(), List.of(), startActivity, Optional.empty());
+            this(List.of(), List.of(), startActivity, Optional.empty(), Optional.empty());
         }
 
         public ExplicitTransitionGroup {
+            assert startName != null : "startName must not be null";
             activities = Collections.unmodifiableList(activities);
             transitions = Collections.unmodifiableList(transitions);
         }
@@ -64,23 +66,28 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
         public ExplicitTransitionGroup append(ExplicitTransitionGroup.InlineActivity activity) {
             List<ExplicitTransitionGroup.InlineActivity> newActivities = new ArrayList<>(activities);
             newActivities.add(activity);
-            return new ExplicitTransitionGroup(newActivities, transitions, start, returnBindings);
+            return new ExplicitTransitionGroup(newActivities, transitions, start, returnBindings, startName);
         }
 
         public ExplicitTransitionGroup append(ExplicitTransitionGroup.Transition transition) {
             List<ExplicitTransitionGroup.Transition> newTransitions = new ArrayList<>(transitions);
             newTransitions.add(transition);
-            return new ExplicitTransitionGroup(activities, newTransitions, start, returnBindings);
+            return new ExplicitTransitionGroup(activities, newTransitions, start, returnBindings, startName);
         }
 
         public ExplicitTransitionGroup setStartActivity(ExplicitTransitionGroup.InlineActivity startActivity) {
             List<ExplicitTransitionGroup.InlineActivity> remainingActivities = activities.stream()
                     .filter(each -> !each.equals(startActivity)).toList();
-            return new ExplicitTransitionGroup(remainingActivities, transitions, startActivity, returnBindings);
+            return new ExplicitTransitionGroup(remainingActivities, transitions, startActivity, returnBindings,
+                    startName);
         }
 
         public ExplicitTransitionGroup setReturnBindings(Scope.Flow.Activity.Expression.XSLT expression) {
-            return new ExplicitTransitionGroup(activities, transitions, start, Optional.of(expression));
+            return new ExplicitTransitionGroup(activities, transitions, start, Optional.of(expression), startName);
+        }
+
+        public ExplicitTransitionGroup setStartName(String name) {
+            return new ExplicitTransitionGroup(activities, transitions, start, returnBindings, Optional.of(name));
         }
 
         public sealed interface InlineActivityWithBody extends ExplicitTransitionGroup.InlineActivity {
@@ -455,21 +462,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
             }
 
             record XMLParseActivity(Element element, String name,
-                                    InputBinding inputBinding, InputStyle inputStyle, String fileName)
+                                    InputBinding inputBinding, XmlInputStyle inputStyle, String fileName)
                     implements ExplicitTransitionGroup.InlineActivity {
-
-                public enum InputStyle {
-                    TEXT,
-                    BINARY;
-
-                    public static InputStyle from(String s) {
-                        return switch (s.toLowerCase()) {
-                            case "text" -> TEXT;
-                            case "binary" -> BINARY;
-                            default -> throw new IllegalArgumentException("Unknown XMLParseActivity input style: " + s);
-                        };
-                    }
-                }
 
                 public XMLParseActivity {
                     assert inputBinding != null;

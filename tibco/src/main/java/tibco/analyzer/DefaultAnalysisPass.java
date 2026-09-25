@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -106,11 +107,14 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         explicitTransitionGroup.startActivity().ifPresent(startActivity -> {
             activityNodes.put(startActivity.name(), cx.activityNode(startActivity));
             graph.addRoot(activityNodes.get(startActivity.name()));
-            explicitTransitionGroup.transitions().forEach(transition -> {
-                analyseTransition(cx, explicitTransitionGroup, transition);
-            });
             cx.allocateActivityNameIfNeeded(startActivity);
         });
+        explicitTransitionGroup.transitions().forEach(transition -> {
+            analyseTransition(cx, explicitTransitionGroup, transition);
+        });
+        if (explicitTransitionGroup.startActivity().isEmpty()) {
+            addStartNameRoots(explicitTransitionGroup, graph, activityNodes);
+        }
         explicitTransitionGroup.activities().forEach(cx::allocateActivityNameIfNeeded);
         explicitTransitionGroup.activities().stream()
                 .flatMap(each -> {
@@ -122,6 +126,17 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 })
                 .map(ExplicitTransitionGroup.InlineActivityWithBody::body)
                 .forEach(each -> analyseExplicitTransitionGroup(cx, each));
+    }
+
+    private void addStartNameRoots(ExplicitTransitionGroup explicitTransitionGroup,
+            Graph<AnalysisResult.GraphNode> graph, Map<String, AnalysisResult.GraphNode> activityNodes) {
+        explicitTransitionGroup.startName().ifPresent(startName -> explicitTransitionGroup.transitions().stream()
+                .filter(transition -> startName.equals(transition.from()))
+                .map(ExplicitTransitionGroup.Transition::to)
+                .distinct()
+                .map(activityNodes::get)
+                .filter(Objects::nonNull)
+                .forEach(graph::addRoot));
     }
 
     @Override

@@ -116,6 +116,123 @@ public class XmlToModelTests {
         assertEquals(process.name(), "Processes/MainProcessStarter.process");
         Process5.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
         assertEquals(transitionGroup.startActivity().get().name(), "HTTP Receiver");
+        assertEquals(transitionGroup.startName().get(), "HTTP Receiver");
+    }
+
+    @Test
+    public void testParseStartNameOnStarterLessProcess() throws Exception {
+        String processXml = """
+                <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes">
+                	<pd:name>Processes/CallableSubprocess.process</pd:name>
+                	<pd:startName>Start</pd:startName>
+                	<pd:startType wsMsgRef="pfx2:CreateRequest"/>
+                	<pd:returnBindings/>
+                	<pd:endName>End</pd:endName>
+                	<pd:activity name="Log">
+                		<pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                		<config>
+                			<role>User</role>
+                		</config>
+                		<pd:inputBindings>
+                			<ns:ActivityInput>
+                				<message>hello</message>
+                			</ns:ActivityInput>
+                		</pd:inputBindings>
+                	</pd:activity>
+                	<pd:transition>
+                		<pd:from>Start</pd:from>
+                		<pd:to>Log</pd:to>
+                	</pd:transition>
+                	<pd:transition>
+                		<pd:from>Log</pd:from>
+                		<pd:to>End</pd:to>
+                	</pd:transition>
+                </pd:ProcessDefinition>
+                """;
+        Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                TestUtils.stringToElement(processXml));
+        assertTrue(processOpt.isPresent());
+        Process5 process = (Process5) processOpt.get();
+        assertEquals(process.name(), "Processes/CallableSubprocess.process");
+        Process5.ExplicitTransitionGroup transitionGroup = process.transitionGroup();
+        assertTrue(transitionGroup.startActivity().isEmpty());
+        assertEquals(transitionGroup.startName().get(), "Start");
+        assertEquals(transitionGroup.activities().size(), 1);
+        assertEquals(transitionGroup.transitions().size(), 2);
+    }
+
+    @Test
+    public void testParseNonDefaultStartName() throws Exception {
+        String processXml = """
+                <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes">
+                	<pd:name>Processes/BeginSubprocess.process</pd:name>
+                	<pd:startName>Begin</pd:startName>
+                	<pd:endName>End</pd:endName>
+                	<pd:activity name="Log">
+                		<pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                		<config>
+                			<role>User</role>
+                		</config>
+                		<pd:inputBindings>
+                			<ns:ActivityInput>
+                				<message>hello</message>
+                			</ns:ActivityInput>
+                		</pd:inputBindings>
+                	</pd:activity>
+                	<pd:transition>
+                		<pd:from>Begin</pd:from>
+                		<pd:to>Log</pd:to>
+                	</pd:transition>
+                </pd:ProcessDefinition>
+                """;
+        Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                TestUtils.stringToElement(processXml));
+        assertTrue(processOpt.isPresent());
+        Process5 process = (Process5) processOpt.get();
+        assertEquals(process.transitionGroup().startName().get(), "Begin");
+        assertTrue(process.transitionGroup().startActivity().isEmpty());
+    }
+
+    @Test
+    public void testParseProcessWithoutStartNameKeepsEmptyOptional() throws Exception {
+        String processXml = """
+                <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes">
+                	<pd:name>Processes/NoStartName.process</pd:name>
+                	<pd:endName>End</pd:endName>
+                	<pd:activity name="Log">
+                		<pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+                		<config>
+                			<role>User</role>
+                		</config>
+                		<pd:inputBindings>
+                			<ns:ActivityInput>
+                				<message>hello</message>
+                			</ns:ActivityInput>
+                		</pd:inputBindings>
+                	</pd:activity>
+                </pd:ProcessDefinition>
+                """;
+        Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                TestUtils.stringToElement(processXml));
+        assertTrue(processOpt.isPresent());
+        Process5 process = (Process5) processOpt.get();
+        assertTrue(process.transitionGroup().startName().isEmpty());
+    }
+
+    @Test
+    public void testStartNameAloneDoesNotMakeProcess5() throws Exception {
+        String processXml = """
+                <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003">
+                	<pd:name>Processes/EmptySubprocess.process</pd:name>
+                	<pd:startName>Start</pd:startName>
+                	<pd:endName>End</pd:endName>
+                </pd:ProcessDefinition>
+                """;
+        Optional<tibco.model.Process> processOpt = XmlToTibcoModelParser.parseProcess(getProcessContext(),
+                TestUtils.stringToElement(processXml));
+        assertTrue(processOpt.isPresent());
+        assertTrue(processOpt.get() instanceof tibco.model.Process6,
+                "A process with a startName but no activities or transitions must stay on the Process6 path");
     }
 
     @Test

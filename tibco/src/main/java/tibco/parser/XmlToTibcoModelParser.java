@@ -48,6 +48,7 @@ import tibco.model.Type;
 import tibco.model.ValueSource;
 import tibco.model.Variable;
 import tibco.model.XSD;
+import tibco.model.XmlInputStyle;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -357,6 +358,12 @@ public final class XmlToTibcoModelParser {
                     transitionGroup = transitionGroup.append(parseTransition(cx, element));
                 }
                 case "starter" -> transitionGroup = transitionGroup.setStartActivity(parseInlineActivity(cx, element));
+                case "startName" -> {
+                    String startName = element.getTextContent();
+                    if (startName != null && !startName.isBlank()) {
+                        transitionGroup = transitionGroup.setStartName(startName.strip());
+                    }
+                }
                 case "returnBindings" -> {
                     if (!isEmpty(element)) {
                         transitionGroup = transitionGroup.setReturnBindings(parseReturnBindings(cx, element));
@@ -692,8 +699,12 @@ public final class XmlToTibcoModelParser {
 
     private static XMLParseActivity parseXmlParseActivity(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        XMLParseActivity.InputStyle inputStyle =
-                XMLParseActivity.InputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
+        XmlInputStyle inputStyle;
+        try {
+            inputStyle = XmlInputStyle.from(getInlineActivityConfigValue(element, "inputStyle"));
+        } catch (IllegalArgumentException ex) {
+            throw new ParserException(ex.getMessage(), element);
+        }
         return new XMLParseActivity(element, name, inputBinding, inputStyle, cx.fileName());
     }
 
@@ -1194,6 +1205,8 @@ public final class XmlToTibcoModelParser {
         String language = node.getAttribute("expressionLanguage");
         if (language.contains("xslt")) {
             return parseXSLTExpression(node);
+        } else if (language.contains("xpath")) {
+            return parseXPathExpressionNode(node);
         } else {
             throw new ParserException("Unsupported expression language: " + language, node);
         }
@@ -1208,6 +1221,11 @@ public final class XmlToTibcoModelParser {
         }
         expression = unEscapeXml(expression);
         return new Flow.Activity.Expression.XSLT(expression);
+    }
+
+    private static @NotNull Flow.Activity.Expression.XPath parseXPathExpressionNode(Element node) {
+        return new Flow.Activity.Expression.XPath(
+                node.hasAttribute("expression") ? node.getAttribute("expression") : node.getTextContent());
     }
 
     private static String unEscapeXml(String escapedXml) {
@@ -1354,8 +1372,10 @@ public final class XmlToTibcoModelParser {
             case PSG_EXCEPTION_LOG -> new Config.ExceptionLog();
             case PSG_SET_AND_LOG -> parsePsgSetAndLog(activity);
             case RENDER_XML -> new Config.RenderXML();
+            case PARSE_XML -> parseXmlParseExtension(activity);
             case SEND_HTTP_RESPONSE -> parseSendHTTPResponse(config);
             case MAPPER -> new Config.Mapper();
+            case BW_ASSIGN -> new Config.BwAssign();
             case SQL -> parasSqlActivityExtension(config);
             case ACCUMULATE_END -> parseAccumulateEnd(activity);
         };
@@ -1374,6 +1394,17 @@ public final class XmlToTibcoModelParser {
         Element value = getFirstChildWithTag(properties, "value");
         String mode = value.hasAttribute("mode") ? value.getAttribute("mode") : "files-and-directories";
         return new Config.ListFiles(InlineActivity.ListFilesActivity.Mode.from(mode));
+    }
+  
+    private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        try {
+            return new Config.ParseXML(XmlInputStyle.from(value.getAttribute("inputStyle")));
+        } catch (IllegalArgumentException ex) {
+            throw new ParserException(ex.getMessage(), value);
+        }
     }
 
     private static Config.@NotNull SendHTTPResponse parseSendHTTPResponse(Element config) {

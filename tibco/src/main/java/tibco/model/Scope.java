@@ -406,11 +406,31 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ParseXML(XmlInputStyle inputStyle) implements ActivityExtension.Config {
+
+                        public ParseXML {
+                            assert inputStyle != null;
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.PARSE_XML;
+                        }
+                    }
+
                     record Mapper() implements ActivityExtension.Config {
 
                         @Override
                         public ExtensionKind kind() {
                             return ExtensionKind.MAPPER;
+                        }
+                    }
+
+                    record BwAssign() implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.BW_ASSIGN;
                         }
                     }
 
@@ -457,14 +477,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                     case "SMALLINT", "INT2" -> SMALLINT;
                                     case "DECIMAL", "DEC" -> DECIMAL;
                                     case "NUMERIC", "NUMBER" -> NUMERIC;
-                                    case "REAL", "FLOAT4" -> REAL;
+                                    case "REAL", "FLOAT4", "FLOAT" -> REAL;
                                     case "DOUBLE", "FLOAT8" -> DOUBLE;
                                     case "VARCHAR", "VARCHAR2", "NVARCHAR" -> VARCHAR;
                                     case "CHAR", "CHARACTER" -> CHAR;
                                     case "TEXT" -> TEXT;
                                     case "DATE" -> DATE;
                                     case "TIME" -> TIME;
-                                    case "TIMESTAMP", "DATETIME" -> TIMESTAMP;
+                                    case "TIMESTAMP", "DATETIME", "DATETIME2" -> TIMESTAMP;
                                     case "BOOLEAN", "BOOL" -> BOOLEAN;
                                     case "BLOB", "BINARY LARGE OBJECT" -> BLOB;
                                     case "CLOB", "CHARACTER LARGE OBJECT" -> CLOB;
@@ -496,8 +516,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         PSG_LOG,
                         PSG_SET_AND_LOG,
                         RENDER_XML,
+                        PARSE_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
+                        BW_ASSIGN,
                         SQL;
 
                         public static ActivityExtension.Config.ExtensionKind fromTypeId(String typeId) {
@@ -515,7 +537,9 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
                                 case "bw.psglog.SetAndLog" -> PSG_SET_AND_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
+                                case "bw.xml.parsexml" -> PARSE_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
+                                case "bw.generalactivities.bwassign" -> BW_ASSIGN;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;
                                 default -> patternMatch(typeId);
                             };
@@ -568,12 +592,6 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
                 record CompleteBinding(Flow.Activity.Expression expression) implements Flow.Activity.InputBinding {
 
-                    public Flow.Activity.Expression.XSLT xslt() {
-                        if (expression instanceof Flow.Activity.Expression.XSLT xslt) {
-                            return xslt;
-                        }
-                        throw new IllegalStateException("Not an XSLT expression: " + expression);
-                    }
                 }
 
                 record PartialBindings(List<Flow.Activity.Expression> expressions) implements
