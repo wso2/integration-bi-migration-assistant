@@ -20,25 +20,26 @@ package tibco.util;
 
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-class PathMatcherTest {
+public class PathMatcherTest {
 
     @Test
-    void testExactMatch() {
+    public void testExactMatch() {
         assertTrue(PathMatcher.matches("path/to/resource", "path/to/resource"));
         assertTrue(PathMatcher.matches("/path/to/resource", "/path/to/resource"));
     }
 
     @Test
-    void testMatchWithLeadingSlashDifferences() {
+    public void testMatchWithLeadingSlashDifferences() {
         assertTrue(PathMatcher.matches("/path/to/resource", "path/to/resource"));
         assertTrue(PathMatcher.matches("path/to/resource", "/path/to/resource"));
     }
 
     @Test
-    void testSuffixMatch() {
+    public void testSuffixMatch() {
         assertTrue(PathMatcher.matches("full/path/to/resource", "to/resource"));
         assertTrue(PathMatcher.matches("full/path/to/resource", "resource"));
         assertTrue(PathMatcher.matches("/full/path/to/resource", "/to/resource"));
@@ -46,21 +47,21 @@ class PathMatcherTest {
     }
 
     @Test
-    void testNoMatch() {
+    public void testNoMatch() {
         assertFalse(PathMatcher.matches("path/to/resource", "different/path"));
         assertFalse(PathMatcher.matches("path/to/resource", "path/to/different"));
         assertFalse(PathMatcher.matches("short", "much/longer/path"));
     }
 
     @Test
-    void testEmptyPaths() {
+    public void testEmptyPaths() {
         assertTrue(PathMatcher.matches("", ""));
         assertFalse(PathMatcher.matches("path", ""));
         assertTrue(PathMatcher.matches("path", "path"));
     }
 
     @Test
-    void testSingleSegmentPaths() {
+    public void testSingleSegmentPaths() {
         assertTrue(PathMatcher.matches("resource", "resource"));
         assertTrue(PathMatcher.matches("/resource", "resource"));
         assertTrue(PathMatcher.matches("resource", "/resource"));
@@ -68,8 +69,22 @@ class PathMatcherTest {
     }
 
     @Test
-    void testPartialMatch() {
+    public void testPartialMatch() {
         assertFalse(PathMatcher.matches("path/to/res", "resource"));
         assertFalse(PathMatcher.matches("path/resource", "path/res"));
+    }
+
+    @Test
+    public void testSuffixMatchRespectsSegmentBoundaries() {
+        assertFalse(PathMatcher.matches("Other/Deep/NotWorker.process", "Worker.process"));
+        assertFalse(PathMatcher.matches("Processes/MyWorker.process", "/Worker.process"));
+        assertTrue(PathMatcher.matches("Other/Deep/Worker.process", "Worker.process"));
+    }
+
+    @Test
+    public void testNormalize() {
+        assertEquals(PathMatcher.normalize("/path/to/resource"), "path/to/resource");
+        assertEquals(PathMatcher.normalize("path/to/resource"), "path/to/resource");
+        assertEquals(PathMatcher.normalize(""), "");
     }
 }

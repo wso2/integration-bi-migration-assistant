@@ -11,7 +11,7 @@
             <defaultEncoding>ISO8859_1</defaultEncoding>
             <inputOutputVersion>5.3.0</inputOutputVersion>
             <newMimeSupport>true</newMimeSupport>
-            <sharedChannel>/SubprocessCaller/SharedResources/CallerConnection.sharedhttp</sharedChannel>
+            <sharedChannel>/AmbiguousSubprocess/SharedResources/CallerConnection.sharedhttp</sharedChannel>
             <parsePostData>true</parsePostData>
             <customField>
                 <row>
@@ -36,11 +36,11 @@
     <pd:endName>End</pd:endName>
     <pd:errorSchemas/>
     <pd:targetNamespace>http://xmlns.example.com/1357991310274</pd:targetNamespace>
-    <pd:activity name="Call Worker">
+    <pd:activity name="Call Common">
         <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
         <pd:resourceType>ae.process.subprocess</pd:resourceType>
         <config>
-            <processName>/Processes/Worker.process</processName>
+            <processName>/Processes/A/Common.process</processName>
         </config>
         <pd:inputBindings>
             <InvokeProcessInput>
@@ -58,7 +58,7 @@
         </config>
         <pd:inputBindings>
             <ns:ActivityInput>
-                <message>Worker returned<xsl:value-of select="$Call-Worker"/></message>
+                <message>Common returned<xsl:value-of select="$Call-Common"/></message>
             </ns:ActivityInput>
         </pd:inputBindings>
     </pd:activity>
@@ -71,13 +71,13 @@
     </pd:transition>
     <pd:transition>
         <pd:from>HTTP Receiver</pd:from>
-        <pd:to>Call Worker</pd:to>
+        <pd:to>Call Common</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>
         <pd:conditionType>always</pd:conditionType>
     </pd:transition>
     <pd:transition>
-        <pd:from>Call Worker</pd:from>
+        <pd:from>Call Common</pd:from>
         <pd:to>CallerLog</pd:to>
         <pd:lineType>Default</pd:lineType>
         <pd:lineColor>-16777216</pd:lineColor>

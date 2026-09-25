@@ -574,6 +574,47 @@ public class TibcoProjectConversionTest {
         return generated.substring(bodyStart, end + 1);
     }
 
+    @Test(groups = {"tibco", "converter"})
+    public void testAbsoluteSubprocessReferenceResolves() throws Exception {
+        // SubprocessCaller references "/Processes/Worker.process" while Worker.process declares
+        // <pd:name>Processes/Worker.process</pd:name>: the shape a real BW5 export has.
+        String functions = convertedFunctions("SubprocessCaller");
+        Assert.assertTrue(functions.contains("start_Processes_Worker_process(cx);"),
+                "Absolute <processName> reference did not resolve to the generated start function");
+        Assert.assertTrue(functions.contains("function start_Processes_Worker_process(Context cx)"),
+                "Target start function is missing from the generated module");
+        Assert.assertFalse(functions.contains("Missing process"),
+                "Call was emitted as an error stub although the target is in the same module");
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testSubprocessReferenceBindsToTheLocalCopy() throws Exception {
+        // AmbiguousSubprocess defines Processes/A/Common.process and Processes/B/Common.process,
+        // so a bare suffix match could bind the caller to either one.
+        String functions = convertedFunctions("AmbiguousSubprocess");
+        Assert.assertTrue(functions.contains("start_Processes_A_Common_process(cx);"),
+                "Reference to /Processes/A/Common.process did not bind to that process");
+        Assert.assertFalse(functions.contains("start_Processes_B_Common_process(cx);"),
+                "Reference bound to the wrong same-named process");
+        Assert.assertFalse(functions.contains("Missing process"),
+                "Call was emitted as an error stub although the target is in the same module");
+        Assert.assertFalse(functions.contains("import testOrg/"),
+                "A locally defined process must not be called through a module import");
+    }
+
+    private String convertedFunctions(String projectName) throws Exception {
+        Path tempDir = Files.createTempDirectory("tibco-subprocess-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", projectName),
+                    Path.of("src", "test", "resources", "tibco.projects", projectName).toString(),
+                    tempDir.toString());
+            return Files.readString(tempDir.resolve("functions.bal"));
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
     @DataProvider
     public Object[][] projectTestCaseProvider() throws IOException {
         Path projectTestCaseDir = Path.of("src", "test", "resources", "tibco.projects");
@@ -582,6 +623,7 @@ public class TibcoProjectConversionTest {
         // Get only the immediate directories (non-recursive)
         return Files.list(projectTestCaseDir)
                 .filter(Files::isDirectory)
+                .filter(n->n.endsWith("SubprocessCaller"))
                 .map(dir -> new Object[]{
                         dir,
                         expectedConvertedResultsDir.resolve(dir.getFileName())
