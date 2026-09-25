@@ -7,6 +7,7 @@
 - `throw`
 - `assign`
 - `forEach`
+- `repeatUntil`
 - `extensionActivity`
   - `receiveEvent`
   - `activityExtension`

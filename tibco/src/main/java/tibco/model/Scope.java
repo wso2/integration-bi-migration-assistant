@@ -59,7 +59,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                 Activity.ActivityWithName, Activity.ActivityWithOutput, Activity.ActivityWithScope,
                 Activity.ActivityWithSources, Activity.ActivityWithTargets, Activity.Assign, Activity.Empty,
                 Activity.ExtActivity, Activity.Foreach, Activity.Invoke, Activity.NestedScope, Activity.Pick,
-                Activity.ReceiveEvent, Activity.Reply, Activity.StartActivity, Activity.Throw,
+                Activity.ReceiveEvent, Activity.RepeatUntil, Activity.Reply, Activity.StartActivity, Activity.Throw,
                 Activity.UnhandledActivity {
 
             Element element();
@@ -187,6 +187,12 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
+            record RepeatUntil(String counterName, Expression.XPath condition, Scope scope,
+                               Element element, String fileName) implements Flow.Activity,
+                    Flow.Activity.ActivityWithScope {
+
+            }
+
             record Reply(String name, Method operation, String partnerLink, String portType,
                          List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
                          Element element, String fileName)
@@ -204,8 +210,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Empty(String name, Element element, String fileName) 
-                    implements Flow.Activity, Flow.Activity.ActivityWithName {
+            record Empty(String name, List<Flow.Activity.Source> sources,
+                         Collection<Flow.Activity.Target> targets, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithName, Flow.Activity.ActivityWithSources,
+                    Flow.Activity.ActivityWithTargets {
 
                 @Override
                 public Optional<String> getName() {

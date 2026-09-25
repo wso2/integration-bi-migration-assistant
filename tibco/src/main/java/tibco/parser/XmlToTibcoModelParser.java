@@ -983,6 +983,7 @@ public final class XmlToTibcoModelParser {
             case "scope" -> parseNestedScope(cx, element);
             case "assign" -> parseAssign(cx, element);
             case "forEach" -> parseForeach(cx, element);
+            case "repeatUntil" -> parseRepeatUntil(cx, element);
             case "catchAll" -> parseCatchAll(cx, element);
             case "activity" -> parseInlineActivity(cx, element);
             default -> throw new ParserException("Unsupported activity tag: " + tag, element);
@@ -998,6 +999,14 @@ public final class XmlToTibcoModelParser {
         Scope scope = parseScope(cx, getFirstChildWithTag(element, "scope"));
         return new Flow.Activity.Foreach(counterName, scope, startCounterValue, finalCounterValue,
                 element, cx.fileName());
+    }
+
+    private static Flow.Activity.RepeatUntil parseRepeatUntil(ProcessContext cx, Element element) {
+        String counterName = element.getAttributeNS("http://www.tibco.com/bpel/2007/extensions", "counterName");
+        Flow.Activity.Expression.XPath condition = parseXPath(getFirstChildWithTag(element, "condition"));
+        Flow flow = parseFlow(cx, getFirstChildWithTag(element, "flow"));
+        Scope scope = new Scope(element.getAttribute("name"), List.of(flow), List.of(), List.of());
+        return new Flow.Activity.RepeatUntil(counterName, condition, scope, element, cx.fileName());
     }
 
     private static Flow.Activity.Assign parseAssign(ProcessContext cx, Element element) {
@@ -1124,7 +1133,13 @@ public final class XmlToTibcoModelParser {
 
     private static Flow.Activity.Empty parseEmpty(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
-        return new Flow.Activity.Empty(name, element, cx.fileName());
+        Collection<Flow.Activity.Target> targets = ElementIterable.of(element).stream()
+                .filter(each -> getTagNameWithoutNameSpace(each).equals("targets"))
+                .map(XmlToTibcoModelParser::parseTargets).flatMap(Collection::stream).toList();
+        List<Flow.Activity.Source> sources = ElementIterable.of(element).stream()
+                .filter(each -> getTagNameWithoutNameSpace(each).equals("sources"))
+                .map(XmlToTibcoModelParser::parseSources).flatMap(Collection::stream).toList();
+        return new Flow.Activity.Empty(name, sources, targets, element, cx.fileName());
     }
 
     private static Flow.Activity.Pick parsePick(ProcessContext cx, Element element) {

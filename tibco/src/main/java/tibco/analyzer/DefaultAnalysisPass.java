@@ -295,9 +295,6 @@ public final class DefaultAnalysisPass extends AnalysisPass {
 
     @Override
     protected void analyseActivity(ProcessAnalysisContext cx, Scope.Flow.Activity activity) {
-        if (activity instanceof Scope.Flow.Activity.Empty) {
-            return;
-        }
         boolean isInSequence = cx.getInSequence().peek();
         cx.allocateActivityNameIfNeeded(activity);
         if (activity instanceof Scope.Flow.Activity.ActivityWithSources activityWithSources) {
