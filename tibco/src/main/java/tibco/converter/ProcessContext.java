@@ -488,6 +488,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
                 .findFirst();
     }
 
+    public @NotNull String getSftpDeleteFilesFunction() {
+        return projectContext.getSftpDeleteFilesFunction();
+    }
+
     public String getFilesInPathFunction() {
         return projectContext.getFilesInPathFunction();
     }

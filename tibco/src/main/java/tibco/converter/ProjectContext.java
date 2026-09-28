@@ -776,6 +776,13 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.GET_SHARED_VARIABLE.name;
     }
 
+    public @NotNull String getSftpDeleteFilesFunction() {
+        utilityIntrinsics.add(Intrinsics.SFTP_DELETE_FILES);
+        importLibraryIfNeededToUtility(Library.FTP);
+        importLibraryIfNeededToUtility(Library.REGEX);
+        return Intrinsics.SFTP_DELETE_FILES.name;
+    }
+
     public String getFilesInPathFunction() {
         utilityIntrinsics.add(Intrinsics.GET_FILES_IN_PATH);
         utilityTypeDefs.put("FileData", new BallerinaModel.ModuleTypeDef("FileData",

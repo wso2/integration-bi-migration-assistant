@@ -378,6 +378,18 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record SFTPDeleteFile(String sftpConnection) implements ActivityExtension.Config {
+
+                        public SFTPDeleteFile {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_DELETE_FILE;
+                        }
+                    }
+
                     record Log() implements ActivityExtension.Config {
 
                         @Override
@@ -538,6 +550,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         RENDER_XML,
                         PARSE_XML,
                         SEND_HTTP_RESPONSE,
+                        SFTP_DELETE_FILE,
                         SFTP_RENAME_FILE,
                         MAPPER,
                         BW_ASSIGN,
@@ -554,6 +567,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.file.rename" -> FILE_RENAME;
                                 case "bw.file.list" -> LIST_FILES;
                                 case "bw.sftp.renameFile" -> SFTP_RENAME_FILE;
+                                case "bw.sftp.removeFile" -> SFTP_DELETE_FILE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;

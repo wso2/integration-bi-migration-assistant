@@ -83,6 +83,41 @@ public enum Intrinsics {
                     """
 
     ),
+    // TIBCO's SFTP Delete File accepts ? (exactly one character) and * (one or more characters) in the file name,
+    // which ftp:Client->delete does not, so wildcard names are resolved against a listing of the parent directory.
+    SFTP_DELETE_FILES(
+            "sftpDeleteFiles",
+            """
+                    function sftpDeleteFiles(ftp:Client sftpClient, string remotePath) returns error? {
+                        int? separator = remotePath.lastIndexOf("/");
+                        string fileName = separator == () ? remotePath : remotePath.substring(separator + 1);
+                        if !fileName.includes("*") && !fileName.includes("?") {
+                            return sftpClient->delete(remotePath);
+                        }
+                        string directory = separator == () ? "." : separator == 0 ? "/" :
+                                remotePath.substring(0, separator);
+                        string pattern = "";
+                        foreach string ch in fileName {
+                            if ch == "*" {
+                                pattern += ".+";
+                            } else if ch == "?" {
+                                pattern += ".";
+                            } else if ".+()[]{}^$|\\\\".includes(ch) {
+                                pattern += "\\\\" + ch;
+                            } else {
+                                pattern += ch;
+                            }
+                        }
+                        ftp:FileInfo[] entries = check sftpClient->list(directory);
+                        foreach ftp:FileInfo entry in entries {
+                            if entry.isFile && regex:matches(entry.name, pattern) {
+                                check sftpClient->delete(directory == "/" ? "/" + entry.name :
+                                        directory + "/" + entry.name);
+                            }
+                        }
+                    }
+                    """
+    ),
     SET_SHARED_VARIABLE(
             "setSharedVariable",
             """

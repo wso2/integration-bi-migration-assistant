@@ -1622,6 +1622,8 @@ final class ActivityConverter {
             case ActivityExtension.Config.ListFiles listFiles -> createListFilesOperation(cx, result, listFiles);
             case ActivityExtension.Config.SFTPRenameFile sftpRenameFile ->
                     createSFTPRenameFileOperation(cx, result, sftpRenameFile);
+            case ActivityExtension.Config.SFTPDeleteFile sftpDeleteFile ->
+                    createSFTPDeleteFileOperation(cx, result, sftpDeleteFile);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -1911,6 +1913,20 @@ final class ActivityConverter {
         body.add(newRemoteFileName);
         body.add(new CallStatement(new Check(new RemoteMethodCallAction(client, "rename",
                 List.of(oldRemoteFileName.ref(), newRemoteFileName.ref())))));
+        return new ActivityConversionResult(result, body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPDeleteFileOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPDeleteFile sftpDeleteFile) {
+        List<Statement> body = new ArrayList<>();
+        VariableReference client = sftpClient(cx, body, sftpDeleteFile.sftpConnection());
+        // TIBCO concatenates the optional RemoteDirectory with RemoteFileName as-is, without adding a separator.
+        VarDeclStatment remotePath = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%1$s/**/<RemoteDirectory>/*).toString() + (%1$s/**/<RemoteFileName>/*).toString()"
+                        .formatted(result.varName())));
+        body.add(remotePath);
+        body.add(new CallStatement(new Check(new FunctionCall(cx.getSftpDeleteFilesFunction(),
+                List.of(client, remotePath.ref())))));
         return new ActivityConversionResult(result, body);
     }
 
