@@ -478,6 +478,12 @@ public class ProjectContext implements LoggingContext {
         return uniqueName;
     }
 
+    // A TIBCO module property bound by several resources must map to a single configurable, so the user sets it once.
+    public @NotNull String getOrAddConfigurableVariable(String propName, BallerinaModel.TypeDesc type) {
+        return Optional.ofNullable(configurableVarNamesByLogicalName.get(propName))
+                .orElseGet(() -> addConfigurableVariable(propName, propName, type));
+    }
+
     @NotNull
     private Set<String> emittedVarNames() {
         return utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).collect(Collectors.toSet());

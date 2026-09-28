@@ -1619,6 +1619,8 @@ final class ActivityConverter {
                     createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.FileRename fileRename -> createFileRenameOperation(cx, result, fileRename);
+            case ActivityExtension.Config.SFTPRenameFile sftpRenameFile ->
+                    createSFTPRenameFileOperation(cx, result, sftpRenameFile);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -1857,6 +1859,33 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new FunctionCall(FileConstants.FILE_RENAME_FUNCTION,
                 List.of(fromFileName.ref(), toFileName.ref())))));
         return new ActivityConversionResult(result, body);
+    }
+
+    private static ActivityConversionResult createSFTPRenameFileOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPRenameFile sftpRenameFile) {
+        List<Statement> body = new ArrayList<>();
+        VariableReference client = sftpClient(cx, body, sftpRenameFile.sftpConnection());
+        VarDeclStatment oldRemoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<OldRemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(oldRemoteFileName);
+        VarDeclStatment newRemoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<NewRemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(newRemoteFileName);
+        body.add(new CallStatement(new Check(new RemoteMethodCallAction(client, "rename",
+                List.of(oldRemoteFileName.ref(), newRemoteFileName.ref())))));
+        return new ActivityConversionResult(result, body);
+    }
+
+    private static @NotNull VariableReference sftpClient(ActivityContext cx, List<Statement> body,
+                                                        String sftpConnection) {
+        Optional<VariableReference> client = cx.client(sftpConnection);
+        if (client.isPresent()) {
+            return client.get();
+        }
+        cx.log(SEVERE, "WARNING: Failed to find SFTP client for " + sftpConnection + ". Creating placeholder client.");
+        body.add(new Comment("WARNING: Missing SFTP connection resource '" + sftpConnection
+                + "'. Using placeholder client."));
+        return declarePlaceholderClient(cx, body, "ftp:Client", Library.FTP, "sftp", sftpConnection);
     }
 
     private static ActivityConversionResult createSQLOperation(

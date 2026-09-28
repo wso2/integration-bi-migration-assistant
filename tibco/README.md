@@ -18,6 +18,7 @@
     - `bw.http.sendHTTPResponse`
     - `bw.file.write`
     - `bw.file.rename`
+    - `bw.sftp.renameFile`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`

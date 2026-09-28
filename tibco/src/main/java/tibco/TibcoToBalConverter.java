@@ -88,11 +88,12 @@ public class TibcoToBalConverter {
         java.util.Set<Resource.JDBCSharedResource> jdbcSharedResource = SHARED_JDBC_RESOURCE_PARSING_UNIT.parse(pcx);
         var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
         java.util.Set<Resource.JMSSharedResource> jmsSharedResource = jmsSharedResourceParser.parse(pcx);
+        java.util.Set<Resource.SFTPResource> sftpResources = SFTP_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.SharedVariable> sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
 
         return new tibco.converter.ProjectConverter.ProjectResources(jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
-                jmsSharedResource, sharedVariables);
+                jmsSharedResource, sftpResources, sharedVariables);
     }
 
 
@@ -132,6 +133,11 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     TibcoToBalConverter::getHTTPClientResourceFiles,
                     XmlToTibcoModelParser::parseHTTPClientResource,
+                    TibcoToBalConverter::getResourceContext);
+    private static final ParsingUnit<Resource.SFTPResource> SFTP_RESOURCE_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
+                    (String projectPath) -> getFilesWithExtension(projectPath, "sftpResource"),
+                    XmlToTibcoModelParser::parseSFTPResource,
                     TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.SharedVariable> SHARED_VARIABLE_PARSING_UNIT = new ParsingUnit<>() {
         @Override

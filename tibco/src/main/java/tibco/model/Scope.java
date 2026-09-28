@@ -357,6 +357,18 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record SFTPRenameFile(String sftpConnection) implements ActivityExtension.Config {
+
+                        public SFTPRenameFile {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.SFTP_RENAME_FILE;
+                        }
+                    }
+
                     record Log() implements ActivityExtension.Config {
 
                         @Override
@@ -516,6 +528,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         RENDER_XML,
                         PARSE_XML,
                         SEND_HTTP_RESPONSE,
+                        SFTP_RENAME_FILE,
                         MAPPER,
                         BW_ASSIGN,
                         SQL;
@@ -529,6 +542,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.file.rename" -> FILE_RENAME;
+                                case "bw.sftp.renameFile" -> SFTP_RENAME_FILE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
