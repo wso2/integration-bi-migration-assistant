@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import tibco.util.PathMatcher;
 
 import java.util.Collection;
@@ -117,7 +118,7 @@ public sealed interface Resource {
         }
 
         @Override
-        public ResourceKind kind() {
+        public @NotNull ResourceKind kind() {
             return ResourceKind.SFTP;
         }
     }

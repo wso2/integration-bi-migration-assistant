@@ -479,9 +479,21 @@ public class ProjectContext implements LoggingContext {
     }
 
     // A TIBCO module property bound by several resources must map to a single configurable, so the user sets it once.
-    public @NotNull String getOrAddConfigurableVariable(String propName, BallerinaModel.TypeDesc type) {
-        return Optional.ofNullable(configurableVarNamesByLogicalName.get(propName))
-                .orElseGet(() -> addConfigurableVariable(propName, propName, type));
+    // A binding of the same property with a different type gets its own configurable so every reference type-checks.
+    @NotNull
+    String getOrAddConfigurableVariable(String propName, BallerinaModel.TypeDesc type) {
+        String existing = configurableVarNamesByLogicalName.get(propName);
+        if (existing == null) {
+            return addConfigurableVariable(propName, propName, type);
+        }
+        if (utilityVars.get(existing).type().equals(type.toString())) {
+            return existing;
+        }
+        log(LoggingUtils.Level.WARN, "Module property " + propName + " is bound with conflicting types; declaring a "
+                + "separate " + type + " configurable for it.");
+        String typedLogicalName = propName + ":" + type;
+        return Optional.ofNullable(configurableVarNamesByLogicalName.get(typedLogicalName))
+                .orElseGet(() -> addConfigurableVariable(typedLogicalName, propName, type));
     }
 
     @NotNull

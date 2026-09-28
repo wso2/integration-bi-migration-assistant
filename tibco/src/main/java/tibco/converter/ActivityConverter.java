@@ -1861,7 +1861,7 @@ final class ActivityConverter {
         return new ActivityConversionResult(result, body);
     }
 
-    private static ActivityConversionResult createSFTPRenameFileOperation(
+    private static @NotNull ActivityConversionResult createSFTPRenameFileOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPRenameFile sftpRenameFile) {
         List<Statement> body = new ArrayList<>();
         VariableReference client = sftpClient(cx, body, sftpRenameFile.sftpConnection());

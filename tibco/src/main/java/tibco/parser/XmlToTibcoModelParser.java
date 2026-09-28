@@ -266,7 +266,7 @@ public final class XmlToTibcoModelParser {
         }
     }
 
-    public static Optional<Resource.SFTPResource> parseSFTPResource(ResourceContext cx, Element root) {
+    public static @NotNull Optional<Resource.SFTPResource> parseSFTPResource(ResourceContext cx, Element root) {
         cx.log(INFO, "Start parsing SFTPResource");
         cx.logState("Start parsing SFTPResource");
         String name = "";

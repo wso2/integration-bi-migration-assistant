@@ -136,11 +136,8 @@ final class ResourceConvertor {
             List<MappingField> auth = resource.privKeyAuth()
                     ? List.of(
                             new MappingField("credentials", new MappingConstructor(List.of(username))),
-                            new MappingField("privateKey", new MappingConstructor(List.of(
-                                    new MappingField("path", sftpConfigValue(cx, resource, clientName, "privKey",
-                                            STRING, Optional.empty(), configurables)),
-                                    new MappingField("password", sftpSecretValue(cx, resource, clientName,
-                                            "privKeypassword", configurables))))))
+                            new MappingField("privateKey", new MappingConstructor(
+                                    sftpPrivateKeyFields(cx, resource, clientName, configurables))))
                     : List.of(new MappingField("credentials", new MappingConstructor(List.of(username,
                             new MappingField("password",
                                     sftpSecretValue(cx, resource, clientName, "password", configurables))))));
@@ -157,8 +154,23 @@ final class ResourceConvertor {
         }
     }
 
+    // An unencrypted private key has no passphrase, so the password field is only emitted when the resource sets one.
+    @NotNull
+    private static List<MappingField> sftpPrivateKeyFields(ProjectContext cx, SFTPResource resource,
+                                                           String clientName, Map<String, ModuleVar> configurables) {
+        MappingField path = new MappingField("path", sftpConfigValue(cx, resource, clientName, "privKey", STRING,
+                Optional.empty(), configurables));
+        boolean hasPassphrase = sftpBindingName(resource, "privKeypassword").isPresent()
+                || !resource.configuration().getOrDefault("privKeypassword", "").isBlank();
+        return hasPassphrase
+                ? List.of(path, new MappingField("password",
+                        sftpSecretValue(cx, resource, clientName, "privKeypassword", configurables)))
+                : List.of(path);
+    }
+
     // Secrets always become configurables, even when the resource file carries a literal, to keep them out of the
     // generated source.
+    @NotNull
     private static Expression sftpSecretValue(ProjectContext cx, SFTPResource resource, String clientName,
                                               String field, Map<String, ModuleVar> configurables) {
         return sftpBindingName(resource, field)
@@ -166,6 +178,7 @@ final class ResourceConvertor {
                 .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, STRING, configurables));
     }
 
+    @NotNull
     private static Expression sftpConfigValue(ProjectContext cx, SFTPResource resource, String clientName,
                                               String field, BallerinaModel.TypeDesc type,
                                               Optional<Expression> defaultValue,
@@ -183,6 +196,7 @@ final class ResourceConvertor {
         return defaultValue.orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
     }
 
+    @NotNull
     private static Optional<String> sftpBindingName(SFTPResource resource, String field) {
         return resource.substitutionBindings().stream()
                 .filter(binding -> binding.template().equals(field))
@@ -190,10 +204,12 @@ final class ResourceConvertor {
                 .findFirst();
     }
 
+    @NotNull
     private static Expression sftpModuleProperty(ProjectContext cx, String propName, BallerinaModel.TypeDesc type) {
         return new Expression.VariableReference(cx.getOrAddConfigurableVariable(propName, type));
     }
 
+    @NotNull
     private static Expression sftpConfigurable(ProjectContext cx, String name, BallerinaModel.TypeDesc type,
                                                Map<String, ModuleVar> configurables) {
         ModuleVar configurable = ModuleVar.configurable(cx.getUtilityVarName(name), type);

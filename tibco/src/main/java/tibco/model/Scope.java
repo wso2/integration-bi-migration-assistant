@@ -364,7 +364,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
 
                         @Override
-                        public ExtensionKind kind() {
+                        public @NotNull ExtensionKind kind() {
                             return ExtensionKind.SFTP_RENAME_FILE;
                         }
                     }
