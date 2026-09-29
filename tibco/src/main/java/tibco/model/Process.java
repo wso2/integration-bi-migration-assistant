@@ -18,9 +18,8 @@
 
 package tibco.model;
 
-import tibco.util.PathMatcher;
-
 import java.util.Collection;
+import java.util.List;
 
 public sealed interface Process permits Process5, Process6 {
 
@@ -30,9 +29,17 @@ public sealed interface Process permits Process5, Process6 {
 
     Collection<NameSpace> nameSpaces();
 
+    /**
+     * The paths a {@code <processName>} reference may name this process by, most specific first.
+     * A reference is written against the logical {@code <pd:name>}, but that need not agree with
+     * the file location, so both are candidates.
+     *
+     * @return the paths this process can be referenced by
+     */
+    default List<String> lookupPaths() {
+        return List.of(path(), name());
+    }
+
     record ProcessIdentifier(String name) {
-        public boolean matches(Process process) {
-            return PathMatcher.matches(process.path(), name);
-        }
     }
 }

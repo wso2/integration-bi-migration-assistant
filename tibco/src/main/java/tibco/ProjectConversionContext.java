@@ -23,11 +23,14 @@ import common.LoggingUtils;
 import tibco.converter.ConversionUtils;
 import tibco.model.Process;
 import tibco.model.Resource;
+import tibco.util.PathResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -39,7 +42,9 @@ public final class ProjectConversionContext implements LoggingContext {
     private final Set<Resource> sharedResources = new HashSet<>();
     private final Set<Process> sharedProcesses = new HashSet<>();
     private final Set<Resource> resources = new HashSet<>();
-    private final Set<Process> processes = new HashSet<>();
+    // Keyed by path so that re-parsing the same project replaces its processes rather than
+    // registering a second, indistinguishable candidate for every lookup.
+    private final Map<String, Process> processes = new LinkedHashMap<>();
 
     public ProjectConversionContext(ConversionContext cx, String name) {
         this.cx = cx;
@@ -104,11 +109,23 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public Optional<LookupResult> processFunction(String processName) {
         assert processName != null;
-        boolean localProcess = processes.stream().map(Process::name).anyMatch(name -> name.equals(processName));
-        if (localProcess) {
-            return Optional.of(new LookupResult(Optional.empty(), ConversionUtils.processFunctionName(processName)));
+        PathResolver.Resolution<Process> local =
+                PathResolver.resolve(processes.values(), Process::lookupPaths, processName);
+        if (local.match().isPresent()) {
+            return Optional.of(new LookupResult(Optional.empty(),
+                    ConversionUtils.processFunctionName(local.match().get())));
+        }
+        if (!local.ambiguousCandidates().isEmpty()) {
+            // Falling through to the global lookup would risk binding to another project's copy.
+            logAmbiguousProcess(processName, local.ambiguousCandidates());
+            return Optional.empty();
         }
         return conversionContext().processFunction(processName);
+    }
+
+    private void logAmbiguousProcess(String processName, List<Process> candidates) {
+        log(LoggingUtils.Level.WARN, "Ambiguous process reference '" + processName + "' in project " + name
+                + ". Candidates: " + candidates.stream().map(Process::path).toList());
     }
 
     public BallerinaModel.Import getImport() {
@@ -120,6 +137,6 @@ public final class ProjectConversionContext implements LoggingContext {
     }
 
     public void addProcess(Process process) {
-        processes.add(process);
+        processes.put(process.path(), process);
     }
 }

@@ -26,6 +26,7 @@ import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.XSD;
+import tibco.util.PathResolver;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -164,22 +165,13 @@ public class ProjectAnalysisContext implements LoggingContext {
     }
 
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
-        // First, look in project's own processes
-        Optional<Process> localProcess = findProcessInProject(identifier);
-
-        if (localProcess.isPresent()) {
-            return localProcess;
+        PathResolver.Resolution<Process> local =
+                PathResolver.resolve(currentProcesses, Process::lookupPaths, identifier.name());
+        if (local.match().isPresent() || !local.ambiguousCandidates().isEmpty()) {
+            return local.match();
         }
 
-        // If not found locally, look in ConversionContext
-
         return cx.conversionContext().lookupProcess(identifier);
-    }
-
-    private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {
-        return currentProcesses.stream()
-                .filter(identifier::matches)
-                .findFirst();
     }
 
     /**

@@ -25,12 +25,15 @@ import tibco.converter.ConversionUtils;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
 import tibco.model.Resource;
+import tibco.util.PathResolver;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,7 +51,9 @@ public final class ConversionContext implements LoggingContext {
     private final Consumer<String> stateCallback;
     private final Consumer<String> logCallback;
     private final Map<Resource.ResourceIdentifier, ProjectResource> projectResourceMap = new HashMap<>();
-    private final Map<Process.ProcessIdentifier, ProjectProcess> projectProcessMap = new HashMap<>();
+    // Keyed by origin project and path so that re-registering a project replaces its entries
+    // instead of duplicating them, while distinct projects keep their own copy of a shared process.
+    private final Map<String, ProjectProcess> projectProcesses = new LinkedHashMap<>();
     private final Map<Process, Collection<ProcessCodeGenData>> processCodeGenData;
 
     public ConversionContext(String org, boolean dryRun, boolean keepStructure,
@@ -102,21 +107,28 @@ public final class ConversionContext implements LoggingContext {
     }
 
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
-        ProjectProcess projectProcess = projectProcessMap.get(identifier);
-        if (projectProcess == null) {
-            return Optional.empty();
-        }
+        Optional<ProjectProcess> projectProcess = resolveProjectProcess(identifier.name());
         // Mark the process as shared in its origin project
-        projectProcess.originProject().markProcessAsShared(projectProcess.process());
-        return Optional.of(projectProcess.process());
+        projectProcess.ifPresent(each -> each.originProject().markProcessAsShared(each.process()));
+        return projectProcess.map(ProjectProcess::process);
+    }
+
+    private Optional<ProjectProcess> resolveProjectProcess(String processName) {
+        PathResolver.Resolution<ProjectProcess> resolution =
+                PathResolver.resolve(projectProcesses.values(), each -> each.process().lookupPaths(), processName);
+        if (!resolution.ambiguousCandidates().isEmpty()) {
+            log(LoggingUtils.Level.WARN, "Ambiguous process reference '" + processName + "'. Candidates: "
+                    + resolution.ambiguousCandidates().stream().map(each -> each.process().path()).toList());
+        }
+        return resolution.match();
     }
 
     public void addProjectProcesses(Set<Process> processes, ProjectConversionContext originProject) {
-        processes.forEach(process -> {
-            ProjectProcess projectProcess = new ProjectProcess(process, originProject);
-            Process.ProcessIdentifier identifier = new Process.ProcessIdentifier(process.path());
-            projectProcessMap.put(identifier, projectProcess);
-        });
+        // Sorted so that resolution does not depend on the iteration order of the incoming set.
+        processes.stream()
+                .sorted(Comparator.comparing(Process::path))
+                .forEach(process -> projectProcesses.put(originProject.name() + '\0' + process.path(),
+                        new ProjectProcess(process, originProject)));
     }
 
     public void registerProcessTextDocument(String projectName, Process process,
@@ -155,12 +167,9 @@ public final class ConversionContext implements LoggingContext {
     }
 
     public Optional<LookupResult> processFunction(String processName) {
-        ProjectProcess process = projectProcessMap.get(new Process.ProcessIdentifier(processName));
-        if (process == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new LookupResult(Optional.of(process.originProject.getImport()),
-                ConversionUtils.processFunctionName(processName)));
+        return resolveProjectProcess(processName).map(process -> new LookupResult(
+                Optional.of(process.originProject().getImport()),
+                ConversionUtils.processFunctionName(process.process())));
     }
 
 
