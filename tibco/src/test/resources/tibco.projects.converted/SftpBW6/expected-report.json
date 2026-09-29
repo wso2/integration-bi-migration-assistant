@@ -2,9 +2,9 @@
   "coverageOverview": {
     "coverageLevel": "high",
     "coveragePercentage": 100,
-    "migratableElements": 5,
+    "migratableElements": 6,
     "nonMigratableElements": 0,
-    "totalElements": 5,
+    "totalElements": 6,
     "unitName": "activity"
   }
 }

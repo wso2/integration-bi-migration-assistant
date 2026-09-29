@@ -1407,6 +1407,7 @@ public final class XmlToTibcoModelParser {
             case SFTP_RENAME_FILE -> new Config.SFTPRenameFile(parseSFTPConnection(activity));
             case SFTP_DELETE_FILE -> new Config.SFTPDeleteFile(parseSFTPConnection(activity));
             case SFTP_DIR -> parseSFTPDir(activity);
+            case SFTP_GET -> parseSFTPGet(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
@@ -1442,6 +1443,12 @@ public final class XmlToTibcoModelParser {
     private static Config.@NotNull SFTPDir parseSFTPDir(Element activity) {
         return new Config.SFTPDir(parseSFTPConnection(activity),
                 Boolean.parseBoolean(sftpActivityValue(activity).getAttribute("nlst")));
+    }
+
+    private static Config.@NotNull SFTPGet parseSFTPGet(Element activity) {
+        Element value = sftpActivityValue(activity);
+        return new Config.SFTPGet(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
+                Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")));
     }
 
     private static @NotNull String parseSFTPConnection(Element activity) {

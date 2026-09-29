@@ -777,10 +777,23 @@ public class ProjectContext implements LoggingContext {
     }
 
     public @NotNull String getSftpDeleteFilesFunction() {
+        addSftpRemoteFilesFunction();
         utilityIntrinsics.add(Intrinsics.SFTP_DELETE_FILES);
+        return Intrinsics.SFTP_DELETE_FILES.name;
+    }
+
+    public @NotNull String getSftpGetFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_GET_FILES);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        return Intrinsics.SFTP_GET_FILES.name;
+    }
+
+    private void addSftpRemoteFilesFunction() {
+        utilityIntrinsics.add(Intrinsics.SFTP_REMOTE_FILES);
         importLibraryIfNeededToUtility(Library.FTP);
         importLibraryIfNeededToUtility(Library.REGEX);
-        return Intrinsics.SFTP_DELETE_FILES.name;
     }
 
     public String getFilesInPathFunction() {

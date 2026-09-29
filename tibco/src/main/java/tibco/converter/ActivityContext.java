@@ -191,6 +191,10 @@ public class ActivityContext implements LoggingContext {
         return processContext.getSftpDeleteFilesFunction();
     }
 
+    public @NotNull String getSftpGetFilesFunction() {
+        return processContext.getSftpGetFilesFunction();
+    }
+
     public String getFilesInPathFunction() {
         return processContext.getFilesInPathFunction();
     }

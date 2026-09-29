@@ -83,16 +83,16 @@ public enum Intrinsics {
                     """
 
     ),
-    // TIBCO's SFTP Delete File accepts ? (exactly one character) and * (one or more characters) in the file name,
-    // which ftp:Client->delete does not, so wildcard names are resolved against a listing of the parent directory.
-    SFTP_DELETE_FILES(
-            "sftpDeleteFiles",
+    // TIBCO's SFTP activities accept ? (exactly one character) and * (one or more characters) in remote file names,
+    // which ftp:Client does not, so wildcard names are resolved against a listing of the parent directory.
+    SFTP_REMOTE_FILES(
+            "sftpRemoteFiles",
             """
-                    function sftpDeleteFiles(ftp:Client sftpClient, string remotePath) returns error? {
+                    function sftpRemoteFiles(ftp:Client sftpClient, string remotePath) returns string[]|error {
                         int? separator = remotePath.lastIndexOf("/");
                         string fileName = separator == () ? remotePath : remotePath.substring(separator + 1);
                         if !fileName.includes("*") && !fileName.includes("?") {
-                            return sftpClient->delete(remotePath);
+                            return [remotePath];
                         }
                         string directory = separator == () ? "." : separator == 0 ? "/" :
                                 remotePath.substring(0, separator);
@@ -109,12 +109,70 @@ public enum Intrinsics {
                             }
                         }
                         ftp:FileInfo[] entries = check sftpClient->list(directory);
+                        string[] matches = [];
                         foreach ftp:FileInfo entry in entries {
                             if entry.isFile && regex:matches(entry.name, pattern) {
-                                check sftpClient->delete(directory == "/" ? "/" + entry.name :
-                                        directory + "/" + entry.name);
+                                matches.push(directory == "/" ? "/" + entry.name : directory + "/" + entry.name);
                             }
                         }
+                        return matches;
+                    }
+                    """
+    ),
+    SFTP_DELETE_FILES(
+            "sftpDeleteFiles",
+            """
+                    function sftpDeleteFiles(ftp:Client sftpClient, string remotePath) returns error? {
+                        foreach string path in check sftpRemoteFiles(sftpClient, remotePath) {
+                            check sftpClient->delete(path);
+                        }
+                    }
+                    """
+    ),
+    // Several matched remote files keep their own names inside the local directory, as TIBCO does; a single file
+    // is written to LocalFileName as given.
+    SFTP_GET_FILES(
+            "sftpGetFiles",
+            """
+                    function sftpGetFiles(ftp:Client sftpClient, string remotePath, string localPath,
+                            boolean overwrite) returns xml|error {
+                        if localPath == "" {
+                            return error("SFTP Get without LocalFileName (Use Process Data) is not supported");
+                        }
+                        int? remoteSeparator = remotePath.lastIndexOf("/");
+                        string remoteName = remoteSeparator == () ? remotePath :
+                                remotePath.substring(remoteSeparator + 1);
+                        boolean wildcard = remoteName.includes("*") || remoteName.includes("?");
+                        string localDirectory = localPath;
+                        if wildcard && !localPath.endsWith("/") && !localPath.endsWith("\\\\")
+                                && !check file:test(localPath, file:IS_DIR) {
+                            int localSeparator = int:max(localPath.lastIndexOf("/") ?: -1,
+                                    localPath.lastIndexOf("\\\\") ?: -1);
+                            localDirectory = localSeparator == -1 ? "." : localPath.substring(0, localSeparator);
+                        }
+                        string[] remoteFiles = check sftpRemoteFiles(sftpClient, remotePath);
+                        if wildcard && remoteFiles.length() == 0 {
+                            return error("GetFilesException: no remote file matches " + remotePath);
+                        }
+                        xml transferred = xml ``;
+                        foreach string remoteFile in remoteFiles {
+                            string localFile = localPath;
+                            if wildcard {
+                                int? separator = remoteFile.lastIndexOf("/");
+                                string baseName = separator == () ? remoteFile : remoteFile.substring(separator + 1);
+                                localFile = localDirectory.endsWith("/") || localDirectory.endsWith("\\\\")
+                                        ? localDirectory + baseName : localDirectory + "/" + baseName;
+                            }
+                            if !overwrite && check file:test(localFile, file:EXISTS) {
+                                return error("Local file already exists: " + localFile);
+                            }
+                            byte[] content = check sftpClient->getBytes(remoteFile);
+                            check io:fileWriteBytes(localFile, content);
+                            xml nameElement = xml `<Name>${remoteFile}</Name>`;
+                            xml sizeElement = xml `<NumOfBytes>${content.length()}</NumOfBytes>`;
+                            transferred += xml `<FileTransferred>${nameElement}${sizeElement}</FileTransferred>`;
+                        }
+                        return transferred;
                     }
                     """
     ),
