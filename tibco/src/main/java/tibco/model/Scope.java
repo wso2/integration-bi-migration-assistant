@@ -356,6 +356,15 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return ExtensionKind.FILE_RENAME;
                         }
                     }
+                  
+                    record ListFiles(Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode mode)
+                            implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.LIST_FILES;
+                        }
+                    }
 
                     record SFTPRenameFile(String sftpConnection) implements ActivityExtension.Config {
 
@@ -521,6 +530,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         HTTP_SEND,
                         JSON_PARSER,
                         JSON_RENDER,
+                        LIST_FILES,
                         LOG,
                         PSG_EXCEPTION_LOG,
                         PSG_LOG,
@@ -542,6 +552,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.file.rename" -> FILE_RENAME;
+                                case "bw.file.list" -> LIST_FILES;
                                 case "bw.sftp.renameFile" -> SFTP_RENAME_FILE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;

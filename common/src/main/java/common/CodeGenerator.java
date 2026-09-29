@@ -214,7 +214,7 @@ public class CodeGenerator {
         }
 
         for (String f : textDocument.intrinsics()) {
-            moduleMembers.add(NodeParser.parseModuleMemberDeclaration(f));
+            NodeParser.parseModulePart(f).members().forEach(moduleMembers::add);
         }
 
         NodeList<ImportDeclarationNode> importDecls = NodeFactory.createNodeList(imports);
