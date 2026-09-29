@@ -623,7 +623,6 @@ public class TibcoProjectConversionTest {
         // Get only the immediate directories (non-recursive)
         return Files.list(projectTestCaseDir)
                 .filter(Files::isDirectory)
-                .filter(n->n.endsWith("SubprocessCaller"))
                 .map(dir -> new Object[]{
                         dir,
                         expectedConvertedResultsDir.resolve(dir.getFileName())

@@ -165,20 +165,13 @@ public class ProjectAnalysisContext implements LoggingContext {
     }
 
     public Optional<Process> lookupProcess(Process.ProcessIdentifier identifier) {
-        // First, look in project's own processes
-        Optional<Process> localProcess = findProcessInProject(identifier);
-
-        if (localProcess.isPresent()) {
-            return localProcess;
+        PathResolver.Resolution<Process> local =
+                PathResolver.resolve(currentProcesses, Process::lookupPaths, identifier.name());
+        if (local.match().isPresent() || !local.ambiguousCandidates().isEmpty()) {
+            return local.match();
         }
 
-        // If not found locally, look in ConversionContext
-
         return cx.conversionContext().lookupProcess(identifier);
-    }
-
-    private Optional<Process> findProcessInProject(Process.ProcessIdentifier identifier) {
-        return PathResolver.resolve(currentProcesses, Process::lookupPaths, identifier.name()).match();
     }
 
     /**
