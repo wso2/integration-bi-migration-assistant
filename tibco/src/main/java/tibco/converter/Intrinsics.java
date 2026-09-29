@@ -368,12 +368,12 @@ public enum Intrinsics {
                     function psgSetAndLog(string level, string targetSystem, xml message, string sessionId,
                             string correlationId, string trackingId, string sender, string serviceScope) {
                         log:KeyValues keyValues = {
-                            targetSystem: targetSystem,
-                            sessionId: sessionId,
-                            correlationId: correlationId,
-                            trackingId: trackingId,
-                            sender: sender,
-                            serviceScope: serviceScope
+                            "targetSystem": targetSystem,
+                            "sessionId": sessionId,
+                            "correlationId": correlationId,
+                            "trackingId": trackingId,
+                            "sender": sender,
+                            "serviceScope": serviceScope
                         };
                         match level {
                             "Warning" => {
