@@ -3,7 +3,7 @@ import ballerina/data.xmldata;
 import ballerina/http;
 import ballerina/xslt;
 
-function activityExtension(Context cx) returns error? {
+function RenderOutput(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://xmlns.example.com/test/api" version="2.0">
@@ -24,7 +24,7 @@ function activityExtension(Context cx) returns error? {
     addToContext(cx, "RenderOutput", var6);
 }
 
-function activityExtension_1(Context cx) returns error? {
+function SendHTTPResponse(Context cx) returns error? {
     xml var0 = getFromContext(cx, "RenderOutput");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/sendhttpresponse/xsd/input+3847aa9b-8275-4b15-9ea8-812816768fa4+ResponseActivityInput" version="2.0">
@@ -67,8 +67,8 @@ function pick(Context cx) returns error? {
 }
 
 function scope1ActivityRunner(Context cx) returns error? {
-    check activityExtension(cx);
-    check activityExtension_1(cx);
+    check RenderOutput(cx);
+    check SendHTTPResponse(cx);
 }
 
 function scope1FaultHandler(error err, Context cx) returns () {

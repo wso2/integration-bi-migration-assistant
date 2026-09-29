@@ -1,9 +1,12 @@
 import ballerina/data.xmldata;
 
+function Check(Context cx) returns error? {
+}
+
 function HandlerScopeActivityRunner(Context cx) returns error? {
-    check empty(cx);
+    check Check(cx);
     if test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
-        check empty_1(cx);
+        check Recover(cx);
     }
 }
 
@@ -19,7 +22,7 @@ function HandlerScopeScopeFn(Context cx) returns () {
 }
 
 function MainScopeActivityRunner(Context cx) returns error? {
-    check throw(cx);
+    check RaiseFault(cx);
 }
 
 function MainScopeFaultHandler(error err, Context cx) returns () {
@@ -34,14 +37,17 @@ function MainScopeScopeFn(Context cx) returns () {
     }
 }
 
+function RaiseFault(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    error var1 = error("tns:TestFault", faultName = "tns:TestFault", payload = var0);
+    panic var1;
+}
+
+function Recover(Context cx) returns error? {
+}
+
 function catchAll(Context cx) returns error? {
     HandlerScopeScopeFn(cx);
-}
-
-function empty(Context cx) returns error? {
-}
-
-function empty_1(Context cx) returns error? {
 }
 
 function start_test_conditional_MainProcess(Context params) returns () {
@@ -50,12 +56,6 @@ function start_test_conditional_MainProcess(Context params) returns () {
 
 function test_conditional_MainProcess_predicate_0(xml input, Context cx) returns boolean {
     return checkpanic xmldata:transform(input, `${getFromContext(cx, "retry")} = 'true'`, boolean);
-}
-
-function throw(Context cx) returns error? {
-    xml var0 = xml `<root></root>`;
-    error var1 = error("tns:TestFault", faultName = "tns:TestFault", payload = var0);
-    panic var1;
 }
 
 function getFromContext(Context context, string varName) returns xml {
