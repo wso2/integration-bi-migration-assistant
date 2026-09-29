@@ -513,7 +513,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     private static BallerinaModel.Function generateExplicitTransitionBlockActivityFunction(
             ProcessContext cx, ExplicitTransitionGroup group) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
-        List<Activity> activities = analysisResult.sortedActivities(group).toList();
+        List<Activity> activities = sortedActivitiesOrEmpty(cx, analysisResult, group);
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(group).activityRunner();
         TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx);
         List<Parameter> parameters = activityFnType.parameters();
@@ -523,6 +523,18 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 activityFnType.returnType(), Check::new, parameters);
     }
 
+
+    private static List<Activity> sortedActivitiesOrEmpty(ProcessContext cx, AnalysisResult analysisResult,
+            ExplicitTransitionGroup group) {
+        try {
+            return analysisResult.sortedActivities(group).toList();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            cx.log(LoggingUtils.Level.SEVERE, "Unable to order activities for process \""
+                    + cx.getProcessStartFunction().name() + "\": " + e.getMessage()
+                    + ". Generating an empty activity runner for this process.");
+            return List.of();
+        }
+    }
 
     private static BallerinaModel.Function generateExplicitTransitionBlockScopeFunction(
             ProcessContext cx, ExplicitTransitionGroup group) {

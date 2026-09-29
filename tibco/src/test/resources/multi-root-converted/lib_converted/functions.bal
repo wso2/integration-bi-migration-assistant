@@ -21,6 +21,7 @@ function Log(Context cx) returns error? {
 }
 
 function scope0ActivityRunner(Context cx) returns error? {
+    check Log(cx);
 }
 
 function scope0FaultHandler(error err, Context cx) returns () {

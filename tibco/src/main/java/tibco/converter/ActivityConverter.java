@@ -59,6 +59,7 @@ import tibco.model.Scope.Flow.Activity.Throw;
 import tibco.model.Scope.Flow.Activity.UnhandledActivity;
 import tibco.model.ValueSource;
 import tibco.model.XSD;
+import tibco.model.XmlInputStyle;
 import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
@@ -81,6 +82,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.DECIMAL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
@@ -93,7 +95,6 @@ import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
 import static common.LoggingUtils.Level.SEVERE;
 import static common.LoggingUtils.Level.WARN;
-import static tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode.FILES_AND_DIRECTORIES;
 import static tibco.converter.BallerinaSQLConstants.PARAMETERIZED_QUERY_TYPE;
 
 final class ActivityConverter {
@@ -167,6 +168,7 @@ final class ActivityConverter {
             case Throw throwActivity -> convertThrowActivity(cx, throwActivity);
             case Activity.Assign assign -> convertAssign(cx, assign);
             case Activity.Foreach foreach -> convertForeach(cx, foreach);
+            case Activity.RepeatUntil repeatUntil -> convertRepeatUntil(cx, repeatUntil);
             case Activity.NestedScope nestedScope -> convertNestedScope(cx, nestedScope);
             case InlineActivity inlineActivity -> convertInlineActivity(cx, inlineActivity);
         };
@@ -326,8 +328,9 @@ final class ActivityConverter {
         VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
                 cx.getAnnonVarName(),
                 new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                        new BallerinaModel.Expression.BooleanConstant(listFilesActivity.mode().includesFiles()),
                         new BallerinaModel.Expression.BooleanConstant(
-                                listFilesActivity.mode() == FILES_AND_DIRECTORIES)))));
+                                listFilesActivity.mode().includesDirectories())))));
         body.add(files);
         VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
         body.add(resultBody);
@@ -1239,7 +1242,7 @@ final class ActivityConverter {
     private static ActivityConversionResult convertCallProcess(
             ActivityContext cx, VariableReference input, InlineActivity.CallProcess callProcess) {
         List<Statement> body = new ArrayList<>();
-        body.add(addToContext(cx, input, "$Start"));
+        body.add(addToContext(cx, input, "Start"));
         Optional<String> processFn = cx.getProcessFunction(callProcess.processName());
         if (processFn.isPresent()) {
             body.add(new CallStatement(new FunctionCall(processFn.get(), List.of(cx.contextVarRef()))));
@@ -1313,20 +1316,24 @@ final class ActivityConverter {
 
     private static ActivityConversionResult convertXmlParseActivity(
             ActivityContext cx, VariableReference result, InlineActivity.XMLParseActivity xmlParseActivity) {
+        return finishXmlParseActivity(cx, result, xmlParseActivity.inputStyle());
+    }
+
+    private static @NotNull ActivityConversionResult createParseXmlOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.ParseXML parseXml) {
+        return finishXmlParseActivity(cx, result, parseXml.inputStyle());
+    }
+
+    private static @NotNull ActivityConversionResult finishXmlParseActivity(
+            ActivityContext cx, VariableReference result, XmlInputStyle inputStyle) {
         List<Statement> body = new ArrayList<>();
 
-        VariableReference stringRepr;
-        if (xmlParseActivity.inputStyle() == InlineActivity.XMLParseActivity.InputStyle.TEXT) {
-            VarDeclStatment xmlString = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("%s/<xmlString>/*".formatted(result.varName())));
-            body.add(xmlString);
-            VarDeclStatment asString = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    new MethodCall(xmlString.ref(), "toString", List.of()));
-            body.add(asString);
-            stringRepr = asString.ref();
+        BallerinaModel.Expression stringRepr;
+        if (inputStyle == XmlInputStyle.TEXT) {
+            stringRepr = new MethodCall(exprFrom("(%s/*)".formatted(result.varName())), "toString", List.of());
         } else {
             VarDeclStatment bytes = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                    exprFrom("%s/<bytes>/*".formatted(result.varName())));
+                    exprFrom("%s/*".formatted(result.varName())));
             body.add(bytes);
             VarDeclStatment byteArr = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(
                     BallerinaModel.TypeDesc.BuiltinType.BYTE), cx.getAnnonVarName());
@@ -1334,16 +1341,11 @@ final class ActivityConverter {
             body.add(new Comment(
                     "WARNING: xml parse from bytes detected properly initialize %s using %s".formatted(byteArr.ref(),
                             bytes.ref())));
-            VarDeclStatment stringValue = new VarDeclStatment(STRING, cx.getAnnonVarName(),
-                    new Check(new FunctionCall("string:fromBytes", List.of(byteArr.ref()))));
-            body.add(stringValue);
-            stringRepr = stringValue.ref();
+            stringRepr = new Check(new FunctionCall("string:fromBytes", List.of(byteArr.ref())));
         }
-        VarDeclStatment xmlValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new Check(new FunctionCall("xml:fromString", List.of(stringRepr))));
-        body.add(xmlValue);
         VarDeclStatment wrappedValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                new XMLTemplate("<root>${%s}</root>".formatted(xmlValue.ref())));
+                new XMLTemplate("<root>${%s}</root>".formatted(
+                        new Check(new FunctionCall("xml:fromString", List.of(stringRepr))))));
         body.add(wrappedValue);
         return new ActivityConversionResult(wrappedValue.ref(), body);
     }
@@ -1465,6 +1467,26 @@ final class ActivityConverter {
                 }
                 """.formatted(foreach.counterName(), init, end, contextUpdate, scopeFn,
                 cx.contextVarRef())));
+        return body;
+    }
+
+    private static @NotNull List<Statement> convertRepeatUntil(ActivityContext cx, Activity.RepeatUntil repeatUntil) {
+        List<Statement> body = new ArrayList<>();
+        String scopeFn = cx.processContext.getAnalysisResult().getControlFlowFunctions(repeatUntil.scope())
+                .scopeFn();
+        VarDeclStatment cond = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
+                ConversionUtils.xPathBoolean(cx.processContext, defaultEmptyXml(), cx.contextVarRef(),
+                        repeatUntil.condition()));
+        // repeatUntil.counterName() is not threaded into the context
+        body.add(stmtFrom("""
+                while true {
+                    %1$s(%2$s);
+                    %3$s
+                    if %4$s {
+                        break;
+                    }
+                }
+                """.formatted(scopeFn, cx.contextVarRef(), cond, cond.ref())));
         return body;
     }
 
@@ -1597,10 +1619,16 @@ final class ActivityConverter {
                     createSendHttpResponse(cx, result, sendHTTPResponse);
             case ActivityExtension.Config.FileWrite fileWrite -> createFileWriteOperation(cx, result, fileWrite);
             case ActivityExtension.Config.FileRename fileRename -> createFileRenameOperation(cx, result, fileRename);
+            case ActivityExtension.Config.ListFiles listFiles -> createListFilesOperation(cx, result, listFiles);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
+            case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
+            case ActivityExtension.Config.PsgSetAndLog setAndLog ->
+                    createPsgSetAndLogOperation(cx, result, setAndLog);
             case ActivityExtension.Config.RenderXML ignored -> finishXmlRenderActivity(cx, result);
+            case ActivityExtension.Config.ParseXML parseXml -> createParseXmlOperation(cx, result, parseXml);
             case ActivityExtension.Config.Mapper ignored -> emptyExtensionConversion(cx, result);
+            case ActivityExtension.Config.BwAssign ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.AccumulateEnd accumulateEnd -> createAccumulateEnd(cx,
                     accumulateEnd,
                     activityExtension.outVariableName().orElseThrow(
@@ -1611,6 +1639,27 @@ final class ActivityConverter {
         activityExtension.outputVariable()
                 .ifPresent(outputVar -> body.add(addToContext(cx, conversion.result(), outputVar)));
         return body;
+    }
+
+    private static @NotNull ActivityConversionResult createExceptionLogOperation(ActivityContext cx,
+                                                                                   VariableReference input) {
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment errorCode = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorCode>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment errorMessage = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:errorMessage>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment processStack = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:processStack>/*).toString().trim()".formatted(input.varName())));
+        VarDeclStatment stackTrace = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<psglog:stackTrace>/*).toString().trim()".formatted(input.varName())));
+        body.add(errorCode);
+        body.add(errorMessage);
+        body.add(processStack);
+        body.add(stackTrace);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgExceptionLogFn(),
+                List.of(errorCode.ref(), errorMessage.ref(), processStack.ref(), stackTrace.ref()))));
+        return new ActivityConversionResult(errorMessage.ref(), body);
     }
 
     private static ActivityConversionResult createSendHttpResponse(
@@ -1732,26 +1781,56 @@ final class ActivityConverter {
 
     private static final Set<String> KNOWN_PSG_LOG_LEVELS = Set.of("Info", "Warning", "Error", "Debug");
 
+    private static String normalizePsgLogLevel(ActivityContext cx, String activityLabel, String level) {
+        for (String knownLevel : KNOWN_PSG_LOG_LEVELS) {
+            if (knownLevel.equalsIgnoreCase(level)) {
+                return knownLevel;
+            }
+        }
+        cx.log(WARN, "%s: unrecognized Level '%s', defaulting to Info severity".formatted(activityLabel, level));
+        return "Info";
+    }
+
     private static ActivityConversionResult createPsgLogOperation(ActivityContext cx,
                                                                     VariableReference input,
                                                                     ActivityExtension.Config.PsgLog psgLog) {
-        if (!KNOWN_PSG_LOG_LEVELS.contains(psgLog.level())) {
-            cx.log(WARN, "bw.psglog.Log: unrecognized Level '%s', defaulting to Info severity"
-                    .formatted(psgLog.level()));
-        }
+        String level = normalizePsgLogLevel(cx, "bw.psglog.Log", psgLog.level());
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
         VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 exprFrom("%s/**/<psglog:message>/*".formatted(input.varName())));
         body.add(message);
         body.add(new CallStatement(new FunctionCall(cx.getPsgLogFn(),
-                List.of(new StringConstant(psgLog.level()),
+                List.of(new StringConstant(level),
                         exprFrom("(%s/**/<psglog:targetSystem>/*).toString().trim()".formatted(input.varName())),
                         message.ref(),
                         exprFrom("%s/**/<psglog:additionalLogParams>/**/<psglog:keyValuePair>"
                                 .formatted(input.varName()))))));
         return new ActivityConversionResult(message.ref(), body);
     }
+
+    private static ActivityConversionResult createPsgSetAndLogOperation(ActivityContext cx,
+                                                                          VariableReference input,
+                                                                          ActivityExtension.Config.PsgSetAndLog
+                                                                                  setAndLog) {
+        String level = normalizePsgLogLevel(cx, "bw.psglog.SetAndLog", setAndLog.level());
+        List<Statement> body = new ArrayList<>();
+        body.add(stmtFrom("xmlns \"http://www.tibco.com/PSGLogActivities\" as psglog;"));
+        VarDeclStatment message = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                exprFrom("%s/**/<psglog:message>/*".formatted(input.varName())));
+        body.add(message);
+        body.add(new CallStatement(new FunctionCall(cx.getPsgSetAndLogFn(),
+                List.of(new StringConstant(level),
+                        exprFrom("(%s/**/<psglog:targetSystem>/*).toString().trim()".formatted(input.varName())),
+                        message.ref(),
+                        exprFrom("(%s/**/<psglog:sessionId>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:correlationId>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:trackingId>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:sender>/*).toString().trim()".formatted(input.varName())),
+                        exprFrom("(%s/**/<psglog:serviceScope>/*).toString().trim()".formatted(input.varName()))))));
+        return new ActivityConversionResult(message.ref(), body);
+    }
+
 
     private static ActivityConversionResult createFileWriteOperation(
             ActivityContext cx, VariableReference result, ActivityExtension.Config.FileWrite fileWrite) {
@@ -1779,6 +1858,43 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new FunctionCall(FileConstants.FILE_RENAME_FUNCTION,
                 List.of(fromFileName.ref(), toFileName.ref())))));
         return new ActivityConversionResult(result, body);
+    }
+
+    private static ActivityConversionResult createListFilesOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.ListFiles listFiles) {
+        List<Statement> body = new ArrayList<>();
+        cx.log(WARN, "ListFiles: only fileName and fullName are supported in output.");
+        body.add(new Comment("WARNING: Only fileName and fullName are supported in ListFiles output."));
+        VarDeclStatment fileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<fileName>/*).toString().trim()".formatted(result.varName())));
+        body.add(fileName);
+        String filesInPath = cx.getFilesInPathFunction();
+        BallerinaModel.TypeDesc.TypeReference fileDataTy = ConversionUtils.Constants.FILE_DATA;
+        VarDeclStatment files = new VarDeclStatment(new BallerinaModel.TypeDesc.ArrayTypeDesc(fileDataTy),
+                cx.getAnnonVarName(),
+                new Check(new FunctionCall(filesInPath, List.of(fileName.ref(),
+                        new BallerinaModel.Expression.BooleanConstant(listFiles.mode().includesFiles()),
+                        new BallerinaModel.Expression.BooleanConstant(listFiles.mode().includesDirectories())))));
+        body.add(files);
+        VarDeclStatment resultBody = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
+        body.add(resultBody);
+        body.add(stmtFrom("""
+                foreach %s file in %s {
+                    %s += xml `<fileInfo>
+                                    <fileName>${file.fileName}</fileName>
+                                    <fullName>${file.fullName}</fullName>
+                               </fileInfo>`;
+                }
+                """.formatted(fileDataTy, files.ref(), resultBody.ref())));
+        VarDeclStatment listFilesResult = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("""
+                        <root>
+                            <ListFilesActivityOutput xmlns="http://www.tibco.com/namespaces/tnt/plugins/file">
+                                <files>${%s}</files>
+                            </ListFilesActivityOutput>
+                        </root>""".formatted(resultBody.ref())));
+        body.add(listFilesResult);
+        return new ActivityConversionResult(listFilesResult.ref(), body);
     }
 
     private static ActivityConversionResult createSQLOperation(
@@ -2084,7 +2200,7 @@ final class ActivityConverter {
     private static @NotNull ActivityConversionResult callProcessDirectlyUsingStartFunction(
             ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference input) {
         List<Statement> body = new ArrayList<>();
-        body.add(addToContext(cx, input, "$Start"));
+        body.add(addToContext(cx, input, "Start"));
         body.add(new CallStatement(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef()))));
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
@@ -2099,13 +2215,24 @@ final class ActivityConverter {
         for (InputBinding transform : inputBindings) {
             switch (transform) {
                 case InputBinding.CompleteBinding completeBinding -> {
-                    XsltTransformResult transformResult = xsltTransform(cx, last, completeBinding.xslt());
-                    addNonStandardXsltWarning(transformResult.nonStandardFunctions(), statements);
-                    statements.addAll(transformResult.statements());
-                    VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
-                            transformResult.expression());
-                    statements.add(varDecl);
-                    last = varDecl.ref();
+                    switch (completeBinding.expression()) {
+                        case Activity.Expression.XSLT xslt -> {
+                            XsltTransformResult transformResult = xsltTransform(cx, last, xslt);
+                            addNonStandardXsltWarning(transformResult.nonStandardFunctions(), statements);
+                            statements.addAll(transformResult.statements());
+                            VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                                    transformResult.expression());
+                            statements.add(varDecl);
+                            last = varDecl.ref();
+                        }
+                        case Activity.Expression.XPath xPath -> {
+                            VarDeclStatment varDecl = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                                    ConversionUtils.xPath(cx.processContext, last,
+                                            cx.contextVarRef(), xPath));
+                            statements.add(varDecl);
+                            last = varDecl.ref();
+                        }
+                    }
                 }
                 case InputBinding.PartialBindings partialBindings -> {
                     InputBindingResult partialResult = convertPartialInputBinding(cx, partialBindings, last);

@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.Collection;
@@ -58,7 +59,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                 Activity.ActivityWithName, Activity.ActivityWithOutput, Activity.ActivityWithScope,
                 Activity.ActivityWithSources, Activity.ActivityWithTargets, Activity.Assign, Activity.Empty,
                 Activity.ExtActivity, Activity.Foreach, Activity.Invoke, Activity.NestedScope, Activity.Pick,
-                Activity.ReceiveEvent, Activity.Reply, Activity.StartActivity, Activity.Throw,
+                Activity.ReceiveEvent, Activity.RepeatUntil, Activity.Reply, Activity.StartActivity, Activity.Throw,
                 Activity.UnhandledActivity {
 
             Element element();
@@ -186,6 +187,12 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
+            record RepeatUntil(String counterName, Expression.XPath condition, Scope scope,
+                               Element element, String fileName) implements Flow.Activity,
+                    Flow.Activity.ActivityWithScope {
+
+            }
+
             record Reply(String name, Method operation, String partnerLink, String portType,
                          List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
                          Element element, String fileName)
@@ -203,8 +210,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Empty(String name, Element element, String fileName) 
-                    implements Flow.Activity, Flow.Activity.ActivityWithName {
+            record Empty(String name, List<Flow.Activity.Source> sources,
+                         Collection<Flow.Activity.Target> targets, Element element, String fileName)
+                    implements Flow.Activity, Flow.Activity.ActivityWithName, Flow.Activity.ActivityWithSources,
+                    Flow.Activity.ActivityWithTargets {
 
                 @Override
                 public Optional<String> getName() {
@@ -348,6 +357,15 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ListFiles(Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode mode)
+                            implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.LIST_FILES;
+                        }
+                    }
+
                     record Log() implements ActivityExtension.Config {
 
                         @Override
@@ -368,6 +386,26 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ExceptionLog() implements ActivityExtension.Config {
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.PSG_EXCEPTION_LOG;
+                        }
+                    }
+
+                    record PsgSetAndLog(String level) implements ActivityExtension.Config {
+
+                        public PsgSetAndLog {
+                            assert level != null;
+                        }
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.PSG_SET_AND_LOG;
+                        }
+                    }
+
                     record RenderXML() implements ActivityExtension.Config {
 
                         @Override
@@ -376,11 +414,31 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record ParseXML(XmlInputStyle inputStyle) implements ActivityExtension.Config {
+
+                        public ParseXML {
+                            assert inputStyle != null;
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.PARSE_XML;
+                        }
+                    }
+
                     record Mapper() implements ActivityExtension.Config {
 
                         @Override
                         public ExtensionKind kind() {
                             return ExtensionKind.MAPPER;
+                        }
+                    }
+
+                    record BwAssign() implements ActivityExtension.Config {
+
+                        @Override
+                        public ExtensionKind kind() {
+                            return ExtensionKind.BW_ASSIGN;
                         }
                     }
 
@@ -427,14 +485,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                     case "SMALLINT", "INT2" -> SMALLINT;
                                     case "DECIMAL", "DEC" -> DECIMAL;
                                     case "NUMERIC", "NUMBER" -> NUMERIC;
-                                    case "REAL", "FLOAT4" -> REAL;
+                                    case "REAL", "FLOAT4", "FLOAT" -> REAL;
                                     case "DOUBLE", "FLOAT8" -> DOUBLE;
                                     case "VARCHAR", "VARCHAR2", "NVARCHAR" -> VARCHAR;
                                     case "CHAR", "CHARACTER" -> CHAR;
                                     case "TEXT" -> TEXT;
                                     case "DATE" -> DATE;
                                     case "TIME" -> TIME;
-                                    case "TIMESTAMP", "DATETIME" -> TIMESTAMP;
+                                    case "TIMESTAMP", "DATETIME", "DATETIME2" -> TIMESTAMP;
                                     case "BOOLEAN", "BOOL" -> BOOLEAN;
                                     case "BLOB", "BINARY LARGE OBJECT" -> BLOB;
                                     case "CLOB", "CHARACTER LARGE OBJECT" -> CLOB;
@@ -460,11 +518,16 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         HTTP_SEND,
                         JSON_PARSER,
                         JSON_RENDER,
+                        LIST_FILES,
                         LOG,
+                        PSG_EXCEPTION_LOG,
                         PSG_LOG,
+                        PSG_SET_AND_LOG,
                         RENDER_XML,
+                        PARSE_XML,
                         SEND_HTTP_RESPONSE,
                         MAPPER,
+                        BW_ASSIGN,
                         SQL;
 
                         public static ActivityExtension.Config.ExtensionKind fromTypeId(String typeId) {
@@ -476,10 +539,15 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.file.rename" -> FILE_RENAME;
+                                case "bw.file.list" -> LIST_FILES;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
+                                case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
+                                case "bw.psglog.SetAndLog" -> PSG_SET_AND_LOG;
                                 case "bw.xml.renderxml" -> RENDER_XML;
+                                case "bw.xml.parsexml" -> PARSE_XML;
                                 case "bw.generalactivities.mapper" -> MAPPER;
+                                case "bw.generalactivities.bwassign" -> BW_ASSIGN;
                                 case "bw.internal.accumulateend" -> ACCUMULATE_END;
                                 default -> patternMatch(typeId);
                             };
@@ -532,12 +600,6 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
                 record CompleteBinding(Flow.Activity.Expression expression) implements Flow.Activity.InputBinding {
 
-                    public Flow.Activity.Expression.XSLT xslt() {
-                        if (expression instanceof Flow.Activity.Expression.XSLT xslt) {
-                            return xslt;
-                        }
-                        throw new IllegalStateException("Not an XSLT expression: " + expression);
-                    }
                 }
 
                 record PartialBindings(List<Flow.Activity.Expression> expressions) implements

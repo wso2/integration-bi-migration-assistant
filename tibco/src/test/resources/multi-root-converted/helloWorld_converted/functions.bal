@@ -22,7 +22,7 @@ function Call_shared_process(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
-    addToContext(cx, "$Start", var2);
+    addToContext(cx, "Start", var2);
     lib:start_lib_Process_shared_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "Call-shared-process", var3);

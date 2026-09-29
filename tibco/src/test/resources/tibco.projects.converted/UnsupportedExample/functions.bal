@@ -60,7 +60,7 @@ function InvokeProcess(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
-    addToContext(cx, "$Start", var2);
+    addToContext(cx, "Start", var2);
     start_Processes_Other_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "InvokeProcess", var3);
@@ -132,11 +132,8 @@ function Parse(Context cx) returns error? {
     </xsl:template>
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
-    xml var3 = var2/<xmlString>/*;
-    string var4 = var3.toString();
-    xml var5 = check xml:fromString(var4);
-    xml var6 = xml `<root>${var5}</root>`;
-    addToContext(cx, "Parse", var6);
+    xml var3 = xml `<root>${check xml:fromString((var2/*).toString())}</root>`;
+    addToContext(cx, "Parse", var3);
 }
 
 function Read_file(Context cx) returns error? {
@@ -667,49 +664,49 @@ function xmlToJson(xml value) returns json {
 }
 
 function toJsonInner(xml value) returns json {
-json result;
-if (value is xml:Element) {
-result = toJsonElement(value);
-} else {
-result = value.toJson();
-}
-return result;
+    json result;
+    if (value is xml:Element) {
+        result = toJsonElement(value);
+    } else {
+        result = value.toJson();
+    }
+    return result;
 }
 
 function toJsonElement(xml:Element element) returns json {
-XMLElementParseResult parseResult = parseElement(element);
-string name = parseResult.name;
+    XMLElementParseResult parseResult = parseElement(element);
+    string name = parseResult.name;
 
-xml children = element/*;
-map<json> body = {};
-map<json> result = {};
-foreach xml child in children {
-json r = toJsonInner(child);
-if child !is xml:Element {
-result[name] = r;
-return result;
-}
-string childName = parseElement(child).name;
-if r !is map<json> {
-panic error("unexpected");
-} else {
-r = r.get(childName);
-}
-if body.hasKey(childName) {
-json current = body.get(childName);
-if current !is json[] {
-json[] n = [body.get(childName)];
-n.push(r);
-body[childName] = n;
-} else {
-current.push(r);
-}
-} else {
-body[childName] = r;
-}
-}
-result[name] = body;
-return result;
+    xml children = element/*;
+    map<json> body = {};
+    map<json> result = {};
+    foreach xml child in children {
+        json r = toJsonInner(child);
+        if child !is xml:Element {
+            result[name] = r;
+            return result;
+        }
+        string childName = parseElement(child).name;
+        if r !is map<json> {
+            panic error("unexpected");
+        } else {
+            r = r.get(childName);
+        }
+        if body.hasKey(childName) {
+            json current = body.get(childName);
+            if current !is json[] {
+                json[] n = [body.get(childName)];
+                n.push(r);
+                body[childName] = n;
+            } else {
+                current.push(r);
+            }
+        } else {
+            body[childName] = r;
+        }
+    }
+    result[name] = body;
+    return result;
 }
 
 function parseElement(xml:Element element) returns XMLElementParseResult {

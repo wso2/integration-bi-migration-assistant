@@ -31,6 +31,7 @@ import tibco.analyzer.AnalysisResult;
 import tibco.converter.ConversionUtils.LineCount;
 import tibco.model.NameSpace;
 import tibco.model.Process;
+import tibco.model.Resource;
 import tibco.model.Variable;
 import tibco.model.XSD;
 
@@ -48,16 +49,16 @@ public class ConversionUtilsTest {
     public void testLineCountPureBallerina() {
         String source = """
                 import ballerina/http;
-                
+
                 public listener http:Listener GeneralConnection = new (9090);
-                
+
                 service on GeneralConnection {
                     resource function 'default test() returns string {
                         return "hello";
                     }
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 7);
         Assert.assertEquals(result.xml(), 0);
@@ -67,13 +68,13 @@ public class ConversionUtilsTest {
     public void testLineCountSingleLineXml() {
         String source = """
                 import ballerina/http;
-                
+
                 function test() {
                     xml data = xml `<root>hello</root>`;
                     return data;
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 4);
         Assert.assertEquals(result.xml(), 1);
@@ -83,7 +84,7 @@ public class ConversionUtilsTest {
     public void testLineCountMultiLineXml() {
         String source = """
                 import ballerina/http;
-                
+
                 function test() {
                     xml data = xml `<root>
                         <item>hello</item>
@@ -92,7 +93,7 @@ public class ConversionUtilsTest {
                     return data;
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 4);
         Assert.assertEquals(result.xml(), 4);
@@ -102,7 +103,7 @@ public class ConversionUtilsTest {
     public void testLineCountMultipleXmlBlocks() {
         String source = """
                 import ballerina/http;
-                
+
                 function test() {
                     xml data1 = xml `<first>hello</first>`;
                     xml data2 = xml `<second>
@@ -111,7 +112,7 @@ public class ConversionUtilsTest {
                     return data1;
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 4);
         Assert.assertEquals(result.xml(), 4);
@@ -132,7 +133,7 @@ public class ConversionUtilsTest {
                     return var1;
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 3);
         Assert.assertEquals(result.xml(), 8);
@@ -142,7 +143,7 @@ public class ConversionUtilsTest {
     public void testLineCountComplexMixedContent() {
         String source = """
                 import ballerina/http;
-                
+
                 service on GeneralConnection {
                     resource function 'default test(xml input) returns xml {
                         xml inputVal = xml `<root>
@@ -156,7 +157,7 @@ public class ConversionUtilsTest {
                     }
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 8);
         Assert.assertEquals(result.xml(), 5);
@@ -166,21 +167,21 @@ public class ConversionUtilsTest {
     public void testLineCountEmptyLines() {
         String source = """
                 import ballerina/http;
-                
-                
+
+
                 function test() {
-                
+
                     xml data = xml `<root>
-                    
+
                         <item>hello</item>
-                        
+
                     </root>`;
-                    
+
                     return data;
-                    
+
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 4);
         Assert.assertEquals(result.xml(), 3);
@@ -197,7 +198,7 @@ public class ConversionUtilsTest {
                     return data;
                 }
                 """;
-        
+
         LineCount result = ConversionUtils.lineCount(source);
         Assert.assertEquals(result.ballerina(), 3);
         Assert.assertEquals(result.xml(), 4);
@@ -231,7 +232,8 @@ public class ConversionUtilsTest {
     @Test
     public void testEscapeString() {
         Assert.assertEquals(ConversionUtils.escapeString("pass\"word"), "pass\\\"word");
-        // The backslash has to be escaped before the quote, otherwise the backslash added for the quote is
+        // The backslash has to be escaped before the quote, otherwise the backslash
+        // added for the quote is
         // escaped again and the literal no longer round trips.
         Assert.assertEquals(ConversionUtils.escapeString("DOMAIN\\admin"), "DOMAIN\\\\admin");
         Assert.assertEquals(ConversionUtils.escapeString("a\\\"b"), "a\\\\\\\"b");
@@ -275,11 +277,10 @@ public class ConversionUtilsTest {
     }
 
     private static ProjectContext newProjectContext(String projectName) {
-        ProjectConversionContext conversionContext =
-                TestUtils.createTestProjectConversionContext("test", projectName);
+        ProjectConversionContext conversionContext = TestUtils.createTestProjectConversionContext("test", projectName);
         return new ProjectContext(conversionContext, Map.<Process, AnalysisResult>of());
     }
-    
+
     @Test(groups = { "tibco", "converter" })
     public void testSlashSeparatedResourcePathIsSanitizedAsConfigurableVariable() {
         ProjectContext projectContext = newProjectContext();
@@ -352,6 +353,31 @@ public class ConversionUtilsTest {
                 .map(RecordTypeDesc.RecordField::name)
                 .toList();
         Assert.assertEquals(fieldNames, List.of("applicationId", "'function"));
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testInitContextIsGeneratedOnceForEveryEntryPoint() {
+        ProjectContext projectContext = newProjectContext("InitContextSingleDefinition");
+        projectContext.addSharedVariable(new Resource.SharedVariable("sharedVar",
+                "/Resources/sharedVar.sharedvariable", false, "<root/>", true));
+
+        projectContext.getInitContextFn();
+        projectContext.getInitContextFn();
+
+        BallerinaModel.TextDocument utils = utilsFile(projectContext);
+        Assert.assertEquals(utils.intrinsics().stream()
+                        .filter(each -> each.stripLeading().startsWith("function initContext(")).count(), 1,
+                "initContext must be emitted once however many entry points request it");
+        Assert.assertEquals(utils.moduleVars().stream()
+                        .filter(moduleVar -> moduleVar.name().startsWith("sharedVar")).count(), 1,
+                "a project shared variable must be declared once, not re-registered per entry point");
+    }
+
+    @NotNull
+    private static BallerinaModel.TextDocument utilsFile(ProjectContext projectContext) {
+        return projectContext.serialize(List.of()).textDocuments().stream()
+                .filter(each -> each.documentName().equals("utils.bal"))
+                .findFirst().orElseThrow();
     }
 
     @NotNull

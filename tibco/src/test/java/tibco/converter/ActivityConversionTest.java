@@ -229,6 +229,7 @@ public class ActivityConversionTest {
                 case Scope.Flow.Activity.NestedScope ignored -> "nestedScope";
                 case Scope.Flow.Activity.Assign ignored -> "assign";
                 case Scope.Flow.Activity.Foreach ignored -> "forEach";
+                case Scope.Flow.Activity.RepeatUntil ignored -> "repeatUntil";
                 case Scope.Flow.Activity.UnhandledActivity ignored -> "unhandled";
                 case Process5.ExplicitTransitionGroup.InlineActivity.UnhandledInlineActivity
                              unhandledInlineActivity -> unhandledInlineActivity.name();

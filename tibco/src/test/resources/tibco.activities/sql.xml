@@ -39,6 +39,14 @@
                                     columnName="lastname"
                                     dataType="12"
                                     status="OptionalElement" typeName="text"/>
+                            <columnMetadata
+                                    columnName="balance"
+                                    dataType="12"
+                                    status="OptionalElement" typeName="float"/>
+                            <columnMetadata
+                                    columnName="updated_at"
+                                    dataType="93"
+                                    status="OptionalElement" typeName="datetime2"/>
                         </value>
                     </properties>
                 </activityConfig>

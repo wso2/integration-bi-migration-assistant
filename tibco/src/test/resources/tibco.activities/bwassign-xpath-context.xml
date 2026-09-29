@@ -1,0 +1,33 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="InputVariable"
+                             name="AssignCurrentValue" outputVariable="OutputVariable"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="Target"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="Source"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="."
+                    expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity
+                    activityTypeID="bw.generalactivities.bwassign"
+                    xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                    xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                    xmlns:generalactivities="http://ns.tibco.com/bw/palette/generalactivities"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/generalactivities#//BWAssign"/>
+                        <value
+                                processVariable="OutputVariable" xsi:type="generalactivities:BWAssign"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

@@ -30,26 +30,45 @@ public enum Intrinsics {
                         return absPath.substring(index + 1, absPath.length());
                     }
 
-                    function filesInPath(string path, boolean allowDir) returns FileData[]|error {
+                    function wildcardToRegex(string pattern) returns string {
+                        string regexPattern = "";
+                        foreach string:Char c in pattern {
+                            if c == "*" {
+                                regexPattern += ".*";
+                            } else if "\\\\^$.|?+()[]{}".includes(c) {
+                                regexPattern += "\\\\" + c;
+                            } else {
+                                regexPattern += c;
+                            }
+                        }
+                        return regexPattern;
+                    }
+
+                    function filesInPath(string path, boolean includeFiles, boolean includeDirs)
+                            returns FileData[]|error {
                         string basePath = path;
                         string? pattern = ();
                         if path.includes("*") {
                             int? index = path.lastIndexOf("/");
                             if index == () {
                                 basePath = ".";
-                                pattern = path;
+                                pattern = wildcardToRegex(path);
                             } else {
                                 basePath = path.substring(0, index);
-                                pattern = path.substring(index + 1, path.length());
+                                pattern = wildcardToRegex(path.substring(index + 1, path.length()));
                             }
-                        }
-                        if pattern != () {
-                            pattern = regex:replaceAll(pattern, "\\\\*", ".*");
+                        } else {
+                            file:MetaData metaData = check file:getMetaData(path);
+                            if !metaData.dir {
+                                return includeFiles
+                                    ? [{fileName: getFileName(metaData.absPath), fullName: metaData.absPath}]
+                                    : [];
+                            }
                         }
                         file:MetaData[] entries = check file:readDir(basePath);
                         FileData[] result = [];
                         foreach file:MetaData entry in entries {
-                            if entry.dir && !allowDir {
+                            if entry.dir ? !includeDirs : !includeFiles {
                                 continue;
                             }
                             string fileName = getFileName(entry.absPath);
@@ -337,6 +356,56 @@ public enum Intrinsics {
                                 log:printInfo(message.toString(), keyValues = keyValues);
                             }
                         }
+                    }
+                    """
+    ),
+    PSG_SET_AND_LOG(
+            "psgSetAndLog",
+            """
+                    // TIBCO's `bw.psglog.SetAndLog` is a custom (non-stock) logging activity, so this mapping
+                    // (Level -> Ballerina log severity) is inferred from observed usage in the source project,
+                    // not a spec. Review and adjust as needed.
+                    function psgSetAndLog(string level, string targetSystem, xml message, string sessionId,
+                            string correlationId, string trackingId, string sender, string serviceScope) {
+                        log:KeyValues keyValues = {
+                            targetSystem: targetSystem,
+                            sessionId: sessionId,
+                            correlationId: correlationId,
+                            trackingId: trackingId,
+                            sender: sender,
+                            serviceScope: serviceScope
+                        };
+                        match level {
+                            "Warning" => {
+                                log:printWarn(message.toString(), keyValues = keyValues);
+                            }
+                            "Error" => {
+                                log:printError(message.toString(), keyValues = keyValues);
+                            }
+                            "Debug" => {
+                                log:printDebug(message.toString(), keyValues = keyValues);
+                            }
+                            _ => {
+                                log:printInfo(message.toString(), keyValues = keyValues);
+                            }
+                        }
+                    }
+                    """
+    ),
+    PSG_EXCEPTION_LOG(
+            "psgExceptionLog",
+            """
+                    // TIBCO's `bw.psglog.ExceptionLog` reads fault details (errorCode/errorMessage/processStack/
+                    // stackTrace) off the active fault variable. There is no live Ballerina `error` in scope at
+                    // this point, so one is synthesized here purely to carry these fields into `log:printError`.
+                    function psgExceptionLog(string errorCode, string errorMessage, string processStack,
+                            string stackTrace) {
+                        error psgError = error(errorMessage, code = errorCode, processStack = processStack,
+                                stackTrace = stackTrace);
+                        // `stackTrace` is a reserved log:printError parameter name (error:StackFrame[]?), so the
+                        // TIBCO stack-trace text is logged under `tibcoStackTrace` to avoid the collision.
+                        log:printError(errorMessage, 'error = psgError, code = errorCode,
+                                processStack = processStack, tibcoStackTrace = stackTrace);
                     }
                     """
     );
