@@ -209,11 +209,27 @@ final class ResourceConvertor {
         }
         Optional<String> literal = Optional.ofNullable(resource.configuration().get(field));
         if (literal.isPresent()) {
-            return type == INT
-                    ? new Expression.IntConstant(Integer.parseInt(literal.get().trim()))
-                    : new StringConstant(ConversionUtils.escapeString(literal.get()));
+            if (type != INT) {
+                return new StringConstant(ConversionUtils.escapeString(literal.get()));
+            }
+            String trimmed = literal.get().trim();
+            // A non-numeric literal can't be trusted to equal the default, so the user must supply the value.
+            if (!trimmed.isEmpty()) {
+                return parseIntLiteral(trimmed)
+                        .<Expression>map(Expression.IntConstant::new)
+                        .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+            }
         }
         return defaultValue.orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+    }
+
+    @NotNull
+    private static Optional<Integer> parseIntLiteral(String literal) {
+        try {
+            return Optional.of(Integer.parseInt(literal));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     @NotNull

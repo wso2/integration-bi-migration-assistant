@@ -1406,6 +1406,7 @@ public final class XmlToTibcoModelParser {
             case LIST_FILES -> parseListFiles(activity);
             case SFTP_RENAME_FILE -> new Config.SFTPRenameFile(parseSFTPConnection(activity));
             case SFTP_DELETE_FILE -> new Config.SFTPDeleteFile(parseSFTPConnection(activity));
+            case SFTP_DIR -> parseSFTPDir(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
@@ -1438,11 +1439,19 @@ public final class XmlToTibcoModelParser {
         return new Config.ListFiles(InlineActivity.ListFilesActivity.Mode.from(mode));
     }
 
+    private static Config.@NotNull SFTPDir parseSFTPDir(Element activity) {
+        return new Config.SFTPDir(parseSFTPConnection(activity),
+                Boolean.parseBoolean(sftpActivityValue(activity).getAttribute("nlst")));
+    }
+
     private static @NotNull String parseSFTPConnection(Element activity) {
+        return sftpActivityValue(activity).getAttribute("sftpConnection");
+    }
+
+    private static @NotNull Element sftpActivityValue(Element activity) {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
-        Element value = getFirstChildWithTag(properties, "value");
-        return value.getAttribute("sftpConnection");
+        return getFirstChildWithTag(properties, "value");
     }
   
     private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {

@@ -31,6 +31,21 @@ function activityExtension_2(Context cx) returns error? {
     check sftpDeleteFiles(Orders_SftpConnection, var3);
 }
 
+function activityExtension_3(Context cx) returns error? {
+    xml var0 = getFromContext(cx, "ListInbound-input");
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/dir" version="2.0"><xsl:template name="ListInbound-input" match="/"><tns1:Input><Directory><xsl:value-of select="'/inbound/'"/></Directory></tns1:Input></xsl:template></xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string var3 = (var2/**/<Directory>/*).toString();
+    ftp:FileInfo[] var4 = check Orders_SftpConnection->list(var3 == "" ? "." : var3);
+    xml var5 = xml ``;
+    foreach ftp:FileInfo entry in var4 {
+        var5 += xml `<DirectoryItems>${entry.name}</DirectoryItems>`;
+    }
+    xml var6 = xml `<root><ItemCount>${var4.length()}</ItemCount>${var5}</root>`;
+    addToContext(cx, "ListInbound", var6);
+}
+
 function receiveEvent(Context cx) returns error? {
 }
 
@@ -39,6 +54,7 @@ function scopeActivityRunner(Context cx) returns error? {
     check activityExtension(cx);
     check activityExtension_1(cx);
     check activityExtension_2(cx);
+    check activityExtension_3(cx);
 }
 
 function scopeFaultHandler(error err, Context cx) returns () {
@@ -83,6 +99,13 @@ function sftpDeleteFiles(ftp:Client sftpClient, string remotePath) returns error
                 directory + "/" + entry.name);
         }
     }
+}
+
+function addToContext(Context context, string varName, xml value) {
+    xml children = value/*;
+    xml transformed = xml `<root>${children}</root>`;
+    context.variables[varName] = transformed;
+    context.result = value;
 }
 
 function getFromContext(Context context, string varName) returns xml {

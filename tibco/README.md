@@ -21,6 +21,7 @@
     - `bw.file.list`
     - `bw.sftp.renameFile`
     - `bw.sftp.removeFile`
+    - `bw.sftp.dir`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`
