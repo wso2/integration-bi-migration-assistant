@@ -1626,6 +1626,7 @@ final class ActivityConverter {
                     createSFTPDeleteFileOperation(cx, result, sftpDeleteFile);
             case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
             case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
+            case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -1984,6 +1985,31 @@ final class ActivityConverter {
                         localFileName.ref(), new BallerinaModel.Expression.BooleanConstant(sftpGet.overwrite())))));
         body.add(filesTransferred);
         // The root wrapper stands in for the activity's SFTPGetOutputFile element, as for SFTP Dir.
+        VarDeclStatment output = wrapWithRoot(cx, filesTransferred.ref());
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPPutOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPPut sftpPut) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpPut.binary()) {
+            cx.log(WARN, "SFTP Put: ASCII mode line-ending conversion is not supported; files are copied as-is.");
+            body.add(new Comment("WARNING: SFTP Put ASCII mode is not supported; files are copied byte for byte."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpPut.sftpConnection());
+        VarDeclStatment localFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<LocalFileName>/*).toString()".formatted(result.varName())));
+        body.add(localFileName);
+        VarDeclStatment remoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<RemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(remoteFileName);
+        VarDeclStatment filesTransferred = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(cx.getSftpPutFilesFunction(), List.of(client, localFileName.ref(),
+                        remoteFileName.ref(), new BallerinaModel.Expression.BooleanConstant(sftpPut.overwrite()),
+                        new BallerinaModel.Expression.BooleanConstant(sftpPut.append())))));
+        body.add(filesTransferred);
+        // The root wrapper stands in for the activity's SFTPPutOutputFile element, as for SFTP Get.
         VarDeclStatment output = wrapWithRoot(cx, filesTransferred.ref());
         body.add(output);
         return new ActivityConversionResult(output.ref(), body);

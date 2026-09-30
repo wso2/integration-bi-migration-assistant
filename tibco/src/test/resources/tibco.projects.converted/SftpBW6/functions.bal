@@ -60,6 +60,18 @@ function activityExtension_4(Context cx) returns error? {
     addToContext(cx, "FetchOrders", var6);
 }
 
+function activityExtension_5(Context cx) returns error? {
+    xml var0 = getFromContext(cx, "PublishOrders-input");
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/putFile" version="2.0"><xsl:template name="PublishOrders-input" match="/"><tns1:SFTPPutInputDataFile><RemoteFileName><xsl:value-of select="'/outbound/orders.csv'"/></RemoteFileName><LocalFileName><xsl:value-of select="'/work/orders.csv'"/></LocalFileName></tns1:SFTPPutInputDataFile></xsl:template></xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string var3 = (var2/**/<LocalFileName>/*).toString();
+    string var4 = (var2/**/<RemoteFileName>/*).toString();
+    xml var5 = check sftpPutFiles(Orders_SftpConnection, var3, var4, true, false);
+    xml var6 = xml `<root>${var5}</root>`;
+    addToContext(cx, "PublishOrders", var6);
+}
+
 function receiveEvent(Context cx) returns error? {
 }
 
@@ -70,6 +82,7 @@ function scopeActivityRunner(Context cx) returns error? {
     check activityExtension_2(cx);
     check activityExtension_3(cx);
     check activityExtension_4(cx);
+    check activityExtension_5(cx);
 }
 
 function scopeFaultHandler(error err, Context cx) returns () {
@@ -134,16 +147,9 @@ function sftpGetFiles(ftp:Client sftpClient, string remotePath, string localPath
     return transferred;
 }
 
-function sftpRemoteFiles(ftp:Client sftpClient, string remotePath) returns string[]|error {
-    int? separator = remotePath.lastIndexOf("/");
-    string fileName = separator == () ? remotePath : remotePath.substring(separator + 1);
-    if !fileName.includes("*") && !fileName.includes("?") {
-        return [remotePath];
-    }
-    string directory = separator == () ? "." : separator == 0 ? "/" :
-            remotePath.substring(0, separator);
+function sftpGlobToRegex(string glob) returns string {
     string pattern = "";
-    foreach string ch in fileName {
+    foreach string ch in glob {
         if ch == "*" {
             pattern += ".+";
         } else if ch == "?" {
@@ -154,6 +160,77 @@ function sftpRemoteFiles(ftp:Client sftpClient, string remotePath) returns strin
             pattern += ch;
         }
     }
+    return pattern;
+}
+
+function sftpPutFiles(ftp:Client sftpClient, string localPath, string remotePath,
+        boolean overwrite, boolean append) returns xml|error {
+    if localPath == "" {
+        return error("SFTP Put without LocalFileName (Use Process Data) is not supported");
+    }
+    int localSeparator = int:max(localPath.lastIndexOf("/") ?: -1,
+            localPath.lastIndexOf("\\") ?: -1);
+    string localName = localPath.substring(localSeparator + 1);
+    boolean wildcard = localName.includes("*") || localName.includes("?");
+    string[] localFiles = [localPath];
+    string remoteDirectory = remotePath;
+    if wildcard {
+        string localDirectory = localSeparator == -1 ? "." : localPath.substring(0, localSeparator);
+        string pattern = sftpGlobToRegex(localName);
+        localFiles = [];
+        foreach file:MetaData entry in check file:readDir(localDirectory) {
+            if !entry.dir && regex:matches(check file:basename(entry.absPath), pattern) {
+                localFiles.push(entry.absPath);
+            }
+        }
+        if localFiles.length() == 0 {
+            return error("PutFilesException: no local file matches " + localPath);
+        }
+        boolean remoteIsDirectory = remotePath.endsWith("/");
+        if !remoteIsDirectory {
+            boolean remoteExists = check sftpClient->exists(remotePath);
+            if remoteExists {
+                remoteIsDirectory = check sftpClient->isDirectory(remotePath);
+            }
+        }
+        if !remoteIsDirectory {
+            return error("PutFilesException: RemoteFileName must be an existing remote "
+                    + "directory when LocalFileName has wildcards: " + remotePath);
+        }
+    }
+    ftp:FileWriteOption writeOption = !overwrite && append ? ftp:APPEND : ftp:OVERWRITE;
+    xml transferred = xml ``;
+    foreach string localFile in localFiles {
+        string remoteFile = remotePath;
+        if wildcard {
+            string baseName = check file:basename(localFile);
+            remoteFile = remoteDirectory.endsWith("/") ? remoteDirectory + baseName :
+                remoteDirectory + "/" + baseName;
+        }
+        if !overwrite && !append {
+            boolean remoteExists = check sftpClient->exists(remoteFile);
+            if remoteExists {
+                return error("PutFilesException: remote file already exists: " + remoteFile);
+            }
+        }
+        byte[] content = check io:fileReadBytes(localFile);
+        check sftpClient->putBytes(remoteFile, content, writeOption);
+        xml nameElement = xml `<Name>${remoteFile}</Name>`;
+        xml sizeElement = xml `<NumOfBytes>${content.length()}</NumOfBytes>`;
+        transferred += xml `<FileTransferred>${nameElement}${sizeElement}</FileTransferred>`;
+    }
+    return transferred;
+}
+
+function sftpRemoteFiles(ftp:Client sftpClient, string remotePath) returns string[]|error {
+    int? separator = remotePath.lastIndexOf("/");
+    string fileName = separator == () ? remotePath : remotePath.substring(separator + 1);
+    if !fileName.includes("*") && !fileName.includes("?") {
+        return [remotePath];
+    }
+    string directory = separator == () ? "." : separator == 0 ? "/" :
+            remotePath.substring(0, separator);
+    string pattern = sftpGlobToRegex(fileName);
     ftp:FileInfo[] entries = check sftpClient->list(directory);
     string[] matches = [];
     foreach ftp:FileInfo entry in entries {

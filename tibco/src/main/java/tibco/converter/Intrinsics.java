@@ -83,8 +83,29 @@ public enum Intrinsics {
                     """
 
     ),
-    // TIBCO's SFTP activities accept ? (exactly one character) and * (one or more characters) in remote file names,
-    // which ftp:Client does not, so wildcard names are resolved against a listing of the parent directory.
+    // TIBCO's SFTP activities accept ? (exactly one character) and * (one or more characters) in file names.
+    SFTP_GLOB_TO_REGEX(
+            "sftpGlobToRegex",
+            """
+                    function sftpGlobToRegex(string glob) returns string {
+                        string pattern = "";
+                        foreach string ch in glob {
+                            if ch == "*" {
+                                pattern += ".+";
+                            } else if ch == "?" {
+                                pattern += ".";
+                            } else if ".+()[]{}^$|\\\\".includes(ch) {
+                                pattern += "\\\\" + ch;
+                            } else {
+                                pattern += ch;
+                            }
+                        }
+                        return pattern;
+                    }
+                    """
+    ),
+    // ftp:Client does not understand wildcards, so wildcard names are resolved against a listing of the parent
+    // directory.
     SFTP_REMOTE_FILES(
             "sftpRemoteFiles",
             """
@@ -96,18 +117,7 @@ public enum Intrinsics {
                         }
                         string directory = separator == () ? "." : separator == 0 ? "/" :
                                 remotePath.substring(0, separator);
-                        string pattern = "";
-                        foreach string ch in fileName {
-                            if ch == "*" {
-                                pattern += ".+";
-                            } else if ch == "?" {
-                                pattern += ".";
-                            } else if ".+()[]{}^$|\\\\".includes(ch) {
-                                pattern += "\\\\" + ch;
-                            } else {
-                                pattern += ch;
-                            }
-                        }
+                        string pattern = sftpGlobToRegex(fileName);
                         ftp:FileInfo[] entries = check sftpClient->list(directory);
                         string[] matches = [];
                         foreach ftp:FileInfo entry in entries {
@@ -168,6 +178,72 @@ public enum Intrinsics {
                             }
                             byte[] content = check sftpClient->getBytes(remoteFile);
                             check io:fileWriteBytes(localFile, content);
+                            xml nameElement = xml `<Name>${remoteFile}</Name>`;
+                            xml sizeElement = xml `<NumOfBytes>${content.length()}</NumOfBytes>`;
+                            transferred += xml `<FileTransferred>${nameElement}${sizeElement}</FileTransferred>`;
+                        }
+                        return transferred;
+                    }
+                    """
+    ),
+    // Several matched local files keep their own names inside RemoteFileName, which must then be an existing remote
+    // directory (or end with "/") so that a mistyped path cannot silently redirect the upload; a single file is
+    // written to RemoteFileName as given.
+    SFTP_PUT_FILES(
+            "sftpPutFiles",
+            """
+                    function sftpPutFiles(ftp:Client sftpClient, string localPath, string remotePath,
+                            boolean overwrite, boolean append) returns xml|error {
+                        if localPath == "" {
+                            return error("SFTP Put without LocalFileName (Use Process Data) is not supported");
+                        }
+                        int localSeparator = int:max(localPath.lastIndexOf("/") ?: -1,
+                                localPath.lastIndexOf("\\\\") ?: -1);
+                        string localName = localPath.substring(localSeparator + 1);
+                        boolean wildcard = localName.includes("*") || localName.includes("?");
+                        string[] localFiles = [localPath];
+                        string remoteDirectory = remotePath;
+                        if wildcard {
+                            string localDirectory = localSeparator == -1 ? "." : localPath.substring(0, localSeparator);
+                            string pattern = sftpGlobToRegex(localName);
+                            localFiles = [];
+                            foreach file:MetaData entry in check file:readDir(localDirectory) {
+                                if !entry.dir && regex:matches(check file:basename(entry.absPath), pattern) {
+                                    localFiles.push(entry.absPath);
+                                }
+                            }
+                            if localFiles.length() == 0 {
+                                return error("PutFilesException: no local file matches " + localPath);
+                            }
+                            boolean remoteIsDirectory = remotePath.endsWith("/");
+                            if !remoteIsDirectory {
+                                boolean remoteExists = check sftpClient->exists(remotePath);
+                                if remoteExists {
+                                    remoteIsDirectory = check sftpClient->isDirectory(remotePath);
+                                }
+                            }
+                            if !remoteIsDirectory {
+                                return error("PutFilesException: RemoteFileName must be an existing remote "
+                                        + "directory when LocalFileName has wildcards: " + remotePath);
+                            }
+                        }
+                        ftp:FileWriteOption writeOption = !overwrite && append ? ftp:APPEND : ftp:OVERWRITE;
+                        xml transferred = xml ``;
+                        foreach string localFile in localFiles {
+                            string remoteFile = remotePath;
+                            if wildcard {
+                                string baseName = check file:basename(localFile);
+                                remoteFile = remoteDirectory.endsWith("/") ? remoteDirectory + baseName :
+                                        remoteDirectory + "/" + baseName;
+                            }
+                            if !overwrite && !append {
+                                boolean remoteExists = check sftpClient->exists(remoteFile);
+                                if remoteExists {
+                                    return error("PutFilesException: remote file already exists: " + remoteFile);
+                                }
+                            }
+                            byte[] content = check io:fileReadBytes(localFile);
+                            check sftpClient->putBytes(remoteFile, content, writeOption);
                             xml nameElement = xml `<Name>${remoteFile}</Name>`;
                             xml sizeElement = xml `<NumOfBytes>${content.length()}</NumOfBytes>`;
                             transferred += xml `<FileTransferred>${nameElement}${sizeElement}</FileTransferred>`;

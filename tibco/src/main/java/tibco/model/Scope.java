@@ -415,6 +415,19 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record SFTPPut(String sftpConnection, boolean binary, boolean overwrite, boolean append)
+                            implements ActivityExtension.Config {
+
+                        public SFTPPut {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_PUT;
+                        }
+                    }
+
                     record Log() implements ActivityExtension.Config {
 
                         @Override
@@ -578,6 +591,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         SFTP_DELETE_FILE,
                         SFTP_DIR,
                         SFTP_GET,
+                        SFTP_PUT,
                         SFTP_RENAME_FILE,
                         MAPPER,
                         BW_ASSIGN,
@@ -597,6 +611,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.sftp.removeFile" -> SFTP_DELETE_FILE;
                                 case "bw.sftp.dir" -> SFTP_DIR;
                                 case "bw.sftp.get" -> SFTP_GET;
+                                case "bw.sftp.put" -> SFTP_PUT;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;

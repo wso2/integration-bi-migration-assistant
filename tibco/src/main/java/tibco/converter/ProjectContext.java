@@ -790,7 +790,16 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.SFTP_GET_FILES.name;
     }
 
+    public @NotNull String getSftpPutFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_PUT_FILES);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        return Intrinsics.SFTP_PUT_FILES.name;
+    }
+
     private void addSftpRemoteFilesFunction() {
+        utilityIntrinsics.add(Intrinsics.SFTP_GLOB_TO_REGEX);
         utilityIntrinsics.add(Intrinsics.SFTP_REMOTE_FILES);
         importLibraryIfNeededToUtility(Library.FTP);
         importLibraryIfNeededToUtility(Library.REGEX);
