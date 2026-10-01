@@ -2088,6 +2088,12 @@ final class ActivityConverter {
                     return error(string `${fault}: HTTP ${%1$s.statusCode} ${%1$s.reasonPhrase}: ${%2$s}`);
                 }
                 """.formatted(response.varName(), responseBody.varName())));
+        // A successful response without a body is an empty MessageBody; any other payload read failure is an error.
+        body.add(stmtFrom("""
+                if %1$s is error && %1$s !is http:NoContentError {
+                    return %1$s;
+                }
+                """.formatted(textPayload.varName())));
         // The root wrapper stands in for the activity's RestActivityOutput element.
         VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
                 ("<root><statusCode>${%1$s.statusCode}</statusCode><reasonPhrase>${%1$s.reasonPhrase}</reasonPhrase>"

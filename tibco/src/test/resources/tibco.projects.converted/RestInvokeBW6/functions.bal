@@ -25,6 +25,9 @@ function activityExtension(Context cx) returns error? {
         string fault = var6.statusCode >= 500 ? "HttpServerException" : "HttpClientException";
         return error(string `${fault}: HTTP ${var6.statusCode} ${var6.reasonPhrase}: ${var8}`);
     }
+    if var7 is error && var7 !is http:NoContentError {
+        return var7;
+    }
     xml var9 = xml `<root><statusCode>${var6.statusCode}</statusCode><reasonPhrase>${var6.reasonPhrase}</reasonPhrase><MessageBody><asciiContent>${var8}</asciiContent></MessageBody></root>`;
     addToContext(cx, "SendNotification", var9);
 }
@@ -51,6 +54,9 @@ function activityExtension_1(Context cx) returns error? {
     if var5.statusCode >= 400 {
         string fault = var5.statusCode >= 500 ? "HttpServerException" : "HttpClientException";
         return error(string `${fault}: HTTP ${var5.statusCode} ${var5.reasonPhrase}: ${var7}`);
+    }
+    if var6 is error && var6 !is http:NoContentError {
+        return var6;
     }
     xml var8 = xml `<root><statusCode>${var5.statusCode}</statusCode><reasonPhrase>${var5.reasonPhrase}</reasonPhrase><MessageBody><asciiContent>${var7}</asciiContent></MessageBody></root>`;
     addToContext(cx, "CheckStatus", var8);
@@ -79,6 +85,9 @@ function activityExtension_2(Context cx) returns error? {
     if var6.statusCode >= 400 {
         string fault = var6.statusCode >= 500 ? "HttpServerException" : "HttpClientException";
         return error(string `${fault}: HTTP ${var6.statusCode} ${var6.reasonPhrase}: ${var8}`);
+    }
+    if var7 is error && var7 !is http:NoContentError {
+        return var7;
     }
     xml var9 = xml `<root><statusCode>${var6.statusCode}</statusCode><reasonPhrase>${var6.reasonPhrase}</reasonPhrase><MessageBody><asciiContent>${var8}</asciiContent></MessageBody></root>`;
     addToContext(cx, "EndSession", var9);

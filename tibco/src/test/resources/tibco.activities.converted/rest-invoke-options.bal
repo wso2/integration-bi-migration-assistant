@@ -26,6 +26,10 @@ function activityExtension(Context cx) returns error? {
     return error(string `${fault}: HTTP ${var5.statusCode} ${var5.reasonPhrase}: ${var7}`);
 }
 
+    if var6 is error && var6 !is http:NoContentError {
+    return var6;
+}
+
     xml var8 = xml`<root><statusCode>${var5.statusCode}</statusCode><reasonPhrase>${var5.reasonPhrase}</reasonPhrase><MessageBody><asciiContent>${var7}</asciiContent></MessageBody></root>`;
     addToContext(cx, "ProbeCapabilities", var8);
 }

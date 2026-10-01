@@ -27,6 +27,10 @@ function activityExtension(Context cx) returns error? {
     return error(string `${fault}: HTTP ${var6.statusCode} ${var6.reasonPhrase}: ${var8}`);
 }
 
+    if var7 is error && var7 !is http:NoContentError {
+    return var7;
+}
+
     xml var9 = xml`<root><statusCode>${var6.statusCode}</statusCode><reasonPhrase>${var6.reasonPhrase}</reasonPhrase><MessageBody><asciiContent>${var8}</asciiContent></MessageBody></root>`;
     addToContext(cx, "PublishEvent", var9);
 }
