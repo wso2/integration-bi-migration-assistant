@@ -42,6 +42,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static tibco.converter.Library.JMS;
@@ -90,30 +91,40 @@ final class ResourceConvertor {
     public static void convertHttpConnectionResource(ProjectContext cx, HTTPConnectionResource resource) {
     }
 
+    // TODO: the resource's timeout, connection pooling, redirect and custom TLS trust store settings are not mapped
+    //  to http:Client yet, so only the host, port and SSL flag shape the generated client.
     public static void convertHttpClientResource(ProjectContext cx, HTTPClientResource resource) {
         try {
-            Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
-            String hostName = hostName(resource);
-            if (resource.port().isPresent()) {
-                hostName = hostName + ":" + resource.port().get();
-            }
-            NewExpression constructorCall = new NewExpression(List.of(toExpr(substitutions, hostName)));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
-                    ConversionUtils.resourceNameFromPath(resource.path())), "http:Client",
+            String host = httpClientBinding(resource, "host")
+                    .map(propName -> "${" + cx.getOrAddConfigurableVariable(propName, STRING) + "}")
+                    .orElseGet(() -> resource.host().orElse("localhost"));
+            String port = httpClientBinding(resource, "port")
+                    .map(propName -> ":${" + cx.getOrAddConfigurableVariable(propName, INT) + "}")
+                    .or(() -> resource.port().map(value -> ":" + value))
+                    // TIBCO's documented Default Port is 80, even when SSL is enabled.
+                    .orElse(":80");
+            String scheme = httpClientBinding(resource, "useSSL")
+                    .or(() -> httpClientBinding(resource, "useDefaultSSL"))
+                    .map(propName -> "${" + cx.getOrAddConfigurableVariable(propName, BOOLEAN)
+                            + " ? \"https\" : \"http\"}")
+                    .orElse(resource.ssl() ? "https" : "http");
+            NewExpression constructorCall = new NewExpression(List.of(
+                    new Expression.StringTemplate(scheme + "://" + host + port)));
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name().isEmpty()
+                    ? ConversionUtils.resourceNameFromPath(resource.path()) : resource.name()), "http:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.path(), resourceVar, substitutions.values(), List.of(Library.HTTP));
+            cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.HTTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
     }
 
-    private static String hostName(HTTPClientResource resource) {
-        for (Resource.SubstitutionBinding binding : resource.substitutionBindings()) {
-            if (binding.template().equals("host")) {
-                return binding.propName();
-            }
-        }
-        return "localhost";
+    @NotNull
+    private static Optional<String> httpClientBinding(HTTPClientResource resource, String template) {
+        return resource.substitutionBindings().stream()
+                .filter(binding -> binding.template().equals(template))
+                .map(Resource.SubstitutionBinding::propName)
+                .findFirst();
     }
 
     public static void convertHttpSharedResource(ProjectContext cx, Resource.HTTPSharedResource resource) {

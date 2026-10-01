@@ -1,0 +1,34 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ProbeCapabilities-input"
+                             name="ProbeCapabilities"
+                             outputVariable="ProbeCapabilities"
+                             tibex:xpdlId="a3c6e9f2-1b48-4d75-8e0a-6f2d9c4b7e18"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToProbeCapabilities"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ProbeCapabilitiesToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+8e2f4a61-9c37-4b0d-a5e8-3d1c7b6f2a90+RestInvokeInput&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;ProbeCapabilities-input&quot; match=&quot;/&quot;>&lt;tns1:RestActivityInput/>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                        <value httpClientSR="CatalogClient" httpMethod="OPTIONS" resourcePath="/catalog"
+                               requestContentType="JSON" responseAcceptType="JSON"
+                               xsi:type="restjson:RestInvokeActivity"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

@@ -98,7 +98,7 @@ public sealed interface Resource {
         }
     }
 
-    record HTTPClientResource(String name, String path, Optional<Integer> port,
+    record HTTPClientResource(String name, String path, Optional<String> host, Optional<Integer> port, boolean ssl,
                               Collection<SubstitutionBinding> substitutionBindings)
             implements Resource {
 
