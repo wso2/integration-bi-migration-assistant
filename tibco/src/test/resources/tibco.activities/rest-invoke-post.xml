@@ -1,0 +1,42 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="NotifySubscribers-input"
+                             name="NotifySubscribers"
+                             outputVariable="NotifySubscribers"
+                             tibex:xpdlId="1c9e4b72-8a35-4f60-bd17-5e2a0c3f9d84"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="RenderPayloadToNotifySubscribers"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="NotifySubscribersToParseReply"/>
+            <bpws:source linkName="NotifySubscribersToReportError" tibex:faultDetailsVar="NotifySubscribers"
+                         tibex:faultNameVar="FaultName">
+                <tibex:DesignExpression>
+                    <tibex:expression expression="##error##"
+                                      expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+                </tibex:DesignExpression>
+                <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+            </bpws:source>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+3a7c2e91-0b4d-4f8a-9e65-1d2c8b7a4f30+RestInvokeInput&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Payload&quot;/>&lt;xsl:template name=&quot;NotifySubscribers-input&quot; match=&quot;/&quot;>&lt;tns1:RestActivityInput>&lt;MessageBody>&lt;asciiContent>&lt;xsl:value-of select=&quot;$Payload/jsonString&quot;/>&lt;/asciiContent>&lt;/MessageBody>&lt;/tns1:RestActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                        <value httpClientSR="NotificationClient" httpMethod="POST" requestContentType="JSON"
+                               resourcePath="/api/notifications" responseAcceptType="JSON"
+                               xsi:type="restjson:RestInvokeActivity"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

@@ -318,6 +318,20 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record RestInvoke(String httpClientProperty, String method, Optional<String> resourcePath,
+                                      String requestContentType, String responseAcceptType)
+                            implements ActivityExtension.Config {
+
+                        public RestInvoke {
+                            assert !httpClientProperty.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.REST_INVOKE;
+                        }
+                    }
+
                     record JsonOperation(ActivityExtension.Config.ExtensionKind kind, Type.TibcoType type) implements
                             ActivityExtension.Config {
 
@@ -507,6 +521,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         FILE_RENAME,
                         FILE_WRITE,
                         HTTP_SEND,
+                        REST_INVOKE,
                         JSON_PARSER,
                         JSON_RENDER,
                         LOG,
@@ -524,6 +539,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return switch (typeId) {
                                 case "bw.internal.end" -> END;
                                 case "bw.http.sendHTTPRequest" -> HTTP_SEND;
+                                case "bw.restjson.Rest" -> REST_INVOKE;
                                 case "bw.restjson.JsonRender" -> JSON_RENDER;
                                 case "bw.restjson.JsonParser" -> JSON_PARSER;
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
