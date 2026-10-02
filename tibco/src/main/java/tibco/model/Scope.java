@@ -356,13 +356,25 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return ExtensionKind.FILE_RENAME;
                         }
                     }
-
+                  
                     record ListFiles(Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode mode)
                             implements ActivityExtension.Config {
 
                         @Override
                         public ExtensionKind kind() {
                             return ExtensionKind.LIST_FILES;
+                        }
+                    }
+
+                    record SFTPRenameFile(String sftpConnection) implements ActivityExtension.Config {
+
+                        public SFTPRenameFile {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_RENAME_FILE;
                         }
                     }
 
@@ -526,6 +538,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         RENDER_XML,
                         PARSE_XML,
                         SEND_HTTP_RESPONSE,
+                        SFTP_RENAME_FILE,
                         MAPPER,
                         BW_ASSIGN,
                         SQL;
@@ -540,6 +553,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.file.rename" -> FILE_RENAME;
                                 case "bw.file.list" -> LIST_FILES;
+                                case "bw.sftp.renameFile" -> SFTP_RENAME_FILE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;

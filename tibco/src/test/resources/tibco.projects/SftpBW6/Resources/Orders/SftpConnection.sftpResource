@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:sftpconnection="http://ns.tibco.com/bw/palette/sftpconnection" xmi:id="_ordersResource" name="Orders.SftpConnection" type="sftpconnection:sftpconnection">
+  <jndi:configuration xsi:type="sftpconnection:SFTPConnection" xmi:id="_ordersConfiguration">
+    <substitutionBindings xmi:id="_ordershost" template="host" propName="/Resources/SFTP/Orders/Host"/>
+    <substitutionBindings xmi:id="_ordersport" template="port" propName="/Resources/SFTP/Orders/Port"/>
+    <substitutionBindings xmi:id="_ordersuserName" template="userName" propName="/Resources/SFTP/Username"/>
+    <substitutionBindings xmi:id="_orderspassword" template="password" propName="/Resources/SFTP/Orders/Password"/>
+    <substitutionBindings xmi:id="_orderstimeout" template="timeout" propName="/Resources/SFTP/Orders/ConnectionTimeout"/>
+  </jndi:configuration>
+</jndi:namedResource>
