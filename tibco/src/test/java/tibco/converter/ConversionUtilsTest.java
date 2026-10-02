@@ -218,6 +218,10 @@ public class ConversionUtilsTest {
                 {"Start", "Start"},
                 {"Get Sales Order", "Get_Sales_Order"},
                 {"type", "'type"},
+                {"1 type", "'type"},
+                // Callers build identifiers such as start_<name> from the result, so other keywords stay unquoted.
+                {"string", "string"},
+                {"map", "map"},
                 {"Resources/AWS/SendMail/applicationId", "Resources_AWS_SendMail_applicationId"},
                 {"anagrafica_clienti_isu_das/LocalFilePathArchive", "anagrafica_clienti_isu_das_LocalFilePathArchive"},
                 {"", "unnamed"},
@@ -227,6 +231,24 @@ public class ConversionUtilsTest {
     @Test(dataProvider = "sanitizesProvider")
     public void testSanitizes(String name, String expected) {
         Assert.assertEquals(ConversionUtils.sanitizes(name), expected);
+    }
+
+    @DataProvider
+    public Object[][] sanitizedUniqueIdentifierProvider() {
+        return new Object[][]{
+                {"Log", List.of(), "Log"},
+                {"map", List.of(), "'map"},
+                {"error", List.of(), "'error"},
+                {"1 map", List.of(), "'map"},
+                {"map", List.of("'map"), "map_1"},
+                {"map", List.of("'map", "map_1"), "map_2"},
+                {"Log", List.of("Log"), "Log_1"},
+        };
+    }
+
+    @Test(dataProvider = "sanitizedUniqueIdentifierProvider")
+    public void testGetSanitizedUniqueIdentifier(String name, List<String> allocated, String expected) {
+        Assert.assertEquals(ConversionUtils.getSanitizedUniqueIdentifier(name, allocated), expected);
     }
 
     @Test

@@ -190,7 +190,7 @@ public class ProcessAnalysisContext implements LoggingContext {
             }
             case ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
         };
-        String activityName = ConversionUtils.getSanitizedUniqueName(designerName(activity).orElse(prefix),
+        String activityName = ConversionUtils.getSanitizedUniqueIdentifier(designerName(activity).orElse(prefix),
                 projectAnalysisContext.unavailableActivityFunctionNames());
         activityFunctionNames.put(activity, activityName);
         activities.add(activity);

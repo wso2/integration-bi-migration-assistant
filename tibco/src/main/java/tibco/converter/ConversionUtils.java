@@ -118,7 +118,7 @@ public final class ConversionUtils {
         }
         sanitized = start == sanitized.length() ? "'" + sanitized : sanitized.substring(start);
         if (isReserved(sanitized)) {
-            sanitized = "'" + name;
+            sanitized = "'" + sanitized;
         }
         return sanitized;
     }
@@ -139,8 +139,21 @@ public final class ConversionUtils {
             "select", "service", "start", "stream", "string", "table", "transaction", "trap", "true", "type",
             "typedesc", "typeof", "var", "wait", "where", "while", "worker", "xml", "xmlns");
 
+    // Only `type` is escaped here because callers concatenate prefixes and suffixes onto the result, which would
+    // leave a quote in the middle of the identifier. Use getSanitizedUniqueIdentifier for standalone names.
     private static boolean isReserved(String name) {
-        return BALLERINA_KEYWORDS.contains(name);
+        return name.equals("type");
+    }
+
+    public static @NotNull String getSanitizedUniqueIdentifier(String name, Collection<String> allocatedNames) {
+        String base = sanitizes(name);
+        String candidate = BALLERINA_KEYWORDS.contains(base) ? "'" + base : base;
+        int suffix = 1;
+        while (allocatedNames.contains(candidate)) {
+            candidate = base + "_" + suffix;
+            suffix++;
+        }
+        return candidate;
     }
 
     public static @NotNull String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {
