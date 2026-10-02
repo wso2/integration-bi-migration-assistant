@@ -13,7 +13,7 @@ function FallbackScopeScopeFn(Context cx) returns () {
 }
 
 function MainScopeActivityRunner(Context cx) returns error? {
-    check throw(cx);
+    check RaiseFault(cx);
 }
 
 function MainScopeFaultHandler(error err, Context cx) returns () {
@@ -31,6 +31,12 @@ function MainScopeScopeFn(Context cx) returns () {
     if result is error {
         MainScopeFaultHandler(result, cx);
     }
+}
+
+function RaiseFault(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    error var1 = error("tns:TestFault", faultName = "tns:TestFault", payload = var0);
+    panic var1;
 }
 
 function RecoveryScopeActivityRunner(Context cx) returns error? {
@@ -57,12 +63,6 @@ function catchAll(Context cx) returns error? {
 
 function start_test_faulthandling_MainProcess(Context params) returns () {
     MainScopeScopeFn(params);
-}
-
-function throw(Context cx) returns error? {
-    xml var0 = xml `<root></root>`;
-    error var1 = error("tns:TestFault", faultName = "tns:TestFault", payload = var0);
-    panic var1;
 }
 
 function addToContext(Context context, string varName, xml value) {
