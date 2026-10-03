@@ -20,6 +20,10 @@
     - `bw.file.rename`
     - `bw.file.list`
     - `bw.sftp.renameFile`
+    - `bw.sftp.removeFile`
+    - `bw.sftp.dir`
+    - `bw.sftp.get`
+    - `bw.sftp.put`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`

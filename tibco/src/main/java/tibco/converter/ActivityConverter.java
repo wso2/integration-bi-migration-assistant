@@ -1622,6 +1622,11 @@ final class ActivityConverter {
             case ActivityExtension.Config.ListFiles listFiles -> createListFilesOperation(cx, result, listFiles);
             case ActivityExtension.Config.SFTPRenameFile sftpRenameFile ->
                     createSFTPRenameFileOperation(cx, result, sftpRenameFile);
+            case ActivityExtension.Config.SFTPDeleteFile sftpDeleteFile ->
+                    createSFTPDeleteFileOperation(cx, result, sftpDeleteFile);
+            case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
+            case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
+            case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -1912,6 +1917,102 @@ final class ActivityConverter {
         body.add(new CallStatement(new Check(new RemoteMethodCallAction(client, "rename",
                 List.of(oldRemoteFileName.ref(), newRemoteFileName.ref())))));
         return new ActivityConversionResult(result, body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPDeleteFileOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPDeleteFile sftpDeleteFile) {
+        List<Statement> body = new ArrayList<>();
+        VariableReference client = sftpClient(cx, body, sftpDeleteFile.sftpConnection());
+        // TIBCO concatenates the optional RemoteDirectory with RemoteFileName as-is, without adding a separator.
+        VarDeclStatment remotePath = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%1$s/**/<RemoteDirectory>/*).toString() + (%1$s/**/<RemoteFileName>/*).toString()"
+                        .formatted(result.varName())));
+        body.add(remotePath);
+        body.add(new CallStatement(new Check(new FunctionCall(cx.getSftpDeleteFilesFunction(),
+                List.of(client, remotePath.ref())))));
+        return new ActivityConversionResult(result, body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPDirOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPDir sftpDir) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpDir.shortFileNames()) {
+            cx.log(WARN, "SFTP Dir: the detailed listing format is not supported; only file names are listed.");
+            body.add(new Comment("WARNING: SFTP Dir detailed listing is not supported; only file names are listed."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpDir.sftpConnection());
+        VarDeclStatment directory = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<Directory>/*).toString()".formatted(result.varName())));
+        body.add(directory);
+        cx.addLibraryImport(Library.FTP);
+        // TIBCO lists the current remote directory when Directory is not given.
+        VarDeclStatment entries = new VarDeclStatment(typeFrom("ftp:FileInfo[]"), cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "list",
+                        List.of(exprFrom("%1$s == \"\" ? \".\" : %1$s".formatted(directory.ref()))))));
+        body.add(entries);
+        VarDeclStatment directoryItems = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
+        body.add(directoryItems);
+        body.add(stmtFrom("""
+                foreach ftp:FileInfo entry in %s {
+                    %s += xml `<DirectoryItems>${entry.name}</DirectoryItems>`;
+                }
+                """.formatted(entries.ref(), directoryItems.ref())));
+        // The root wrapper stands in for the activity's Output element; downstream XPath is rewritten to
+        // $Var/root/DirectoryItems, so ItemCount and DirectoryItems must be its direct children.
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<root><ItemCount>${%s.length()}</ItemCount>${%s}</root>"
+                        .formatted(entries.ref(), directoryItems.ref())));
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPGetOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPGet sftpGet) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpGet.binary()) {
+            cx.log(WARN, "SFTP Get: ASCII mode line-ending conversion is not supported; files are copied as-is.");
+            body.add(new Comment("WARNING: SFTP Get ASCII mode is not supported; files are copied byte for byte."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpGet.sftpConnection());
+        VarDeclStatment remoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<RemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(remoteFileName);
+        VarDeclStatment localFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<LocalFileName>/*).toString()".formatted(result.varName())));
+        body.add(localFileName);
+        VarDeclStatment filesTransferred = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(cx.getSftpGetFilesFunction(), List.of(client, remoteFileName.ref(),
+                        localFileName.ref(), new BallerinaModel.Expression.BooleanConstant(sftpGet.overwrite())))));
+        body.add(filesTransferred);
+        // The root wrapper stands in for the activity's SFTPGetOutputFile element, as for SFTP Dir.
+        VarDeclStatment output = wrapWithRoot(cx, filesTransferred.ref());
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPPutOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPPut sftpPut) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpPut.binary()) {
+            cx.log(WARN, "SFTP Put: ASCII mode line-ending conversion is not supported; files are copied as-is.");
+            body.add(new Comment("WARNING: SFTP Put ASCII mode is not supported; files are copied byte for byte."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpPut.sftpConnection());
+        VarDeclStatment localFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<LocalFileName>/*).toString()".formatted(result.varName())));
+        body.add(localFileName);
+        VarDeclStatment remoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<RemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(remoteFileName);
+        VarDeclStatment filesTransferred = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(cx.getSftpPutFilesFunction(), List.of(client, localFileName.ref(),
+                        remoteFileName.ref(), new BallerinaModel.Expression.BooleanConstant(sftpPut.overwrite()),
+                        new BallerinaModel.Expression.BooleanConstant(sftpPut.append())))));
+        body.add(filesTransferred);
+        // The root wrapper stands in for the activity's SFTPPutOutputFile element, as for SFTP Get.
+        VarDeclStatment output = wrapWithRoot(cx, filesTransferred.ref());
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
     }
 
     private static @NotNull VariableReference sftpClient(ActivityContext cx, List<Statement> body,

@@ -1404,7 +1404,11 @@ public final class XmlToTibcoModelParser {
             case FILE_WRITE -> new Config.FileWrite();
             case FILE_RENAME -> parseFileRename(activity);
             case LIST_FILES -> parseListFiles(activity);
-            case SFTP_RENAME_FILE -> parseSFTPRenameFile(activity);
+            case SFTP_RENAME_FILE -> new Config.SFTPRenameFile(parseSFTPConnection(activity));
+            case SFTP_DELETE_FILE -> new Config.SFTPDeleteFile(parseSFTPConnection(activity));
+            case SFTP_DIR -> parseSFTPDir(activity);
+            case SFTP_GET -> parseSFTPGet(activity);
+            case SFTP_PUT -> parseSFTPPut(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
@@ -1437,11 +1441,32 @@ public final class XmlToTibcoModelParser {
         return new Config.ListFiles(InlineActivity.ListFilesActivity.Mode.from(mode));
     }
 
-    private static Config.@NotNull SFTPRenameFile parseSFTPRenameFile(Element activity) {
+    private static Config.@NotNull SFTPDir parseSFTPDir(Element activity) {
+        return new Config.SFTPDir(parseSFTPConnection(activity),
+                Boolean.parseBoolean(sftpActivityValue(activity).getAttribute("nlst")));
+    }
+
+    private static Config.@NotNull SFTPGet parseSFTPGet(Element activity) {
+        Element value = sftpActivityValue(activity);
+        return new Config.SFTPGet(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
+                Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")));
+    }
+
+    private static Config.@NotNull SFTPPut parseSFTPPut(Element activity) {
+        Element value = sftpActivityValue(activity);
+        return new Config.SFTPPut(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
+                Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")),
+                Boolean.parseBoolean(value.getAttribute("append")));
+    }
+
+    private static @NotNull String parseSFTPConnection(Element activity) {
+        return sftpActivityValue(activity).getAttribute("sftpConnection");
+    }
+
+    private static @NotNull Element sftpActivityValue(Element activity) {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
-        Element value = getFirstChildWithTag(properties, "value");
-        return new Config.SFTPRenameFile(value.getAttribute("sftpConnection"));
+        return getFirstChildWithTag(properties, "value");
     }
   
     private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {

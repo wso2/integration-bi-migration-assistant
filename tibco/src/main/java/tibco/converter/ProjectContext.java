@@ -776,6 +776,35 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.GET_SHARED_VARIABLE.name;
     }
 
+    public @NotNull String getSftpDeleteFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_DELETE_FILES);
+        return Intrinsics.SFTP_DELETE_FILES.name;
+    }
+
+    public @NotNull String getSftpGetFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_GET_FILES);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        return Intrinsics.SFTP_GET_FILES.name;
+    }
+
+    public @NotNull String getSftpPutFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_PUT_FILES);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        return Intrinsics.SFTP_PUT_FILES.name;
+    }
+
+    private void addSftpRemoteFilesFunction() {
+        utilityIntrinsics.add(Intrinsics.SFTP_GLOB_TO_REGEX);
+        utilityIntrinsics.add(Intrinsics.SFTP_REMOTE_FILES);
+        importLibraryIfNeededToUtility(Library.FTP);
+        importLibraryIfNeededToUtility(Library.REGEX);
+    }
+
     public String getFilesInPathFunction() {
         utilityIntrinsics.add(Intrinsics.GET_FILES_IN_PATH);
         utilityTypeDefs.put("FileData", new BallerinaModel.ModuleTypeDef("FileData",
