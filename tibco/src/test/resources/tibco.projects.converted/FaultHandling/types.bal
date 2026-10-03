@@ -33,3 +33,4 @@ public type XMLResponse readonly & record {|
     "XMLResponse" kind = "XMLResponse";
     xml payload;
 |};
+

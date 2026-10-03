@@ -226,7 +226,7 @@ function initContext(map<xml> initVariables = {},
         setter: function(xml value) {
             sharedVariable = value;
         }
-};
+    };
 
     sharedVariables["sharedVariable"] = sharedVarContext1;
 

@@ -11,7 +11,7 @@ function JMG_Get(Context cx) returns error? {
     jms:MessageConsumer var3 = check var2.createConsumer(destination = {
         'type: jms:QUEUE,
         name: "Default queue"
-}
+    }
 );
     jms:Message? var4 = check var3->receive();
     if var4 !is jms:TextMessage {
@@ -160,7 +160,7 @@ function Topic_Send(Context cx) returns error? {
     jms:MessageProducer var5 = check var4.createProducer(destination = {
         'type: jms:TOPIC,
         name: "TOPIC"
-}
+    }
 );
     string var6 = (var2/**/<Body>/*).toString().trim();
     jms:TextMessage var7 = {content: var6};
