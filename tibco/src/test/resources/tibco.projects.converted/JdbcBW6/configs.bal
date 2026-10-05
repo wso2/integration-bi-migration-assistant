@@ -1,1 +1,1 @@
-configurable string dbURL = ?;
+configurable string BWCE_DB_URL = ?;

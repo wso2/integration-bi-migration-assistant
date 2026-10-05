@@ -25,10 +25,9 @@ import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.util.PathResolver;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +36,8 @@ import java.util.Set;
 public final class ProjectConversionContext implements LoggingContext {
 
     private final String name;
-    private final List<TibcoToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
+    private final Set<TibcoToBalConverter.JavaDependencies> javaDependencies = new LinkedHashSet<>();
+    private Map<String, String> modulePropertyDefaults = Map.of();
     private final ConversionContext cx;
     private final Set<Resource> sharedResources = new HashSet<>();
     private final Set<Process> sharedProcesses = new HashSet<>();
@@ -72,7 +72,7 @@ public final class ProjectConversionContext implements LoggingContext {
     }
 
     public List<TibcoToBalConverter.JavaDependencies> javaDependencies() {
-        return Collections.unmodifiableList(javaDependencies);
+        return List.copyOf(javaDependencies);
     }
 
     public boolean keepStructure() {
@@ -81,6 +81,14 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
         javaDependencies.add(dependencies);
+    }
+
+    public void setModulePropertyDefaults(Map<String, String> modulePropertyDefaults) {
+        this.modulePropertyDefaults = Map.copyOf(modulePropertyDefaults);
+    }
+
+    public Optional<String> modulePropertyDefault(String propName) {
+        return Optional.ofNullable(modulePropertyDefaults.get(propName));
     }
 
     public ConversionContext conversionContext() {

@@ -24,6 +24,7 @@ import common.ProjectSummary;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import tibco.analyzer.CombinedSummaryReport;
 import tibco.analyzer.DefaultAnalysisPass;
@@ -298,6 +299,36 @@ public class TibcoToBalConverter {
         }
     }
 
+    public static @NotNull Map<String, String> parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
+        Path substvarPath = Paths.get(projectPath, "META-INF", "default.substvar");
+        if (!Files.isRegularFile(substvarPath)) {
+            return Map.of();
+        }
+        try {
+            Map<String, String> defaults = new HashMap<>();
+            NodeList globalVariables = parseXmlFile(substvarPath.toString())
+                    .getElementsByTagNameNS("*", "globalVariable");
+            for (int i = 0; i < globalVariables.getLength(); i++) {
+                Element globalVariable = (Element) globalVariables.item(i);
+                Optional<String> name = childText(globalVariable, "name");
+                Optional<String> value = childText(globalVariable, "value");
+                if (name.isPresent() && value.isPresent()) {
+                    defaults.put(name.get(), value.get());
+                }
+            }
+            return defaults;
+        } catch (IOException | SAXException | ParserConfigurationException e) {
+            cx.log(LoggingUtils.Level.WARN, "Unable to read module property defaults from " + substvarPath + ": "
+                    + e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private static Optional<String> childText(Element parent, String tagName) {
+        NodeList children = parent.getElementsByTagNameNS("*", tagName);
+        return children.getLength() == 0 ? Optional.empty() : Optional.of(children.item(0).getTextContent().trim());
+    }
+
     public static Element parseXmlFile(String xmlFilePath)
             throws IOException, SAXException, ParserConfigurationException {
 
@@ -542,6 +573,18 @@ public class TibcoToBalConverter {
                 artifactId = "mariadb-java-client"
                 version = "3.1.4"
                 groupId = "org.mariadb.jdbc"
+                """),
+        JDBC_MSSQL("""
+                [[platform.java17.dependency]]
+                artifactId = "mssql-jdbc"
+                version = "12.8.1.jre11"
+                groupId = "com.microsoft.sqlserver"
+                """),
+        JDBC_DB2("""
+                [[platform.java17.dependency]]
+                artifactId = "jcc"
+                version = "11.5.9.0"
+                groupId = "com.ibm.db2"
                 """);
 
         public final String dependencyParam;
