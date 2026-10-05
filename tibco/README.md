@@ -19,6 +19,8 @@
     - `bw.http.sendHTTPResponse`
     - `bw.file.write`
     - `bw.file.rename`
+    - `bw.file.list`
+    - `bw.sftp.renameFile`
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`
@@ -39,6 +41,7 @@
 - `com.tibco.pe.core.CatchActivity`
 - `com.tibco.plugin.file.FileReadActivity`
 - `com.tibco.plugin.file.FileWriteActivity`
+- `com.tibco.plugin.file.ListFilesActivity`
 - `com.tibco.plugin.jdbc.JDBCGeneralActivity`
 - `com.tibco.plugin.json.activities.RestActivity`
 - `com.tibco.pe.core.CallProcessActivity`

@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import tibco.util.PathMatcher;
 
 import java.util.Collection;
@@ -46,6 +47,7 @@ public sealed interface Resource {
         HTTP_SHARED,
         HTTP_CLIENT,
         JMS_SHARED,
+        SFTP,
         SHARED_VARIABLE
     }
 
@@ -105,6 +107,19 @@ public sealed interface Resource {
         @Override
         public ResourceKind kind() {
             return ResourceKind.HTTP_CLIENT;
+        }
+    }
+
+    record SFTPResource(String name, String path, boolean privKeyAuth, Map<String, String> configuration,
+                        Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+
+        public SFTPResource {
+            assert path != null && !path.isEmpty() : "SFTP resource path must not be empty";
+        }
+
+        @Override
+        public @NotNull ResourceKind kind() {
+            return ResourceKind.SFTP;
         }
     }
 

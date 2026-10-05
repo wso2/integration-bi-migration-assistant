@@ -1,0 +1,39 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ArchiveOrderFile-input"
+                             name="ArchiveOrderFile"
+                             tibex:xpdlId="0b7c2e4a-91d3-4f6e-8a15-3c9d2f7e6b10"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="ReadOrdersToArchiveOrderFile"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ArchiveOrderFileToEnd"/>
+            <bpws:source linkName="ArchiveOrderFileToReportError" tibex:faultDetailsVar="_error"
+                         tibex:faultNameVar="FaultName">
+                <tibex:DesignExpression>
+                    <tibex:expression expression="##error##"
+                                      expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+                </tibex:DesignExpression>
+                <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+            </bpws:source>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/renameFile&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;InboundDir&quot;/>&lt;xsl:param name=&quot;ArchiveDir&quot;/>&lt;xsl:param name=&quot;OrderFileName&quot;/>&lt;xsl:template name=&quot;ArchiveOrderFile-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;OldRemoteFileName>&lt;xsl:value-of select=&quot;concat($InboundDir, $OrderFileName)&quot;/>&lt;/OldRemoteFileName>&lt;NewRemoteFileName>&lt;xsl:value-of select=&quot;concat($ArchiveDir, $OrderFileName)&quot;/>&lt;/NewRemoteFileName>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.sftp.renameFile"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/sp#//SFTPRenameFile"/>
+                        <value sftpConnection="OrderSftpConnection" xsi:type="sftpPalette:SFTPRenameFile"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
