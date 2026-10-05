@@ -643,6 +643,9 @@ public class TibcoProjectConversionTest {
         Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("inventoryDb.jdbcResource")
                         && log.contains("DataDirect")),
                 "Replacing a DataDirect driver should warn that its URL needs rewriting: " + logs);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("warehouseDb.jdbcResource")
+                        && log.contains("DataDirect")),
+                "A DataDirect URL should warn even when a standard driver class picked the dependency: " + logs);
         Assert.assertFalse(ballerinaToml.contains("artifactId = \"h2\""),
                 "An unresolvable driver must not fall back to H2: " + ballerinaToml);
 

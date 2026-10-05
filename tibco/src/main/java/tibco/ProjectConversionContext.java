@@ -20,6 +20,7 @@ package tibco;
 
 import common.BallerinaModel;
 import common.LoggingUtils;
+import org.jetbrains.annotations.NotNull;
 import tibco.converter.ConversionUtils;
 import tibco.model.Process;
 import tibco.model.Resource;
@@ -87,7 +88,7 @@ public final class ProjectConversionContext implements LoggingContext {
         this.modulePropertyDefaults = Map.copyOf(modulePropertyDefaults);
     }
 
-    public Optional<String> modulePropertyDefault(String propName) {
+    public @NotNull Optional<String> modulePropertyDefault(String propName) {
         return Optional.ofNullable(modulePropertyDefaults.get(propName));
     }
 

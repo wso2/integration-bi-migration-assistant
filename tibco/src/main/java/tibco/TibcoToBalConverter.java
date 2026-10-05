@@ -324,7 +324,7 @@ public class TibcoToBalConverter {
         }
     }
 
-    private static Optional<String> childText(Element parent, String tagName) {
+    private static @NotNull Optional<String> childText(Element parent, String tagName) {
         NodeList children = parent.getElementsByTagNameNS("*", tagName);
         return children.getLength() == 0 ? Optional.empty() : Optional.of(children.item(0).getTextContent().trim());
     }

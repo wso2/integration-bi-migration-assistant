@@ -131,22 +131,22 @@ final class ResourceConvertor {
     }
 
     private static void addJavaSQLConnector(ProjectContext cx, String resourcePath, List<String> driverOrUrlHints) {
-        record Match(String hint, TibcoToBalConverter.JavaDependencies dependency) {
-        }
-        driverOrUrlHints.stream()
-                .map(String::trim)
+        List<String> hints = driverOrUrlHints.stream().map(String::trim).toList();
+        // TIBCO's bundled DataDirect drivers aren't available outside BW, so the open-source driver for the same
+        // database replaces them; its URL syntax differs, so a DataDirect URL must be rewritten even when the driver
+        // class alone picked the dependency.
+        boolean usesDataDirect = hints.stream()
+                .anyMatch(hint -> hint.startsWith("tibcosoftwareinc.") || hint.startsWith("jdbc:tibcosoftwareinc:"));
+        hints.stream()
                 .flatMap(hint -> JDBC_CONNECTORS_BY_PREFIX.entrySet().stream()
                         .filter(entry -> hint.startsWith(entry.getKey()))
-                        .map(entry -> new Match(hint, entry.getValue())))
+                        .map(Map.Entry::getValue))
                 .findFirst()
-                .ifPresentOrElse(match -> {
-                    cx.addJavaDependency(match.dependency());
-                    // TIBCO's bundled DataDirect drivers aren't available outside BW, so the open-source driver for the
-                    // same database replaces them; its URL syntax differs, so the configured URL must be rewritten.
-                    String hint = match.hint();
-                    if (hint.startsWith("tibcosoftwareinc.") || hint.startsWith("jdbc:tibcosoftwareinc:")) {
+                .ifPresentOrElse(dependency -> {
+                    cx.addJavaDependency(dependency);
+                    if (usesDataDirect) {
                         cx.log(LoggingUtils.Level.WARN, resourcePath + " uses TIBCO's DataDirect JDBC driver; "
-                                + "replaced it with " + match.dependency().name()
+                                + "replaced it with " + dependency.name()
                                 + ", so rewrite its connection URL in that driver's format.");
                     }
                 }, () -> cx.log(LoggingUtils.Level.WARN, "Unable to determine the JDBC driver for " + resourcePath

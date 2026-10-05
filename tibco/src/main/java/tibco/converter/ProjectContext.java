@@ -248,7 +248,7 @@ public class ProjectContext implements LoggingContext {
         conversionContext.addJavaDependency(dependencies);
     }
 
-    Optional<String> modulePropertyDefault(String propName) {
+    @NotNull Optional<String> modulePropertyDefault(String propName) {
         return conversionContext.modulePropertyDefault(propName);
     }
 
