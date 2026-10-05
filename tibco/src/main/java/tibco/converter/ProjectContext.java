@@ -598,13 +598,13 @@ public class ProjectContext implements LoggingContext {
     public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
         log(LoggingUtils.Level.SEVERE,
                 "Failed to generate control flow function for process: " + process.name() + ". Error: "
-                + e.getMessage());
+                + e);
     }
 
     public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
         log(LoggingUtils.Level.SEVERE,
                 "Failed to generate control flow function for scope: " + scope.name() + ". Error: "
-                + ex.getMessage());
+                + ex);
     }
 
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
