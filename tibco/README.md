@@ -20,6 +20,8 @@
     - `bw.file.rename`
     - `bw.file.list`
     - `bw.sftp.renameFile`
+    - `bw.parse.parsedata` (delimited Data Format resources only)
+    - `bw.parse.renderdata` (delimited Data Format resources only)
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`

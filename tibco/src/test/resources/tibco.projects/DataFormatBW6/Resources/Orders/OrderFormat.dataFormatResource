@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dataformat="http://ns.tibco.com/bw/palette/dataformat" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:orders="http://example.com/xsd/orders" xmi:id="_OrderFormatResource" name="Orders.OrderFormat" type="dataformat:DataFormat">
+  <imports xmi:id="_OrderFormatImport" importType="http://www.w3.org/2001/XMLSchema" namespace="http://example.com/xsd/orders"/>
+  <jndi:configuration xsi:type="dataformat:DataFormat" xmi:id="_OrderFormatConfiguration" formatType="Delimiter separated" colSeparator=";" colSeparatorParseRule="Treat all characters as entered as a single column separator string" lineSeparator="New Line" fillCharacter="Space" schemaElementQName="orders:order" fieldOffsetsStr="orderId(0,0)&#xA;customer(0,0)&#xA;amount(0,0)">
+    <fieldOffsets xmi:id="_OrderIdField" name="orderId"/>
+    <fieldOffsets xmi:id="_CustomerField" name="customer"/>
+    <fieldOffsets xmi:id="_AmountField" name="amount"/>
+  </jndi:configuration>
+</jndi:namedResource>

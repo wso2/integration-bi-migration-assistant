@@ -83,6 +83,126 @@ public enum Intrinsics {
                     """
 
     ),
+    PARSE_DELIMITED_DATA(
+            "parseDelimitedData",
+            """
+                    function splitBySeparator(string text, string separator) returns string[] {
+                        string[] parts = [];
+                        int startIndex = 0;
+                        int? separatorIndex = text.indexOf(separator, startIndex);
+                        while separatorIndex is int {
+                            parts.push(text.substring(startIndex, separatorIndex));
+                            startIndex = separatorIndex + separator.length();
+                            separatorIndex = text.indexOf(separator, startIndex);
+                        }
+                        parts.push(text.substring(startIndex));
+                        return parts;
+                    }
+
+                    // TIBCO's "New Line" separator also accepts Windows line endings, so a trailing carriage return is
+                    // dropped from each line.
+                    function dataFormatLines(string content, string lineSeparator, int skipHeaderCharacters)
+                            returns string[] {
+                        string text = skipHeaderCharacters >= content.length() ? ""
+                            : content.substring(skipHeaderCharacters);
+                        if text.endsWith(lineSeparator) {
+                            text = text.substring(0, text.length() - lineSeparator.length());
+                        }
+                        if text == "" {
+                            return [];
+                        }
+                        return from string line in splitBySeparator(text, lineSeparator)
+                            select lineSeparator == "\\n" && line.endsWith("\\r")
+                                ? line.substring(0, line.length() - 1) : line;
+                    }
+
+                    function hasMoreDataFormatRecords(string[] lines, int fromIndex, boolean skipBlankLines)
+                            returns boolean {
+                        foreach int index in fromIndex ..< lines.length() {
+                            if lines[index].trim() != "" {
+                                return true;
+                            }
+                            if !skipBlankLines {
+                                return false;
+                            }
+                        }
+                        return false;
+                    }
+
+                    // Mirrors TIBCO Parse Data: startRecord is a 1-based line number, a negative noOfRecords
+                    // reads every record, and a blank line ends the input unless blank lines are skipped.
+                    // Field elements share the row's namespace only when the schema qualifies local elements.
+                    function parseDelimitedData(string content, string columnSeparator, string lineSeparator,
+                            string namespace, string rowName, string[] fieldNames, boolean qualifiedFields,
+                            int startRecord, int noOfRecords, int skipHeaderCharacters, boolean skipBlankLines)
+                            returns xml|error {
+                        string[] lines = dataFormatLines(content, lineSeparator, skipHeaderCharacters);
+                        string prefix = namespace == "" ? "" : "{" + namespace + "}";
+                        string fieldPrefix = qualifiedFields ? prefix : "";
+                        // A prefixed declaration keeps unqualified fields out of the row's namespace when serialized,
+                        // since a default-namespace declaration would be inherited by them.
+                        map<string> rowAttributes = namespace == "" ? {}
+                            : {"{http://www.w3.org/2000/xmlns/}ns0": namespace};
+                        xml rows = xml ``;
+                        int recordCount = 0;
+                        int lineIndex = startRecord < 1 ? 0 : startRecord - 1;
+                        boolean reachedBlankLine = false;
+                        while lineIndex < lines.length() && (noOfRecords < 0 || recordCount < noOfRecords) {
+                            string line = lines[lineIndex];
+                            lineIndex += 1;
+                            if line.trim() == "" {
+                                if skipBlankLines {
+                                    continue;
+                                }
+                                reachedBlankLine = true;
+                                break;
+                            }
+                            string[] values = splitBySeparator(line, columnSeparator);
+                            if values.length() > fieldNames.length() {
+                                return error(string `BadDataFormatException: line ${lineIndex} has ${values.length()} `
+                                    + string `fields, expected at most ${fieldNames.length()}`);
+                            }
+                            xml fields = xml ``;
+                            foreach int index in 0 ..< fieldNames.length() {
+                                string value = index < values.length() ? values[index] : "";
+                                fields += xml:createElement(fieldPrefix + fieldNames[index], {}, xml:createText(value));
+                            }
+                            rows += xml:createElement(prefix + rowName, rowAttributes, fields);
+                            recordCount += 1;
+                        }
+                        boolean done = reachedBlankLine || !hasMoreDataFormatRecords(lines, lineIndex, skipBlankLines);
+                        return xml `<root><Rows>${rows}</Rows><done>${done}</done></root>`;
+                    }
+                    """),
+    RENDER_DELIMITED_DATA(
+            "renderDelimitedData",
+            """
+                    // The rows come out of an XSLT mapping, so they are matched by local name regardless of
+                    // the namespace the mapping put them in.
+                    function renderDelimitedData(xml input, string rowName, string columnSeparator,
+                            string lineSeparator, string[] fieldNames) returns string {
+                        string[] lines = from xml:Element row in (input/**/<*>).elements()
+                            where localXmlName(row) == rowName
+                            select string:'join(columnSeparator, ...from string fieldName in fieldNames
+                                    select dataFormatFieldValue(row, fieldName));
+                        return string:'join(lineSeparator, ...lines);
+                    }
+
+                    function dataFormatFieldValue(xml:Element row, string fieldName) returns string {
+                        foreach xml:Element child in row.children().elements() {
+                            if localXmlName(child) == fieldName {
+                                return child.data();
+                            }
+                        }
+                        return "";
+                    }
+
+                    function localXmlName(xml:Element element) returns string {
+                        string name = element.getName();
+                        int? namespaceEnd = name.lastIndexOf("}");
+                        return namespaceEnd is int ? name.substring(namespaceEnd + 1) : name;
+                    }
+                    """),
     SET_SHARED_VARIABLE(
             "setSharedVariable",
             """

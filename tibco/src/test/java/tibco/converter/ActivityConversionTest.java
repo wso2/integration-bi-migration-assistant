@@ -34,6 +34,7 @@ import tibco.model.Method;
 import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5;
+import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.XSD;
 import tibco.parser.XmlToTibcoModelParser;
@@ -212,6 +213,13 @@ public class ActivityConversionTest {
         @Override
         Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
             return Optional.of(new BallerinaModel.Expression.VariableReference(sharedResourcePropertyName));
+        }
+
+        @Override
+        Optional<Resource.DataFormatResource> dataFormat(String dataFormatPropertyName) {
+            return Optional.of(new Resource.DataFormatResource("Orders.OrderFormat",
+                    "/Resources/Orders/OrderFormat.dataFormatResource", ";", "\n",
+                    "http://example.com/xsd/orders", "order", List.of("orderId", "customer", "amount")));
         }
 
         private static AnalysisResult initAnalysisResult(Scope.Flow.Activity activity) {
