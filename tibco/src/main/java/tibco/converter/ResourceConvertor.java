@@ -135,12 +135,9 @@ final class ResourceConvertor {
                     Optional.of(new Expression.IntConstant(DEFAULT_SFTP_PORT)), configurables);
             MappingField username = new MappingField("username",
                     sftpConfigValue(cx, resource, clientName, "userName", STRING, Optional.empty(), configurables));
-            // BW6 lets the privKeyAuth checkbox be bound to a module property, whose value is only known at runtime,
-            // so the auth mode is chosen there and the configurables of both modes are declared.
             Expression auth = sftpBindingName(resource, "privKeyAuth")
-                    .<Expression>map(propName -> new TernaryExpression(sftpModuleProperty(cx, propName, BOOLEAN),
-                            sftpPrivateKeyAuth(cx, resource, clientName, username, configurables),
-                            sftpPasswordAuth(cx, resource, clientName, username, configurables)))
+                    .map(privKeyAuthModuleProperty -> sftpAuthChosenAtRuntime(cx, resource, clientName, username,
+                            privKeyAuthModuleProperty, configurables))
                     .orElseGet(() -> resource.privKeyAuth()
                             ? sftpPrivateKeyAuth(cx, resource, clientName, username, configurables)
                             : sftpPasswordAuth(cx, resource, clientName, username, configurables));
@@ -155,6 +152,15 @@ final class ResourceConvertor {
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
+    }
+
+    @NotNull
+    private static Expression sftpAuthChosenAtRuntime(ProjectContext cx, SFTPResource resource, String clientName,
+                                                      MappingField username, String privKeyAuthModuleProperty,
+                                                      Map<String, ModuleVar> configurables) {
+        return new TernaryExpression(sftpModuleProperty(cx, privKeyAuthModuleProperty, BOOLEAN),
+                sftpPrivateKeyAuth(cx, resource, clientName, username, configurables),
+                sftpPasswordAuth(cx, resource, clientName, username, configurables));
     }
 
     @NotNull
@@ -213,7 +219,6 @@ final class ResourceConvertor {
                 return new StringConstant(ConversionUtils.escapeString(literal.get()));
             }
             String trimmed = literal.get().trim();
-            // A non-numeric literal can't be trusted to equal the default, so the user must supply the value.
             if (!trimmed.isEmpty()) {
                 return parseIntLiteral(trimmed)
                         .<Expression>map(Expression.IntConstant::new)
