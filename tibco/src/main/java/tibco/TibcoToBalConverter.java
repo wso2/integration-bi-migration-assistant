@@ -393,8 +393,15 @@ public class TibcoToBalConverter {
         List<String> packageNames = new ArrayList<>();
 
         for (TibcoConverter.MultiRootSerializedProjectInfo serializedInfo : serializedProjects) {
-            String projectPrefix = serializedInfo.info().childName();
-            packageNames.add(projectPrefix + "_converted");
+            // Use the escaped package name as the directory so it never contains '.', which consumers such as the
+            // language server treat as a file rather than a project directory.
+            String projectPrefix = serializedInfo.info().context().name();
+            if (packageNames.contains(projectPrefix)) {
+                cx.log(LoggingUtils.Level.SEVERE, "Skipping project " + serializedInfo.info().childName()
+                        + ": its package name " + projectPrefix + " clashes with another project");
+                continue;
+            }
+            packageNames.add(projectPrefix);
 
             // Add all project files with project prefix
             for (Map.Entry<String, String> entry : serializedInfo.serialized().files().entrySet()) {
