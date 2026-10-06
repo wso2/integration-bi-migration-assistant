@@ -460,7 +460,7 @@ public class ProjectContext implements LoggingContext {
     private SharedVariableInfo addProjectSharedVariable(Resource.SharedVariable sharedVariable) {
         assert sharedVariable.isShared() : "job shared variables must be declared within service";
         assert !sharedVariable.initialValue().isBlank() : "Initial value should be a valid XML";
-        String name = ConversionUtils.getSanitizedUniqueName(sharedVariable.name(), unavailableModuleVarNames());
+        String name = ConversionUtils.getSanitizedUniqueIdentifier(sharedVariable.name(), unavailableModuleVarNames());
         BallerinaModel.ModuleVar var = new BallerinaModel.ModuleVar(name, XML,
                 new BallerinaModel.Expression.XMLTemplate(sharedVariable.initialValue()));
         utilityVars.put(name, var);
@@ -472,7 +472,7 @@ public class ProjectContext implements LoggingContext {
     }
 
     public @NotNull String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
-        String uniqueName = ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source),
+        String uniqueName = ConversionUtils.getSanitizedUniqueIdentifier(ConversionUtils.sanitizePath(source),
                 unavailableModuleVarNames());
         utilityVars.put(uniqueName, BallerinaModel.ModuleVar.configurable(uniqueName, type));
         configurableVarNamesByLogicalName.put(name, uniqueName);
@@ -602,7 +602,7 @@ public class ProjectContext implements LoggingContext {
 
     }
 
-    private static Optional<ActivityIdentity> tryIdentifyActivity(tibco.model.Scope.Flow.Activity activity) {
+    private static @NotNull Optional<ActivityIdentity> tryIdentifyActivity(tibco.model.Scope.Flow.Activity activity) {
         if (activity instanceof InlineActivity inlineActivity) {
             return Optional.of(new ActivityIdentity(inlineActivity.name(), inlineActivity.type().toTibcoType()));
         }
@@ -620,13 +620,15 @@ public class ProjectContext implements LoggingContext {
         if (type.isEmpty()) {
             return Optional.empty();
         }
-        Optional<String> declaredName = activity instanceof Scope.Flow.Activity.ActivityWithName activityWithName
-                ? activityWithName.getName()
-                : Optional.of(element.getAttribute("name"));
-        return Optional.of(new ActivityIdentity(declaredName.filter(name -> !name.isEmpty()).orElse(type), type));
+        return Optional.of(new ActivityIdentity(
+                (activity instanceof Scope.Flow.Activity.ActivityWithName activityWithName
+                        ? activityWithName.getName()
+                        : Optional.of(element.getAttribute("name")))
+                        .filter(name -> !name.isEmpty()).orElse(type),
+                type));
     }
 
-    private static Optional<Element> findDescendantWithTag(Element element, String tag) {
+    private static @NotNull Optional<Element> findDescendantWithTag(Element element, String tag) {
         NodeList children = element.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             if (!(children.item(i) instanceof Element child)) {

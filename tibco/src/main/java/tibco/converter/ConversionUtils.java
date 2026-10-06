@@ -146,6 +146,8 @@ public final class ConversionUtils {
     }
 
     public static @NotNull String getSanitizedUniqueIdentifier(String name, Collection<String> allocatedNames) {
+        assert name != null : "name must not be null";
+        assert allocatedNames != null : "allocatedNames must not be null";
         String base = sanitizes(name);
         String candidate = BALLERINA_KEYWORDS.contains(base) ? "'" + base : base;
         int suffix = 1;

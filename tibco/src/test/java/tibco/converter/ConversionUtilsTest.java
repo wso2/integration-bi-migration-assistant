@@ -234,7 +234,7 @@ public class ConversionUtilsTest {
     }
 
     @DataProvider
-    public Object[][] sanitizedUniqueIdentifierProvider() {
+    public @NotNull Object[][] sanitizedUniqueIdentifierProvider() {
         return new Object[][]{
                 {"Log", List.of(), "Log"},
                 {"map", List.of(), "'map"},
