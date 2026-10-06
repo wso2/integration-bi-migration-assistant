@@ -97,7 +97,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
                 propertyVariableToResourceMap.put(ref.name(), resourcePath);
             }
             case Variable.PropertyVariable.SimpleProperty simpleProperty ->
-                projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
+                projectContext.addPropertyConfigurable(simpleProperty.name(), simpleProperty.source());
         }
     }
 

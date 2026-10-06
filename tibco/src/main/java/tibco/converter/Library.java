@@ -30,6 +30,7 @@ enum Library {
     REGEX("ballerina", "regex"),
     LOG("ballerina", "log"),
     FILE("ballerina", "file"),
+    FTP("ballerina", "ftp"),
     SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql"),
     UUID("ballerina", "uuid"),

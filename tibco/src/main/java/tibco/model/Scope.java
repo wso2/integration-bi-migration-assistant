@@ -318,6 +318,20 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record RestInvoke(String httpClientProperty, String method, Optional<String> resourcePath,
+                                      String requestContentType, String responseAcceptType)
+                            implements ActivityExtension.Config {
+
+                        public RestInvoke {
+                            assert !httpClientProperty.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.REST_INVOKE;
+                        }
+                    }
+
                     record JsonOperation(ActivityExtension.Config.ExtensionKind kind, Type.TibcoType type) implements
                             ActivityExtension.Config {
 
@@ -356,13 +370,25 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return ExtensionKind.FILE_RENAME;
                         }
                     }
-
+                  
                     record ListFiles(Process5.ExplicitTransitionGroup.InlineActivity.ListFilesActivity.Mode mode)
                             implements ActivityExtension.Config {
 
                         @Override
                         public ExtensionKind kind() {
                             return ExtensionKind.LIST_FILES;
+                        }
+                    }
+
+                    record SFTPRenameFile(String sftpConnection) implements ActivityExtension.Config {
+
+                        public SFTPRenameFile {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_RENAME_FILE;
                         }
                     }
 
@@ -516,6 +542,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         FILE_RENAME,
                         FILE_WRITE,
                         HTTP_SEND,
+                        REST_INVOKE,
                         JSON_PARSER,
                         JSON_RENDER,
                         LIST_FILES,
@@ -526,6 +553,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         RENDER_XML,
                         PARSE_XML,
                         SEND_HTTP_RESPONSE,
+                        SFTP_RENAME_FILE,
                         MAPPER,
                         BW_ASSIGN,
                         SQL;
@@ -534,12 +562,14 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return switch (typeId) {
                                 case "bw.internal.end" -> END;
                                 case "bw.http.sendHTTPRequest" -> HTTP_SEND;
+                                case "bw.restjson.Rest" -> REST_INVOKE;
                                 case "bw.restjson.JsonRender" -> JSON_RENDER;
                                 case "bw.restjson.JsonParser" -> JSON_PARSER;
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
                                 case "bw.file.write" -> FILE_WRITE;
                                 case "bw.file.rename" -> FILE_RENAME;
                                 case "bw.file.list" -> LIST_FILES;
+                                case "bw.sftp.renameFile" -> SFTP_RENAME_FILE;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;

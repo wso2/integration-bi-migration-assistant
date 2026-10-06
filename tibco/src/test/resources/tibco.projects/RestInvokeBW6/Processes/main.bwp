@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.rest.NotifyProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/rest"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:sca-bpel="http://docs.oasis-open.org/ns/opencsa/sca-bpel/200801"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <bpws:variables>
+        <bpws:variable name="SendNotification-input" sca-bpel:internal="true"/>
+        <bpws:variable name="SendNotification" sca-bpel:internal="true"/>
+        <bpws:variable name="CheckStatus-input" sca-bpel:internal="true"/>
+        <bpws:variable name="CheckStatus" sca-bpel:internal="true"/>
+        <bpws:variable name="NotifyClient" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://xsd.tns.tibco.com/bw/models/sharedresource/httpclient}HttpClientConfiguration" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Notify.HttpClientResource</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+        <bpws:variable name="StatusClient" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://xsd.tns.tibco.com/bw/models/sharedresource/httpclient}HttpClientConfiguration" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Status.HttpClientResource</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+        <bpws:variable name="EndSession-input" sca-bpel:internal="true"/>
+        <bpws:variable name="EndSession" sca-bpel:internal="true"/>
+        <bpws:variable name="SecureClient" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://xsd.tns.tibco.com/bw/models/sharedresource/httpclient}HttpClientConfiguration" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Secure.HttpClientResource</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+        <bpws:variable name="NotifyHost" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            tibex:propertySource="/Resources/Notify/HttpClient/Host" type="xsd:string"/>
+        <bpws:variable name="ChannelA" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            tibex:propertySource="/Resources/Notify/Channel" type="xsd:string"/>
+        <bpws:variable name="ChannelB" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            tibex:propertySource="/Resources/Notify/Channel" type="xsd:string"/>
+    </bpws:variables>
+    <bpws:scope name="scope">
+        <bpws:flow name="flow">
+            <bpws:links>
+                <bpws:link name="StartToSendNotification" tibex:linkType="SUCCESS"/>
+                <bpws:link name="SendNotificationToCheckStatus" tibex:linkType="SUCCESS"/>
+                <bpws:link name="CheckStatusToEndSession" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:extensionActivity>
+                <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Start"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="StartToSendNotification"/>
+                    </bpws:sources>
+                    <tibex:eventSource>
+                        <tibex:StartEvent xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+                    </tibex:eventSource>
+                </tibex:receiveEvent>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="SendNotification-input" name="SendNotification" outputVariable="SendNotification"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="StartToSendNotification"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="SendNotificationToCheckStatus"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+7c3a1e59-2d84-4b6f-a0e9-6f1b5c8d3a27+RestInvokeInput&quot; version=&quot;2.0&quot;&gt;&lt;xsl:template name=&quot;SendNotification-input&quot; match=&quot;/&quot;&gt;&lt;tns1:RestActivityInput&gt;&lt;MessageBody&gt;&lt;asciiContent&gt;&lt;xsl:value-of select=&quot;'{&amp;quot;event&amp;quot;: &amp;quot;orders-archived&amp;quot;}'&quot;/&gt;&lt;/asciiContent&gt;&lt;/MessageBody&gt;&lt;/tns1:RestActivityInput&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                                    <value httpClientSR="NotifyClient" httpMethod="POST" requestContentType="JSON" resourcePath="/api/notifications" responseAcceptType="JSON" xsi:type="restjson:RestInvokeActivity"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="CheckStatus-input" name="CheckStatus" outputVariable="CheckStatus"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="SendNotificationToCheckStatus"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="CheckStatusToEndSession"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+2f8d6b13-9e47-4c5a-b1d0-8a3e7f2c6d94+RestInvokeInput&quot; version=&quot;2.0&quot;&gt;&lt;xsl:template name=&quot;CheckStatus-input&quot; match=&quot;/&quot;&gt;&lt;tns1:RestActivityInput&gt;&lt;HttpHeaders&gt;&lt;DynamicHeaders&gt;&lt;Header&gt;&lt;Name&gt;&lt;xsl:value-of select=&quot;'x-request-source'&quot;/&gt;&lt;/Name&gt;&lt;Value&gt;&lt;xsl:value-of select=&quot;'orders-archive'&quot;/&gt;&lt;/Value&gt;&lt;/Header&gt;&lt;/DynamicHeaders&gt;&lt;/HttpHeaders&gt;&lt;/tns1:RestActivityInput&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                                    <value httpClientSR="StatusClient" httpMethod="GET" resourcePath="/health" responseAcceptType="JSON" xsi:type="restjson:RestInvokeActivity"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="EndSession-input" name="EndSession" outputVariable="EndSession"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="CheckStatusToEndSession"/>
+                    </bpws:targets>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+4b9e2c71-5d3a-4f86-a0c7-1e8d6f2b9a35+RestInvokeInput&quot; version=&quot;2.0&quot;&gt;&lt;xsl:template name=&quot;EndSession-input&quot; match=&quot;/&quot;&gt;&lt;tns1:RestActivityInput&gt;&lt;MessageBody&gt;&lt;asciiContent&gt;&lt;xsl:value-of select=&quot;'{&amp;quot;reason&amp;quot;: &amp;quot;archive-complete&amp;quot;}'&quot;/&gt;&lt;/asciiContent&gt;&lt;/MessageBody&gt;&lt;/tns1:RestActivityInput&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                                    <value httpClientSR="SecureClient" httpMethod="DELETE" requestContentType="JSON" resourcePath="/api/sessions/current" responseAcceptType="JSON" xsi:type="restjson:RestInvokeActivity"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

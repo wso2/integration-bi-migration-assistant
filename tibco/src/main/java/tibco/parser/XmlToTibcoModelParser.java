@@ -254,12 +254,42 @@ public final class XmlToTibcoModelParser {
             Optional<Integer> port = tcpDetails.hasAttribute("port")
                     ? Optional.of(expectIntAttribute(tcpDetails, "port"))
                     : Optional.empty();
-            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
-                    "substitutionBindings")
+            boolean ssl = Boolean.parseBoolean(configuration.getAttribute("useSSL"))
+                    || Boolean.parseBoolean(configuration.getAttribute("useDefaultSSL"));
+            // The SSL flags are bound on the configuration element, the host and port on tcpDetails.
+            Collection<Resource.SubstitutionBinding> substitutionBindings = Stream.concat(
+                            getChildrenWithTag(configuration, "substitutionBindings"),
+                            getChildrenWithTag(tcpDetails, "substitutionBindings"))
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
             cx.log(INFO, "Done parsing HTTPClientResource: " + name);
             cx.logState("Parsed HTTPClientResource: " + name);
-            return Optional.of(new Resource.HTTPClientResource(name, cx.getResourcePath(), port, substitutionBindings));
+            return Optional.of(new Resource.HTTPClientResource(name, cx.getResourcePath(),
+                    parseOptionalAttribute(tcpDetails, "host"), port, ssl, substitutionBindings));
+        } catch (Exception ex) {
+            cx.registerUnsupportedResource(root, name);
+            return Optional.empty();
+        }
+    }
+
+    public static @NotNull Optional<Resource.SFTPResource> parseSFTPResource(ResourceContext cx, Element root) {
+        cx.log(INFO, "Start parsing SFTPResource");
+        cx.logState("Start parsing SFTPResource");
+        String name = "";
+        try {
+            name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
+            Element configuration = getFirstChildWithTag(root, "configuration");
+            boolean privKeyAuth = Boolean.parseBoolean(configuration.getAttribute("privKeyAuth"));
+            Map<String, String> configValues = new HashMap<>();
+            for (String field : List.of("host", "port", "userName", "password", "privKey", "privKeypassword")) {
+                parseOptionalAttribute(configuration, field).ifPresent(value -> configValues.put(field, value));
+            }
+            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
+                    "substitutionBindings")
+                    .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
+            cx.log(INFO, "Done parsing SFTPResource: " + name);
+            cx.logState("Parsed SFTPResource: " + name);
+            return Optional.of(new Resource.SFTPResource(name, cx.getResourcePath(), privKeyAuth, configValues,
+                    substitutionBindings));
         } catch (Exception ex) {
             cx.registerUnsupportedResource(root, name);
             return Optional.empty();
@@ -1379,7 +1409,9 @@ public final class XmlToTibcoModelParser {
             case FILE_WRITE -> new Config.FileWrite();
             case FILE_RENAME -> parseFileRename(activity);
             case LIST_FILES -> parseListFiles(activity);
+            case SFTP_RENAME_FILE -> parseSFTPRenameFile(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
+            case REST_INVOKE -> parseRestInvoke(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
             case LOG -> new Config.Log();
@@ -1402,13 +1434,20 @@ public final class XmlToTibcoModelParser {
         Element value = getFirstChildWithTag(properties, "value");
         return new Config.FileRename(Boolean.parseBoolean(value.getAttribute("overwrite")));
     }
-
+  
     private static Config.@NotNull ListFiles parseListFiles(Element activity) {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
         Element value = getFirstChildWithTag(properties, "value");
         String mode = value.hasAttribute("mode") ? value.getAttribute("mode") : "files-and-directories";
         return new Config.ListFiles(InlineActivity.ListFilesActivity.Mode.from(mode));
+    }
+
+    private static Config.@NotNull SFTPRenameFile parseSFTPRenameFile(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        return new Config.SFTPRenameFile(value.getAttribute("sftpConnection"));
     }
   
     private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {
@@ -1494,6 +1533,17 @@ public final class XmlToTibcoModelParser {
         Element values = getFirstChildWithTag(properties, "value");
         String httpClientResource = values.getAttribute("httpClientResource");
         return new Config.HTTPSend(httpClientResource);
+    }
+
+    private static Config.@NotNull RestInvoke parseRestInvoke(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element values = getFirstChildWithTag(properties, "value");
+        return new Config.RestInvoke(values.getAttribute("httpClientSR"),
+                parseOptionalAttribute(values, "httpMethod").orElse("GET"),
+                parseOptionalAttribute(values, "resourcePath"),
+                parseOptionalAttribute(values, "requestContentType").orElse("JSON"),
+                parseOptionalAttribute(values, "responseAcceptType").orElse("JSON"));
     }
 
     private static Config.PsgLog parsePsgLog(Element activity) {
