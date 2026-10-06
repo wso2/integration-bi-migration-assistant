@@ -1,0 +1,32 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="AppendDailyCsvFiles-input"
+                             name="AppendDailyCsvFiles"
+                             outputVariable="AppendDailyCsvFiles"
+                             tibex:xpdlId="4c7a9e12-3f58-4d6b-a0e1-9b2d5f8c7a43"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToAppendDailyCsvFiles"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="AppendDailyCsvFilesToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/putFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;AppendDailyCsvFiles-input&quot; match=&quot;/&quot;>&lt;tns1:SFTPPutInputDataFile>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;'/outbound/'&quot;/>&lt;/RemoteFileName>&lt;LocalFileName>&lt;xsl:value-of select=&quot;'/work/*.csv'&quot;/>&lt;/LocalFileName>&lt;/tns1:SFTPPutInputDataFile>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.sftp.put"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/sp#//SFTPPut"/>
+                        <value append="true" sftpConnection="OrderSftpConnection" xsi:type="sftpPalette:SFTPPut"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

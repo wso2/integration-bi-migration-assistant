@@ -25,6 +25,7 @@ import common.BallerinaModel.Expression.MappingConstructor;
 import common.BallerinaModel.Expression.MappingConstructor.MappingField;
 import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
+import common.BallerinaModel.Expression.TernaryExpression;
 import common.BallerinaModel.ModuleVar;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
@@ -144,25 +145,49 @@ final class ResourceConvertor {
                     Optional.of(new Expression.IntConstant(DEFAULT_SFTP_PORT)), configurables);
             MappingField username = new MappingField("username",
                     sftpConfigValue(cx, resource, clientName, "userName", STRING, Optional.empty(), configurables));
-            List<MappingField> auth = resource.privKeyAuth()
-                    ? List.of(
-                            new MappingField("credentials", new MappingConstructor(List.of(username))),
-                            new MappingField("privateKey", new MappingConstructor(
-                                    sftpPrivateKeyFields(cx, resource, clientName, configurables))))
-                    : List.of(new MappingField("credentials", new MappingConstructor(List.of(username,
-                            new MappingField("password",
-                                    sftpSecretValue(cx, resource, clientName, "password", configurables))))));
+            Expression auth = sftpBindingName(resource, "privKeyAuth")
+                    .map(privKeyAuthModuleProperty -> sftpAuthChosenAtRuntime(cx, resource, clientName, username,
+                            privKeyAuthModuleProperty, configurables))
+                    .orElseGet(() -> resource.privKeyAuth()
+                            ? sftpPrivateKeyAuth(cx, resource, clientName, username, configurables)
+                            : sftpPasswordAuth(cx, resource, clientName, username, configurables));
             MappingConstructor clientConfig = new MappingConstructor(List.of(
                     new MappingField("protocol", new Expression.VariableReference("ftp:SFTP")),
                     new MappingField("host", host),
                     new MappingField("port", port),
-                    new MappingField("auth", new MappingConstructor(auth))));
+                    new MappingField("auth", auth)));
             ModuleVar resourceVar = new ModuleVar(clientName, "ftp:Client",
                     Optional.of(new CheckPanic(new NewExpression(List.of(clientConfig)))), false, false);
             cx.addResourceDeclaration(resource.path(), resourceVar, configurables.values(), List.of(Library.FTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
+    }
+
+    @NotNull
+    private static Expression sftpAuthChosenAtRuntime(ProjectContext cx, SFTPResource resource, String clientName,
+                                                      MappingField username, String privKeyAuthModuleProperty,
+                                                      Map<String, ModuleVar> configurables) {
+        return new TernaryExpression(sftpModuleProperty(cx, privKeyAuthModuleProperty, BOOLEAN),
+                sftpPrivateKeyAuth(cx, resource, clientName, username, configurables),
+                sftpPasswordAuth(cx, resource, clientName, username, configurables));
+    }
+
+    @NotNull
+    private static MappingConstructor sftpPrivateKeyAuth(ProjectContext cx, SFTPResource resource, String clientName,
+                                                         MappingField username, Map<String, ModuleVar> configurables) {
+        return new MappingConstructor(List.of(
+                new MappingField("credentials", new MappingConstructor(List.of(username))),
+                new MappingField("privateKey", new MappingConstructor(
+                        sftpPrivateKeyFields(cx, resource, clientName, configurables)))));
+    }
+
+    @NotNull
+    private static MappingConstructor sftpPasswordAuth(ProjectContext cx, SFTPResource resource, String clientName,
+                                                       MappingField username, Map<String, ModuleVar> configurables) {
+        return new MappingConstructor(List.of(new MappingField("credentials", new MappingConstructor(List.of(username,
+                new MappingField("password",
+                        sftpSecretValue(cx, resource, clientName, "password", configurables)))))));
     }
 
     // An unencrypted private key has no passphrase, so the password field is only emitted when the resource sets one.
@@ -200,11 +225,26 @@ final class ResourceConvertor {
         }
         Optional<String> literal = Optional.ofNullable(resource.configuration().get(field));
         if (literal.isPresent()) {
-            return type == INT
-                    ? new Expression.IntConstant(Integer.parseInt(literal.get().trim()))
-                    : new StringConstant(ConversionUtils.escapeString(literal.get()));
+            if (type != INT) {
+                return new StringConstant(ConversionUtils.escapeString(literal.get()));
+            }
+            String trimmed = literal.get().trim();
+            if (!trimmed.isEmpty()) {
+                return parseIntLiteral(trimmed)
+                        .<Expression>map(Expression.IntConstant::new)
+                        .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+            }
         }
         return defaultValue.orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+    }
+
+    @NotNull
+    private static Optional<Integer> parseIntLiteral(String literal) {
+        try {
+            return Optional.of(Integer.parseInt(literal));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     @NotNull
