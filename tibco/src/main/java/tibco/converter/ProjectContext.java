@@ -496,6 +496,12 @@ public class ProjectContext implements LoggingContext {
                 .orElseGet(() -> addConfigurableVariable(typedLogicalName, propName, type));
     }
 
+    // Process properties bound to the same module property share its configurable; XPath lookups still go by the
+    // property's own name.
+    void addPropertyConfigurable(String propertyName, String source) {
+        configurableVarNamesByLogicalName.put(propertyName, getOrAddConfigurableVariable(source, STRING));
+    }
+
     @NotNull
     private Set<String> emittedVarNames() {
         return utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).collect(Collectors.toSet());

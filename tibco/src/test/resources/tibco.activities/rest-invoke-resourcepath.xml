@@ -1,0 +1,33 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="FetchOrderStatus-input"
+                             name="FetchOrderStatus"
+                             outputVariable="FetchOrderStatus"
+                             tibex:xpdlId="b7e3c91a-4d26-4f58-9a0e-2c8f5d1b6e47"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="ReceiveOrderToFetchOrderStatus"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="FetchOrderStatusToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+6d2a8f14-3c97-4e51-b0a8-9f1e7c4d2b63+RestInvokeInput&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;OrderId&quot;/>&lt;xsl:template name=&quot;FetchOrderStatus-input&quot; match=&quot;/&quot;>&lt;tns1:RestActivityInput>&lt;ResourcePath>&lt;xsl:value-of select=&quot;concat('/orders/', $OrderId, '/status')&quot;/>&lt;/ResourcePath>&lt;HttpHeaders>&lt;Accept>&lt;xsl:value-of select=&quot;'application/vnd.orders+json'&quot;/>&lt;/Accept>&lt;/HttpHeaders>&lt;/tns1:RestActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                        <value httpClientSR="OrderClient" httpMethod="GET" resourcePath="/orders"
+                               responseAcceptType="JSON" xsi:type="restjson:RestInvokeActivity"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
