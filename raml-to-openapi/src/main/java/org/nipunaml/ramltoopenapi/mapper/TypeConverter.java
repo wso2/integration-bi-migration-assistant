@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Converts RAML type declarations to OpenAPI/JSON Schema types.
@@ -88,7 +90,8 @@ public class TypeConverter {
         }
 
         // Check if this is a direct reference to a named type
-        if (typeName != null && context.hasSchema(typeName)) {
+        if (typeName != null && context.hasSchema(typeName)
+                && !(type instanceof ObjectTypeDeclaration objectType && addsPropertiesToClosedType(objectType))) {
             Schema<?> refSchema = new Schema<>();
             refSchema.set$ref("#/components/schemas/" + typeName);
             logger.debug("  Created reference to: {}", typeName);
@@ -277,6 +280,20 @@ public class TypeConverter {
         return !Boolean.FALSE.equals(type.additionalProperties());
     }
 
+    /**
+     * A closed parent's {@code $ref} would reject the properties a subtype adds, so such a subtype is converted as a
+     * flat object. The RAML parser already lists the inherited properties in {@code properties()}.
+     */
+    static boolean addsPropertiesToClosedType(ObjectTypeDeclaration type) {
+        return type.parentTypes().stream().anyMatch(parent -> parent instanceof ObjectTypeDeclaration parentObject
+                && !allowsAdditionalProperties(parentObject)
+                && !propertyNames(parentObject).containsAll(propertyNames(type)));
+    }
+
+    private static Set<String> propertyNames(ObjectTypeDeclaration type) {
+        return type.properties().stream().map(TypeDeclaration::name).collect(Collectors.toSet());
+    }
+
     private static boolean hasArrayFacets(TypeDeclaration type) {
         if (!(type instanceof ArrayTypeDeclaration)) {
             return false;
@@ -310,7 +327,8 @@ public class TypeConverter {
         boolean isInheritance = baseTypeName != null &&
                 !baseTypeName.equals("object") &&
                 !"any".equals(baseTypeName) &&
-                context.hasSchema(baseTypeName);
+                context.hasSchema(baseTypeName) &&
+                !addsPropertiesToClosedType(type);
 
         if (isInheritance) {
             return createInheritedSchema(type, baseTypeName, context);

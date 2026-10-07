@@ -208,7 +208,8 @@ public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
         
         // Only an object can extend a named schema. Other declarations name a type expression such as
         // "string | nil" or "Order[]", or narrow a named scalar; those are converted as the type they resolve to.
-        return type instanceof ObjectTypeDeclaration && context.hasSchema(typeName) && !typeName.equals(type.name());
+        return type instanceof ObjectTypeDeclaration objectType && context.hasSchema(typeName)
+                && !typeName.equals(type.name()) && !TypeConverter.addsPropertiesToClosedType(objectType);
     }
     
     /**

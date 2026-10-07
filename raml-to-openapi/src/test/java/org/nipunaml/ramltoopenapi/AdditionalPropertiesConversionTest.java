@@ -4,8 +4,12 @@ import io.swagger.v3.oas.models.media.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.nipunaml.ramltoopenapi.exception.ConverterException;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,9 +43,49 @@ class AdditionalPropertiesConversionTest extends BaseConversionTest {
     }
 
     @Test
-    @DisplayName("A closed subtype closes its own part of the allOf")
+    @DisplayName("A closed subtype closes its own part of the allOf, which also lists the inherited properties")
     void testClosedSubtype() {
         Schema<?> ownPart = (Schema<?>) schemas.get("Square").getAllOf().get(1);
         assertThat(ownPart.getAdditionalProperties()).isEqualTo(false);
+        assertThat(ownPart.getProperties()).containsOnlyKeys("name", "origin", "side");
+    }
+
+    @Test
+    @DisplayName("A subtype of a closed type is flat, so the closed parent does not reject the subtype's properties")
+    void testSubtypeOfClosedType(@TempDir Path dir) throws ConverterException, IOException {
+        Path raml = Files.writeString(dir.resolve("api.raml"), """
+                #%RAML 1.0
+                title: Closed Parent
+                types:
+                  Point:
+                    additionalProperties: false
+                    properties:
+                      x: integer
+                  Tile:
+                    type: Point
+                    properties:
+                      colour: string
+                  Board:
+                    properties:
+                      start: Point
+                      corner:
+                        type: Point
+                        properties:
+                          label: string
+                """);
+        Map<String, Schema> closedParentSchemas = converter.convert(parser.parse(raml.toFile()))
+            .getOpenApi().getComponents().getSchemas();
+
+        Schema<?> tile = closedParentSchemas.get("Tile");
+        assertThat(tile.getAllOf()).isNull();
+        assertThat(tile.getProperties()).containsOnlyKeys("x", "colour");
+        assertThat(tile.getAdditionalProperties()).isEqualTo(false);
+
+        Map<String, Schema> boardProperties = closedParentSchemas.get("Board").getProperties();
+        assertThat(boardProperties.get("start").get$ref()).isEqualTo("#/components/schemas/Point");
+        Schema<?> corner = boardProperties.get("corner");
+        assertThat(corner.getAllOf()).isNull();
+        assertThat(corner.getProperties()).containsOnlyKeys("x", "label");
+        assertThat(corner.getAdditionalProperties()).isEqualTo(false);
     }
 }
