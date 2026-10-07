@@ -1,0 +1,39 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="CleanupMarkerFiles-input"
+                             name="CleanupMarkerFiles"
+                             tibex:xpdlId="c4a81f6e-2b97-4d35-8e0c-5a9f3d7b1e62"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="ProcessBatchToCleanupMarkerFiles"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="CleanupMarkerFilesToEnd"/>
+            <bpws:source linkName="CleanupMarkerFilesToReportError" tibex:faultDetailsVar="_error"
+                         tibex:faultNameVar="FaultName">
+                <tibex:DesignExpression>
+                    <tibex:expression expression="##error##"
+                                      expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+                </tibex:DesignExpression>
+                <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+            </bpws:source>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/removeRemoteFile&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;OutboundDir&quot;/>&lt;xsl:template name=&quot;CleanupMarkerFiles-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;concat($OutboundDir, '*.done')&quot;/>&lt;/RemoteFileName>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.sftp.removeFile"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/sp#//SFTPDeleteFile"/>
+                        <value sftpConnection="OrderSftpConnection" xsi:type="sftpPalette:SFTPDeleteFile"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
