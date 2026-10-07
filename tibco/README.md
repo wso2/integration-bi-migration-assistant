@@ -13,6 +13,7 @@
   - `activityExtension`
     - `bw.internal.end`
     - `bw.http.sendHTTPRequest`
+    - `bw.restjson.Rest`
     - `bw.restjson.JsonRender`
     - `bw.restjson.JsonParser`
     - `bw.http.sendHTTPResponse`
@@ -20,6 +21,10 @@
     - `bw.file.rename`
     - `bw.file.list`
     - `bw.sftp.renameFile`
+    - `bw.sftp.removeFile`
+    - `bw.sftp.dir`
+    - `bw.sftp.get`
+    - `bw.sftp.put`
     - `bw.parse.parsedata` (delimited Data Format resources only)
     - `bw.parse.renderdata` (delimited Data Format resources only)
     - `bw.generalactivities.log`

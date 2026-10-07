@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:http="http://xsd.tns.tibco.com/bw/models/sharedresource/httpclient" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmi:id="_secureHttpResource" name="Secure.HttpClientResource" type="http:HttpClientConfiguration">
+  <jndi:configuration xsi:type="http:HttpClientConfiguration" xmi:id="_secureHttpConfiguration" httpClientVersion="httpcomponents">
+    <substitutionBindings xmi:id="_secureUseSsl" template="useSSL" propName="/Resources/Secure/HttpClient/UseSSL"/>
+    <tcpDetails xmi:id="_secureTcpDetails" host="sessions.example.com"/>
+  </jndi:configuration>
+</jndi:namedResource>

@@ -318,6 +318,20 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record RestInvoke(String httpClientProperty, String method, Optional<String> resourcePath,
+                                      String requestContentType, String responseAcceptType)
+                            implements ActivityExtension.Config {
+
+                        public RestInvoke {
+                            assert !httpClientProperty.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.REST_INVOKE;
+                        }
+                    }
+
                     record JsonOperation(ActivityExtension.Config.ExtensionKind kind, Type.TibcoType type) implements
                             ActivityExtension.Config {
 
@@ -378,6 +392,56 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record SFTPDeleteFile(String sftpConnection) implements ActivityExtension.Config {
+
+                        public SFTPDeleteFile {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_DELETE_FILE;
+                        }
+                    }
+
+                    record SFTPDir(String sftpConnection, boolean shortFileNames) implements ActivityExtension.Config {
+
+                        public SFTPDir {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_DIR;
+                        }
+                    }
+
+                    record SFTPGet(String sftpConnection, boolean binary, boolean overwrite)
+                            implements ActivityExtension.Config {
+
+                        public SFTPGet {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_GET;
+                        }
+                    }
+
+                    record SFTPPut(String sftpConnection, boolean binary, boolean overwrite, boolean append)
+                            implements ActivityExtension.Config {
+
+                        public SFTPPut {
+                            assert !sftpConnection.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SFTP_PUT;
+                        }
+                    }
+                  
                     record ParseData(String dataFormat, InputType inputType, String encoding,
                                      boolean skipBlankLines, boolean manuallySpecifiedStartRecord,
                                      boolean continueOnError) implements ActivityExtension.Config {
@@ -569,6 +633,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         FILE_RENAME,
                         FILE_WRITE,
                         HTTP_SEND,
+                        REST_INVOKE,
                         JSON_PARSER,
                         JSON_RENDER,
                         LIST_FILES,
@@ -579,6 +644,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         RENDER_XML,
                         PARSE_XML,
                         SEND_HTTP_RESPONSE,
+                        SFTP_DELETE_FILE,
+                        SFTP_DIR,
+                        SFTP_GET,
+                        SFTP_PUT,
                         SFTP_RENAME_FILE,
                         PARSE_DATA,
                         RENDER_DATA,
@@ -590,6 +659,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return switch (typeId) {
                                 case "bw.internal.end" -> END;
                                 case "bw.http.sendHTTPRequest" -> HTTP_SEND;
+                                case "bw.restjson.Rest" -> REST_INVOKE;
                                 case "bw.restjson.JsonRender" -> JSON_RENDER;
                                 case "bw.restjson.JsonParser" -> JSON_PARSER;
                                 case "bw.http.sendHTTPResponse" -> SEND_HTTP_RESPONSE;
@@ -597,6 +667,10 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.file.rename" -> FILE_RENAME;
                                 case "bw.file.list" -> LIST_FILES;
                                 case "bw.sftp.renameFile" -> SFTP_RENAME_FILE;
+                                case "bw.sftp.removeFile" -> SFTP_DELETE_FILE;
+                                case "bw.sftp.dir" -> SFTP_DIR;
+                                case "bw.sftp.get" -> SFTP_GET;
+                                case "bw.sftp.put" -> SFTP_PUT;
                                 case "bw.parse.parsedata" -> PARSE_DATA;
                                 case "bw.parse.renderdata" -> RENDER_DATA;
                                 case "bw.generalactivities.log" -> LOG;

@@ -97,7 +97,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
                 propertyVariableToResourceMap.put(ref.name(), resourcePath);
             }
             case Variable.PropertyVariable.SimpleProperty simpleProperty ->
-                projectContext.addConfigurableVariable(simpleProperty.name(), simpleProperty.source());
+                projectContext.addPropertyConfigurable(simpleProperty.name(), simpleProperty.source());
         }
     }
 
@@ -505,6 +505,18 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return nameSpaces.stream()
                 .filter(ns -> ns.uri().equals(uri))
                 .findFirst();
+    }
+
+    public @NotNull String getSftpDeleteFilesFunction() {
+        return projectContext.getSftpDeleteFilesFunction();
+    }
+
+    public @NotNull String getSftpGetFilesFunction() {
+        return projectContext.getSftpGetFilesFunction();
+    }
+
+    public @NotNull String getSftpPutFilesFunction() {
+        return projectContext.getSftpPutFilesFunction();
     }
 
     public String getFilesInPathFunction() {

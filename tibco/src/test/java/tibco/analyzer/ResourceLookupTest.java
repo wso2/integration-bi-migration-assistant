@@ -62,7 +62,7 @@ public class ResourceLookupTest {
     public void testResourceLookupInConversionContext() {
         // Create test resources
         Resource.HTTPClientResource globalResource = new Resource.HTTPClientResource(
-                "testHttp", "/global/path", Optional.empty(), new ArrayList<>());
+                "testHttp", "/global/path", Optional.empty(), Optional.empty(), false, new ArrayList<>());
 
         // Create contexts
         ConversionContext conversionContext = new ConversionContext("test-org", false, false,

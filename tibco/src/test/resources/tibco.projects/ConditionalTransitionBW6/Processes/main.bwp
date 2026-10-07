@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.conditional.MainProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/conditional"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:tns="http://xmlns.example.com/test/conditional">
+    <bpws:scope name="MainScope">
+        <bpws:faultHandlers>
+            <bpws:catchAll>
+                <bpws:scope name="HandlerScope">
+                    <bpws:flow name="handlerFlow">
+                        <bpws:links>
+                            <bpws:link name="CheckToRecover" tibex:linkType="SUCCESSWITHCONDITION"/>
+                        </bpws:links>
+                        <bpws:empty name="Check">
+                            <bpws:sources>
+                                <bpws:source linkName="CheckToRecover">
+                                    <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath1.0"><![CDATA[$retry = 'true']]></bpws:transitionCondition>
+                                </bpws:source>
+                            </bpws:sources>
+                        </bpws:empty>
+                        <bpws:empty name="Recover">
+                            <bpws:targets>
+                                <bpws:target linkName="CheckToRecover"/>
+                            </bpws:targets>
+                        </bpws:empty>
+                    </bpws:flow>
+                </bpws:scope>
+            </bpws:catchAll>
+        </bpws:faultHandlers>
+        <bpws:flow name="mainFlow">
+            <bpws:throw faultName="tns:TestFault" name="RaiseFault"/>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

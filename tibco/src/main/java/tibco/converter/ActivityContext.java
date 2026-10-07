@@ -203,6 +203,18 @@ public class ActivityContext implements LoggingContext {
         return processContext.getNameSpaceByUri(uri);
     }
 
+    public @NotNull String getSftpDeleteFilesFunction() {
+        return processContext.getSftpDeleteFilesFunction();
+    }
+
+    public @NotNull String getSftpGetFilesFunction() {
+        return processContext.getSftpGetFilesFunction();
+    }
+
+    public @NotNull String getSftpPutFilesFunction() {
+        return processContext.getSftpPutFilesFunction();
+    }
+
     public String getFilesInPathFunction() {
         return processContext.getFilesInPathFunction();
     }

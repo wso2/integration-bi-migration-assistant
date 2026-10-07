@@ -1,0 +1,33 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="PublishEvent-input"
+                             name="PublishEvent"
+                             outputVariable="PublishEvent"
+                             tibex:xpdlId="6f2d8c14-3b97-4e05-a8c1-7d4e9b0a2f65"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="BuildEventToPublishEvent"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="PublishEventToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/namespaces/tnt/plugins/restinvoke+9b4e1f27-6c83-4d0a-b5f2-3e7a6c1d8b49+RestInvokeInput&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Event&quot;/>&lt;xsl:param name=&quot;GatewayKey&quot;/>&lt;xsl:template name=&quot;PublishEvent-input&quot; match=&quot;/&quot;>&lt;tns1:RestActivityInput>&lt;MessageBody>&lt;asciiContent>&lt;xsl:value-of select=&quot;$Event/jsonString&quot;/>&lt;/asciiContent>&lt;/MessageBody>&lt;HttpHeaders>&lt;DynamicHeaders>&lt;Header>&lt;Name>&lt;xsl:value-of select=&quot;'x-api-key'&quot;/>&lt;/Name>&lt;Value>&lt;xsl:value-of select=&quot;$GatewayKey&quot;/>&lt;/Value>&lt;/Header>&lt;/DynamicHeaders>&lt;/HttpHeaders>&lt;/tns1:RestActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.restjson.Rest"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:restjson="http://ns.tibco.com/bw/palette/restjson"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/restjson#//RestInvokeActivity"/>
+                        <value httpClientSR="EventGatewayClient" httpMethod="POST" requestContentType="JSON"
+                               responseAcceptType="JSON" xsi:type="restjson:RestInvokeActivity"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
