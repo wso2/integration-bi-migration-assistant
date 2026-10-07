@@ -1472,7 +1472,6 @@ public final class XmlToTibcoModelParser {
             case FILE_WRITE -> new Config.FileWrite();
             case FILE_RENAME -> parseFileRename(activity);
             case LIST_FILES -> parseListFiles(activity);
-            case SFTP_RENAME_FILE -> parseSFTPRenameFile(activity);
             case SFTP_RENAME_FILE -> new Config.SFTPRenameFile(parseSFTPConnection(activity));
             case SFTP_DELETE_FILE -> new Config.SFTPDeleteFile(parseSFTPConnection(activity));
             case SFTP_DIR -> parseSFTPDir(activity);
