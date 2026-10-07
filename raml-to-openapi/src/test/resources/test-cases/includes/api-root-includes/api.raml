@@ -1,0 +1,12 @@
+#%RAML 1.0
+title: API Root Includes
+types:
+  Order: !include datatypes/order.raml
+/orders:
+  get:
+    responses:
+      200:
+        body:
+          application/json:
+            type: Order
+            example: !include /examples/order.json

@@ -1,0 +1,14 @@
+#%RAML 1.0
+title: Traits
+uses:
+  policy: policies.raml
+traits:
+  paged:
+    queryParameters:
+      page?: integer
+/orders:
+  is: [policy.client-id-enforcement]
+  get:
+    is: [paged, policy.client-id-enforcement]
+  /{id}:
+    get:

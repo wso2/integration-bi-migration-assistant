@@ -13,6 +13,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 configurable string JMS_PROVIDER_URL = ?;
 jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
 public listener http:Listener http\-listener\-config = new (8081);
@@ -27,10 +29,10 @@ service / on http\-listener\-config {
     }
 
     resource function default api(http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
-    resource function post orders(http:Request request) returns http:Response|error {
+    resource function post api/orders(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("Processing new order");
         jms:MapMessage jmsMessage0 = {

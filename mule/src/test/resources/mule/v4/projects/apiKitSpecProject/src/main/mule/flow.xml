@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+  <flow name="get:\orders\(orderId):orders-config">
+    <logger level="INFO" message="Fetching order #[attributes.uriParams.orderId]"/>
+    <set-payload value='{"orderId": "1", "status": "NEW", "quantity": 2, "addresses": [{"street": "Main"}], "priority": true}' mimeType="application/json"/>
+  </flow>
+  <flow name="post:\orders:orders-config">
+    <logger level="INFO" message="Creating order #[payload]"/>
+    <set-variable variableName="httpStatus" value="201"/>
+  </flow>
+  <flow name="put:\orders\(orderId):orders-config">
+    <logger level="INFO" message="Replacing order #[attributes.uriParams.orderId]"/>
+    <set-variable variableName="httpStatus" value="202"/>
+  </flow>
+  <flow name="post:\orders\(orderId)\notes:orders-config">
+    <logger level="INFO" message="Adding note #[payload]"/>
+    <set-variable variableName="httpStatus" value="201"/>
+  </flow>
+  <flow name="delete:\orders\(orderId):orders-config">
+    <logger level="INFO" message="Deleting order #[attributes.uriParams.orderId]"/>
+  </flow>
+</mule>

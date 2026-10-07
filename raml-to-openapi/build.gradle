@@ -13,7 +13,7 @@ dependencies {
 
     // OpenAPI Model & Parser
     implementation "io.swagger.parser.v3:swagger-parser:${swaggerParserVersion}"
-    implementation "io.swagger.core.v3:swagger-models:${swaggerModelsVersion}"
+    api "io.swagger.core.v3:swagger-models:${swaggerModelsVersion}"
     implementation "io.swagger.core.v3:swagger-core:${swaggerCoreVersion}"
 
     // YAML Processing
@@ -23,7 +23,8 @@ dependencies {
 
     // Logging
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
-    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    // Test-only: with no logback.xml, logback logs DEBUG to the console of any CLI that bundles this library
+    testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
 
     // Utilities
     implementation "org.apache.commons:commons-lang3:${commonsLangVersion}"
