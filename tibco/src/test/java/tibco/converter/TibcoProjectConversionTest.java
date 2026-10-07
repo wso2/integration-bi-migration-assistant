@@ -633,8 +633,19 @@ public class TibcoProjectConversionTest {
         var textEdits = (Map<String, String>) result.get("textEdits");
 
         String ballerinaToml = textEdits.get("Ballerina.toml");
-        Assert.assertEquals(ballerinaToml.split("\\[\\[platform\\.java17\\.dependency]]", -1).length - 1, 4,
+        Assert.assertEquals(ballerinaToml.split("\\[\\[platform\\.java17\\.dependency]]", -1).length - 1, 5,
                 "Each resolvable driver should be declared once: " + ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("artifactId = \"mariadb-java-client\""),
+                "A property unset in the default profile should resolve when the other profiles agree: "
+                        + ballerinaToml);
+        Assert.assertFalse(ballerinaToml.contains("artifactId = \"mysql-connector-java\""),
+                "The default profile should win, and disagreeing profiles must not pick a driver: " + ballerinaToml);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("/DB/Analytics/driver")
+                        && log.contains("DEV.substvar") && log.contains("PROD.substvar")),
+                "Taking a value from non-default profiles should be logged: " + logs);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("/DB/Split/driver")
+                        && log.contains("differs") && log.contains("DEV.substvar") && log.contains("PROD.substvar")),
+                "Disagreeing profiles should be logged: " + logs);
         Assert.assertTrue(ballerinaToml.contains("artifactId = \"postgresql\""), ballerinaToml);
         Assert.assertTrue(ballerinaToml.contains("artifactId = \"mssql-jdbc\""), ballerinaToml);
         Assert.assertTrue(ballerinaToml.contains("artifactId = \"ojdbc8\""),

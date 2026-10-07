@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -63,6 +64,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
+
+    private static final String DEFAULT_PROFILE = "default.substvar";
 
     private TibcoToBalConverter() {
     }
@@ -299,26 +302,70 @@ public class TibcoToBalConverter {
         }
     }
 
+    // Each BW6 profile is a META-INF/<profile>.substvar file. The default profile decides; a property it leaves unset
+    // is taken from the other profiles only when they all agree, so no single deployment environment is guessed.
     public static @NotNull Map<String, String> parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
-        Path substvarPath = Paths.get(projectPath, "META-INF", "default.substvar");
-        if (!Files.isRegularFile(substvarPath)) {
+        Path metaInf = Paths.get(projectPath, "META-INF");
+        if (!Files.isDirectory(metaInf)) {
             return Map.of();
         }
+        List<Path> profiles;
+        try (Stream<Path> files = Files.list(metaInf)) {
+            profiles = files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".substvar"))
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            cx.log(LoggingUtils.Level.WARN, "Unable to list module property profiles in " + metaInf + ": "
+                    + e.getMessage());
+            return Map.of();
+        }
+        Map<String, String> defaults = new HashMap<>();
+        Map<String, Map<String, String>> otherProfileValuesByProperty = new TreeMap<>();
+        for (Path profile : profiles) {
+            String profileName = profile.getFileName().toString();
+            Map<String, String> values = parseModuleProperties(cx, profile);
+            if (profileName.equals(DEFAULT_PROFILE)) {
+                defaults.putAll(values);
+            } else {
+                values.forEach((name, value) -> otherProfileValuesByProperty
+                        .computeIfAbsent(name, key -> new TreeMap<>())
+                        .put(profileName, value));
+            }
+        }
+        otherProfileValuesByProperty.forEach((name, valuesByProfile) -> {
+            if (defaults.containsKey(name)) {
+                return;
+            }
+            String profileNames = String.join(", ", valuesByProfile.keySet());
+            if (new HashSet<>(valuesByProfile.values()).size() == 1) {
+                defaults.put(name, valuesByProfile.values().iterator().next());
+                cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
+                        + "; using its value from " + profileNames);
+            } else {
+                cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
+                        + " and its value differs across " + profileNames + "; leaving it unresolved");
+            }
+        });
+        return defaults;
+    }
+
+    private static @NotNull Map<String, String> parseModuleProperties(LoggingContext cx, Path profile) {
         try {
-            Map<String, String> defaults = new HashMap<>();
-            NodeList globalVariables = parseXmlFile(substvarPath.toString())
+            Map<String, String> values = new HashMap<>();
+            NodeList globalVariables = parseXmlFile(profile.toString())
                     .getElementsByTagNameNS("*", "globalVariable");
             for (int i = 0; i < globalVariables.getLength(); i++) {
                 Element globalVariable = (Element) globalVariables.item(i);
                 Optional<String> name = childText(globalVariable, "name");
-                Optional<String> value = childText(globalVariable, "value");
+                Optional<String> value = childText(globalVariable, "value").filter(text -> !text.isBlank());
                 if (name.isPresent() && value.isPresent()) {
-                    defaults.put(name.get(), value.get());
+                    values.put(name.get(), value.get());
                 }
             }
-            return defaults;
+            return values;
         } catch (IOException | SAXException | ParserConfigurationException e) {
-            cx.log(LoggingUtils.Level.WARN, "Unable to read module property defaults from " + substvarPath + ": "
+            cx.log(LoggingUtils.Level.WARN, "Unable to read module properties from " + profile + ": "
                     + e.getMessage());
             return Map.of();
         }
