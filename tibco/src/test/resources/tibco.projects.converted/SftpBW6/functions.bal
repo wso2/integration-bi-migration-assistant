@@ -4,7 +4,7 @@ import ballerina/io;
 import ballerina/regex;
 import ballerina/xslt;
 
-function activityExtension(Context cx) returns error? {
+function ArchiveOrderFile(Context cx) returns error? {
     xml var0 = getFromContext(cx, "ArchiveOrderFile-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/renameFile" version="2.0"><xsl:template name="ArchiveOrderFile-input" match="/"><tns1:Input><OldRemoteFileName><xsl:value-of select="concat('/inbound/', 'orders.csv')"/></OldRemoteFileName><NewRemoteFileName><xsl:value-of select="concat('/archive/', 'orders.csv')"/></NewRemoteFileName></tns1:Input></xsl:template></xsl:stylesheet>`);
@@ -14,7 +14,7 @@ function activityExtension(Context cx) returns error? {
     check Orders_SftpConnection->rename(var3, var4);
 }
 
-function activityExtension_1(Context cx) returns error? {
+function ArchiveReport(Context cx) returns error? {
     xml var0 = getFromContext(cx, "ArchiveReport-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/renameFile" version="2.0"><xsl:template name="ArchiveReport-input" match="/"><tns1:Input><OldRemoteFileName><xsl:value-of select="'/reports/daily.pdf'"/></OldRemoteFileName><NewRemoteFileName><xsl:value-of select="'/reports/archive/daily.pdf'"/></NewRemoteFileName></tns1:Input></xsl:template></xsl:stylesheet>`);
@@ -24,7 +24,7 @@ function activityExtension_1(Context cx) returns error? {
     check Reports_SftpConnection->rename(var3, var4);
 }
 
-function activityExtension_2(Context cx) returns error? {
+function CleanupMarkerFiles(Context cx) returns error? {
     xml var0 = getFromContext(cx, "CleanupMarkerFiles-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/removeRemoteFile" version="2.0"><xsl:template name="CleanupMarkerFiles-input" match="/"><tns1:Input><RemoteFileName><xsl:value-of select="'/inbound/*.done'"/></RemoteFileName></tns1:Input></xsl:template></xsl:stylesheet>`);
@@ -33,7 +33,19 @@ function activityExtension_2(Context cx) returns error? {
     check sftpDeleteFiles(Orders_SftpConnection, var3);
 }
 
-function activityExtension_3(Context cx) returns error? {
+function FetchOrders(Context cx) returns error? {
+    xml var0 = getFromContext(cx, "FetchOrders-input");
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/getFile" version="2.0"><xsl:template name="FetchOrders-input" match="/"><tns1:SFTPGetInputDataFile><RemoteFileName><xsl:value-of select="'/inbound/orders.csv'"/></RemoteFileName><LocalFileName><xsl:value-of select="'/work/orders.csv'"/></LocalFileName></tns1:SFTPGetInputDataFile></xsl:template></xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    string var3 = (var2/**/<RemoteFileName>/*).toString();
+    string var4 = (var2/**/<LocalFileName>/*).toString();
+    xml var5 = check sftpGetFiles(Orders_SftpConnection, var3, var4, true);
+    xml var6 = xml `<root>${var5}</root>`;
+    addToContext(cx, "FetchOrders", var6);
+}
+
+function ListInbound(Context cx) returns error? {
     xml var0 = getFromContext(cx, "ListInbound-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/dir" version="2.0"><xsl:template name="ListInbound-input" match="/"><tns1:Input><Directory><xsl:value-of select="'/inbound/'"/></Directory></tns1:Input></xsl:template></xsl:stylesheet>`);
@@ -48,19 +60,7 @@ function activityExtension_3(Context cx) returns error? {
     addToContext(cx, "ListInbound", var6);
 }
 
-function activityExtension_4(Context cx) returns error? {
-    xml var0 = getFromContext(cx, "FetchOrders-input");
-    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/getFile" version="2.0"><xsl:template name="FetchOrders-input" match="/"><tns1:SFTPGetInputDataFile><RemoteFileName><xsl:value-of select="'/inbound/orders.csv'"/></RemoteFileName><LocalFileName><xsl:value-of select="'/work/orders.csv'"/></LocalFileName></tns1:SFTPGetInputDataFile></xsl:template></xsl:stylesheet>`);
-    xml var2 = check xslt:transform(var0, var1, cx.variables);
-    string var3 = (var2/**/<RemoteFileName>/*).toString();
-    string var4 = (var2/**/<LocalFileName>/*).toString();
-    xml var5 = check sftpGetFiles(Orders_SftpConnection, var3, var4, true);
-    xml var6 = xml `<root>${var5}</root>`;
-    addToContext(cx, "FetchOrders", var6);
-}
-
-function activityExtension_5(Context cx) returns error? {
+function PublishOrders(Context cx) returns error? {
     xml var0 = getFromContext(cx, "PublishOrders-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/putFile" version="2.0"><xsl:template name="PublishOrders-input" match="/"><tns1:SFTPPutInputDataFile><RemoteFileName><xsl:value-of select="'/outbound/orders.csv'"/></RemoteFileName><LocalFileName><xsl:value-of select="'/work/orders.csv'"/></LocalFileName></tns1:SFTPPutInputDataFile></xsl:template></xsl:stylesheet>`);
@@ -72,17 +72,17 @@ function activityExtension_5(Context cx) returns error? {
     addToContext(cx, "PublishOrders", var6);
 }
 
-function receiveEvent(Context cx) returns error? {
+function Start(Context cx) returns error? {
 }
 
 function scopeActivityRunner(Context cx) returns error? {
-    check receiveEvent(cx);
-    check activityExtension(cx);
-    check activityExtension_1(cx);
-    check activityExtension_2(cx);
-    check activityExtension_3(cx);
-    check activityExtension_4(cx);
-    check activityExtension_5(cx);
+    check Start(cx);
+    check ArchiveOrderFile(cx);
+    check ArchiveReport(cx);
+    check CleanupMarkerFiles(cx);
+    check ListInbound(cx);
+    check FetchOrders(cx);
+    check PublishOrders(cx);
 }
 
 function scopeFaultHandler(error err, Context cx) returns () {
