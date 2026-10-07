@@ -38,6 +38,7 @@ import mule.common.apispec.ApiSpec.ScalarKind;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,6 +55,17 @@ public class OpenApiSpecReaderTest {
         Schema<?> nullableUnion = new Schema<>().oneOf(List.of(new StringSchema(), new Schema<>().type("integer")))
                 .nullable(true);
         Assert.assertEquals(type(nullableUnion), new ApiType.Union(List.of(STRING, INTEGER, new ApiType.Nil())));
+    }
+
+    @Test
+    public void testMapsNullOnlyOptionToNil() {
+        ObjectSchema nullOnly = new ObjectSchema();
+        nullOnly.setNullable(true);
+        nullOnly.setEnum(Collections.singletonList(null));
+        Schema<?> nullableRef = new Schema<>().oneOf(List.of(new Schema<>().$ref("#/components/schemas/Order"),
+                nullOnly));
+        Assert.assertEquals(type(nullableRef), new ApiType.Union(List.of(new ApiType.Ref("Order"),
+                new ApiType.Nil())));
     }
 
     @Test

@@ -240,6 +240,9 @@ final class OpenApiSpecReader {
         if (schema == null) {
             return new ApiType.Any();
         }
+        if (TypeConverter.isNullSchema(schema)) {
+            return new ApiType.Nil();
+        }
         ApiType type = toNonNullableType(schema);
         if (!Boolean.TRUE.equals(schema.getNullable())) {
             return type;

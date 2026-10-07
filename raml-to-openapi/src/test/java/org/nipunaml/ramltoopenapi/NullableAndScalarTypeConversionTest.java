@@ -1,12 +1,21 @@
 package org.nipunaml.ramltoopenapi;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.swagger.v3.oas.models.media.Schema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.nipunaml.ramltoopenapi.exception.ConverterException;
+import org.nipunaml.ramltoopenapi.mapper.TypeConverter;
+import org.nipunaml.ramltoopenapi.model.openapi.OpenApiDocument;
+import org.nipunaml.ramltoopenapi.writer.OpenApiWriter;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,19 +48,35 @@ class NullableAndScalarTypeConversionTest extends BaseConversionTest {
     }
 
     @Test
-    @DisplayName("A | B | nil becomes a nullable oneOf without the nil option")
+    @DisplayName("A | B | nil becomes a oneOf with a null-only option, since nullable needs a type next to it")
     void testNilUnionWithSeveralTypes() {
         Schema<?> count = orderProperties.get("count");
-        assertThat(count.getNullable()).isTrue();
-        assertThat(count.getOneOf()).extracting(Schema::getType).containsExactly("integer", "string");
+        assertThat(count.getNullable()).isNull();
+        assertThat(count.getOneOf()).hasSize(3);
+        assertThat(count.getOneOf().subList(0, 2)).extracting(Schema::getType).containsExactly("integer", "string");
+        assertThat(TypeConverter.isNullSchema(count.getOneOf().get(2))).isTrue();
     }
 
     @Test
-    @DisplayName("A referenced type | nil keeps the reference inside a nullable oneOf")
+    @DisplayName("A referenced type | nil becomes a oneOf of the reference and a null-only option")
     void testNilUnionWithReference() {
         Schema<?> parent = orderProperties.get("parent");
-        assertThat(parent.getNullable()).isTrue();
-        assertThat(parent.getOneOf()).extracting(Schema::get$ref).containsExactly(REF_PREFIX + "Order");
+        assertThat(parent.getNullable()).isNull();
+        assertThat(parent.getOneOf()).hasSize(2);
+        assertThat(parent.getOneOf().get(0).get$ref()).isEqualTo(REF_PREFIX + "Order");
+        assertThat(TypeConverter.isNullSchema(parent.getOneOf().get(1))).isTrue();
+    }
+
+    @Test
+    @DisplayName("The written null-only option is a nullable type whose enum allows only null")
+    void testWrittenNullOption(@TempDir Path dir) throws ConverterException, IOException {
+        File ramlFile = getResourceFile("test-cases/types/10-nullable-and-scalar-types.raml");
+        OpenApiDocument document = converter.convert(parser.parse(ramlFile));
+        // Only YAML: writeJson configures the shared Json.mapper(), which would change the output of later tests
+        File written = new OpenApiWriter().write(document, ramlFile, dir.resolve("api.yaml").toFile(), "yaml");
+        JsonNode openApi = new ObjectMapper(new YAMLFactory()).readTree(written);
+        assertThat(openApi.at("/components/schemas/Order/properties/parent/oneOf/1"))
+            .isEqualTo(objectMapper.readTree("{\"type\":\"object\",\"nullable\":true,\"enum\":[null]}"));
     }
 
     @Test

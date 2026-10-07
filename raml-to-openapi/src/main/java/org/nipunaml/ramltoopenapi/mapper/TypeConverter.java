@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -495,23 +496,44 @@ public class TypeConverter {
             }
         }
         
-        // OpenAPI 3.0 expresses "T | nil" as T with nullable: true. A $ref ignores sibling keywords, so a lone
-        // referenced option stays wrapped in oneOf to keep the nullable flag.
+        // OpenAPI 3.0 expresses "T | nil" as T with nullable: true. nullable takes effect only next to a type, which
+        // a $ref or a oneOf wrapper cannot have, so those unions take null as an option of its own.
         Schema<?> schema;
         if (oneOf.size() == 1 && oneOf.get(0).get$ref() == null) {
             schema = oneOf.get(0);
+            if (nullable) {
+                schema.setNullable(true);
+            }
         } else {
+            if (nullable) {
+                oneOf.add(createNullSchema());
+            }
             schema = new Schema<>();
             if (!oneOf.isEmpty()) {
                 schema.setOneOf(oneOf);
             }
         }
-        if (nullable) {
-            schema.setNullable(true);
-        }
         logger.debug("  Union of {} types, nullable: {}", oneOf.size(), nullable);
         
         return schema;
+    }
+
+    /**
+     * OpenAPI 3.0 has no null type: nullable lets the typed schema take null, and the enum then allows nothing else.
+     */
+    private static Schema<?> createNullSchema() {
+        ObjectSchema schema = new ObjectSchema();
+        schema.setNullable(true);
+        schema.setEnum(Collections.singletonList(null));
+        return schema;
+    }
+
+    /**
+     * Whether the schema accepts only null, as the nil option of a union that is not a single typed schema does.
+     */
+    public static boolean isNullSchema(Schema<?> schema) {
+        return Boolean.TRUE.equals(schema.getNullable()) && schema.getEnum() != null
+                && schema.getEnum().size() == 1 && schema.getEnum().get(0) == null;
     }
     
     /**
