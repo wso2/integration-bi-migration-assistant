@@ -51,6 +51,7 @@ public abstract class ContextBase {
     public final ProjectMigrationResult result;
     protected final MultiRootContext multiRootContext;
     protected final List<File> munitXmlFiles;
+    private ProjectProperties projectProperties;
 
     protected ContextBase(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                          List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -126,6 +127,38 @@ public abstract class ContextBase {
             return Optional.empty();
         }
         return Optional.of(muleAppDir.getParent().resolve(MULE_RESOURCES_DIR_NAME));
+    }
+
+    /**
+     * Returns the root directory of the source Mule project, the one holding {@code src/main}.
+     *
+     * @return the project root, or empty when a single XML file is being converted
+     */
+    @NotNull
+    public Optional<Path> getMuleProjectRoot() {
+        if (muleAppDir == null) {
+            return Optional.empty();
+        }
+        Path srcMain = muleAppDir.toAbsolutePath().normalize().getParent();
+        if (srcMain == null || !srcMain.endsWith(Path.of("src", "main"))) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(srcMain.getParent().getParent());
+    }
+
+    /**
+     * Resolves an attribute value written as a single property placeholder against the project's property files.
+     *
+     * @param value an attribute value
+     * @return see {@link ProjectProperties#resolve(String)}
+     */
+    @NotNull
+    public Optional<String> resolveProjectProperty(String value) {
+        if (projectProperties == null) {
+            projectProperties = ProjectProperties.load(propertyFiles == null ? List.of() : propertyFiles,
+                    yamlFiles == null ? List.of() : yamlFiles, logger);
+        }
+        return projectProperties.resolve(value);
     }
 
     public String getOrgName() {

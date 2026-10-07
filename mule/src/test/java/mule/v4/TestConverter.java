@@ -79,15 +79,34 @@ public class TestConverter {
 
     @Test(description = "Test converting apiKitProject Mule project")
     public void testApiKitProjectConversion() throws IOException {
-        String projectPath = "src/test/resources/mule/v4/projects/apiKitProject";
-        Path expectedDir = Path.of(projectPath, "apiKitProject_ballerina");
+        assertProjectConversion("apiKitProject");
+    }
+
+    @Test(description = "Test converting an APIkit project whose flows implement operations of its RAML spec")
+    public void testApiKitSpecProjectConversion() throws IOException {
+        assertProjectConversion("apiKitSpecProject");
+    }
+
+    @Test(description = "Test converting an APIkit project whose resources check their responses against its spec")
+    public void testApiKitSpecProjectConversionCheckingResponses() throws IOException {
+        assertProjectConversion("apiKitSpecProject", true, "apiKitSpecProject_check_responses_ballerina");
+    }
+
+    private void assertProjectConversion(String projectName) throws IOException {
+        assertProjectConversion(projectName, false, projectName + "_ballerina");
+    }
+
+    private void assertProjectConversion(String projectName, boolean checkResponses, String expectedDirName)
+            throws IOException {
+        String projectPath = "src/test/resources/mule/v4/projects/" + projectName;
+        Path expectedDir = Path.of(projectPath, expectedDirName);
 
         // Create a temporary directory for the output
-        Path tempDir = Files.createTempDirectory("apiKitProject-conversion-test");
+        Path tempDir = Files.createTempDirectory(projectName + "-conversion-test");
         boolean bless = "true".equalsIgnoreCase(System.getenv("BLESS"));
         try {
             migrateAndExportMuleSource(projectPath, tempDir.toString(), null, null, 4,
-                    false, false, false, false);
+                    false, false, false, checkResponses, false);
 
             Path actualDir = locateGeneratedProjectDir(tempDir, expectedDir.getFileName().toString());
             if (bless) {
@@ -158,8 +177,8 @@ public class TestConverter {
 
             // Check if all expected files exist
             for (Path relativePath : expectedPaths) {
-                if (relativePath.endsWith("types.bal") || relativePath.endsWith("migration_report.html")) {
-                    // Skip types.bal and migration_report.html as they may differ
+                if (relativePath.endsWith("migration_report.html")) {
+                    // Skip migration_report.html as it may differ
                     continue;
                 }
                 Assert.assertTrue(actualPaths.contains(relativePath),
@@ -173,8 +192,8 @@ public class TestConverter {
 
             // Check for extra files
             for (Path relativePath : actualPaths) {
-                if (relativePath.endsWith("types.bal") || relativePath.endsWith("migration_report.html")) {
-                    // Skip types.bal and migration_report.html as they may differ
+                if (relativePath.endsWith("migration_report.html")) {
+                    // Skip migration_report.html as it may differ
                     continue;
                 }
                 Assert.assertTrue(expectedPaths.contains(relativePath),
@@ -184,8 +203,8 @@ public class TestConverter {
     }
 
     private void compareFiles(Path actual, Path expected) throws IOException {
-        if (actual.toString().contains("types") || actual.toString().contains(".html")) {
-            // These are generated and may change from run to run
+        if (actual.getFileName().toString().endsWith(".html")) {
+            // The report may change from run to run
             return;
         }
         String actualContent = Files.readString(actual);

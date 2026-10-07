@@ -26,11 +26,13 @@ import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
 import mule.common.MigrationMetrics;
 import mule.common.MuleLogger;
+import mule.common.apispec.ApiContractCheck;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 
 public class IndividualReportGenerator {
@@ -161,7 +163,8 @@ public class IndividualReportGenerator {
                 // Content sections
                 unsupportedElementsTable,
                 unsupportedBlocksHtml,
-                dataweaveExpressionsHtml
+                dataweaveExpressionsHtml,
+                generateApiContractsHtml(pms.apiContractChecks())
         );
     }
 
@@ -207,7 +210,7 @@ public class IndividualReportGenerator {
         int migrationCoverage = calculateMigrationCoverage(muleVersion, metrics);
         return new ProjectMigrationStats(metrics.passedXMLTags, metrics.failedXMLTags, metrics.failedBlocks,
                 metrics.dwConversionStats, migrationCoverage, bestCaseDays, avgCaseDays, worstCaseDays,
-                metrics.failedXMLTags.size(), failedDWLineCount);
+                metrics.failedXMLTags.size(), failedDWLineCount, List.copyOf(metrics.apiContractChecks));
     }
 
     private static int calculateMigrationCoverage(MuleVersion muleVersion,
@@ -275,6 +278,56 @@ public class IndividualReportGenerator {
             sb.append("</div><pre class=\"block-code\">").append(dwExpr).append("</pre></div>");
         }
         return sb.toString();
+    }
+
+    private static String generateApiContractsHtml(List<ApiContractCheck> checks) {
+        if (checks.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("""
+                    <div class="summary-container">
+                      <h2>API Contracts</h2>
+                      <p>APIkit routes requests to flows by the operations of the API spec. Spec operations
+                         without a flow answer with 501 Not Implemented.</p>
+                """);
+        for (ApiContractCheck check : checks) {
+            sb.append("<h3>").append(escapeHtml(check.configName())).append("</h3>\n<table class=\"api-contract\">\n");
+            appendRow(sb, "API spec", "<code>" + escapeHtml(check.apiRef()) + "</code>");
+            switch (check) {
+                case ApiContractCheck.Checked checked -> {
+                    appendRow(sb, "Read from", "<code>" + escapeHtml(checked.specLocation()) + "</code>");
+                    appendRow(sb, "Implemented operations", routeList(checked.implemented()));
+                    appendRow(sb, "Operations without a flow", routeList(checked.unimplemented()));
+                    for (ApiContractCheck.FlowIssue flowIssue : checked.flowIssues()) {
+                        appendRow(sb, "Flow issue", "<code>" + escapeHtml(flowIssue.flowName()) + "</code><br>"
+                                + escapeHtml(flowIssue.issue()));
+                    }
+                }
+                case ApiContractCheck.Unchecked unchecked -> {
+                    appendRow(sb, "Not checked", escapeHtml(unchecked.reason()));
+                    appendRow(sb, "APIkit flows", unchecked.flowCount()
+                            + ", migrated with routes taken from their flow names");
+                }
+            }
+            if (!check.policies().isEmpty()) {
+                appendRow(sb, "API Manager policies", check.policies().stream()
+                        .map(policy -> escapeHtml(policy) + "<br>")
+                        .collect(Collectors.joining())
+                        + "The migrated service does not enforce these; see the TODO on its service.");
+            }
+            sb.append("</table>\n");
+        }
+        return sb.append("</div>\n").toString();
+    }
+
+    private static void appendRow(StringBuilder sb, String heading, String valueHtml) {
+        sb.append("<tr><th>").append(heading).append("</th><td>").append(valueHtml).append("</td></tr>\n");
+    }
+
+    private static String routeList(List<String> routes) {
+        return routes.isEmpty() ? "None" : routes.stream()
+                .map(route -> "<code>" + escapeHtml(route) + "</code>")
+                .collect(Collectors.joining("<br>"));
     }
 
     private static String getBlockType(String block) {

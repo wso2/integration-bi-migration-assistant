@@ -40,7 +40,9 @@ service class MuleResponseErrorInterceptor0 {
         // set payload
         string payload0 = "internal error";
         ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
 
         // http response headers
         anydata responseHeaderValues = {"Content-Type": "text/plain"};

@@ -31,7 +31,7 @@ $ bal tool pull migrate-mule
 ### Command Syntax
 
 ```bash
-$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-f|--force-version <3|4>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-m|--multi-root]
+$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-f|--force-version <3|4>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [--check-responses] [-m|--multi-root]
 ```
 
 ### Parameters
@@ -44,6 +44,7 @@ $ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-director
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original Mule project structure during migration. By default, this option is disabled.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
 - **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `migration_report.html` file without generating the Ballerina package.
+- **--check-responses** - *Optional*. Make the migrated APIkit services check their success responses against the project's API spec (RAML). When the spec describes a JSON body for the status a flow answers with, a body that does not match it fails with a 500 error instead of being sent. By default, responses are sent as the flow produced them, the same as in Mule.
 - **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple MuleSoft projects.
 
 ### Project Structure Requirements
@@ -137,6 +138,14 @@ $ bal migrate-tibco path/to/projects-directory --out path/to/reports-directory -
 
 Additionally, you can use the `--dry-run` flag to run the parsing and analysis phases without generating Ballerina packages. This will generate individual analysis reports for each project found in the directory and an aggregated report `aggregate_migration_report.html` summarizing the migration results.
 
+#### Check API Responses Against the Spec
+
+```bash
+$ bal migrate-mule /path/to/mule-project --check-responses
+```
+
+For an APIkit project, the migrated service then checks each success response whose JSON body the API spec (RAML) of the project describes, and answers with a 500 error when the body does not match it. Other responses, such as a status the spec does not list, are sent as the flow produced them. Without this flag, responses are not checked, the same as in Mule.
+
 #### Force Mule Version During Migration
 
 The migration tool will intelligently detect the Mule version (3.x or 4.x) from your project or XML file. However, if automatic detection fails, you can use the `--force-version` flag to explicitly specify the Mule version for migration.
@@ -165,6 +174,32 @@ This will force the migration tool to treat the input as a Mule 4.x project.
 - For a Standalone XML file input: A new Ballerina package is created with the same name as the XML file, appended
   with a `_ballerina` suffix. Inside that, a new `.bal` file will be created with the same name as the input file but
   with a `.bal` extension.
+
+### APIkit Projects with an API Spec
+
+For a Mule 4.x APIkit project, the tool reads the RAML spec that `apikit:config` refers to. It looks in
+`src/main/resources/api`, in `exchange_modules`, and in `target/repository`. When the spec comes from Anypoint Exchange
+and is not in the project, download it, unzip it into the folder the migration report names, and migrate again.
+Without the spec, the APIkit resources are built from the flow names, as before.
+
+With the spec, the migrated service follows it:
+
+- Each resource takes the spec's path, query, header and body parameters with their types. The spec's types become
+  records in `types.bal`, with their limits as `@constraint` annotations. A request with a missing or invalid header,
+  path parameter or body gets 400, as APIkit answered.
+- A spec operation without a flow raises `APIKIT:NOT_IMPLEMENTED`, which APIkit's scaffolded error handlers answer
+  with 501.
+- When API Manager enforced policies on the API, such as client ID enforcement or a security scheme of the spec, a
+  `TODO` on the service names them. The migrated service does not enforce them.
+- `tests/api_spec_test.bal` checks the migrated service against the spec: the spec's examples must fit the generated
+  records, and the service must answer 400, 501 and 404 as described above. Run them with `bal test --groups api-spec`,
+  after setting the configurable values in `tests/Config.toml`.
+- The `API Contracts` section of `migration_report.html` lists the implemented operations, the operations without a
+  flow, flows that do not match the spec, and the API Manager policies.
+
+Known differences from APIkit: the migrated service answers a method the spec does not declare with 404 instead of
+405, and does not answer 406 or 415. It does not check enum or boolean query values, and it rejects an empty value of
+a required header, which APIkit accepts.
 
 ### Migration Summary
 

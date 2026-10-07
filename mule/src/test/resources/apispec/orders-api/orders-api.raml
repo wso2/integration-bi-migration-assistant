@@ -1,0 +1,60 @@
+#%RAML 1.0
+title: Orders API
+version: v2
+baseUri: https://api.example.com/orders
+mediaType: application/json
+securitySchemes:
+  basic:
+    type: Basic Authentication
+securedBy: [basic]
+types:
+  Status:
+    type: string
+    enum: [NEW, SHIPPED]
+  Address: !include datatypes/address.raml
+  Order:
+    type: object
+    properties:
+      orderId:
+        type: string
+        pattern: ^[0-9]+$
+        maxLength: 10
+      status: Status
+      quantity:
+        type: integer
+        minimum: 1
+        maximum: 99
+      note?: string
+      addresses:
+        type: Address[]
+        minItems: 1
+  PriorityOrder:
+    type: Order
+    properties:
+      priority: boolean
+
+/orders:
+  post:
+    body:
+      type: Order
+    responses:
+      201:
+        body:
+          type: Order
+          example: !include /examples/order.json
+  /{orderId}:
+    get:
+      headers:
+        marketId:
+          type: string
+          pattern: ^[A-Z]{2}$
+        x-correlation-id:
+          required: false
+      queryParameters:
+        expand?: boolean
+      responses:
+        200:
+          body:
+            application/json:
+              type: PriorityOrder
+        404:

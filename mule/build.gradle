@@ -28,6 +28,9 @@ dependencies {
     // common
     implementation project(path: ':common')
 
+    // RAML specs referenced by apikit:config
+    implementation project(path: ':raml-to-openapi')
+
     // Dev dependencies
     implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
@@ -94,6 +97,11 @@ test {
     useTestNG() {
         suites 'src/test/resources/testng.xml'
     }
+}
+
+// cli-mule's fat jars bundle this module's runtime classpath without declaring a dependency on it
+jar {
+    dependsOn ':raml-to-openapi:jar'
 }
 
 build {

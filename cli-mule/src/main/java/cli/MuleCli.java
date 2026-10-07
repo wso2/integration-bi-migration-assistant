@@ -39,6 +39,7 @@ public class MuleCli {
         boolean dryRun = false;
         boolean verbose = false;
         boolean keepStructure = false;
+        boolean checkResponses = false;
         boolean multiRoot = false;
 
         for (int i = 0; i < args.length; i++) {
@@ -80,6 +81,9 @@ public class MuleCli {
                 case "-k":
                 case "--keep-structure":
                     keepStructure = true;
+                    break;
+                case "--check-responses":
+                    checkResponses = true;
                     break;
                 case "-m":
                 case "--multi-root":
@@ -123,14 +127,14 @@ public class MuleCli {
         }
 
         MuleMigrator.migrateAndExportMuleSource(inputPathArg, outputPathArg, orgName, projectName, muleVersion,
-                dryRun, verbose, keepStructure, multiRoot);
+                dryRun, verbose, keepStructure, checkResponses, multiRoot);
     }
 
     private static void printUsageAndExit() {
         PrintStream err = System.err;
         err.println("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
                 "[-o|--out <output-directory>] [-f|--force-version <3|4>] [-v|--verbose] " +
-                "[-k|--keep-structure] [-d|--dry-run] [-m|--multi-root] " +
+                "[-k|--keep-structure] [-d|--dry-run] [--check-responses] [-m|--multi-root] " +
                 "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]");
         err.println();
         err.println("Options:");
@@ -139,6 +143,8 @@ public class MuleCli {
         err.println("  -v, --verbose                 Enable verbose output during conversion");
         err.println("  -d, --dry-run                 Simulate the conversion without generating output files");
         err.println("  -k, --keep-structure          Keep mule project structure");
+        err.println("      --check-responses         Check the responses of APIkit resources against the API spec; " +
+                "a response that does not match it fails with 500");
         err.println("  -m, --multi-root              Treat each child directory as a separate project and " +
                 "convert all of them");
         err.println("  -g, --org-name <name>         Organization name for the generated Ballerina package");
@@ -150,6 +156,7 @@ public class MuleCli {
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-flow.xml");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --dry-run");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --keep-structure");
+        err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --check-responses");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --verbose");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --force-version 3");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-projects-directory --multi-root");
