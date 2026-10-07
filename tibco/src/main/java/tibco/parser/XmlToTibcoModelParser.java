@@ -320,6 +320,10 @@ public final class XmlToTibcoModelParser {
             if (columnSeparator.isEmpty()) {
                 throw new ParserException("Data format has no column separator", configuration);
             }
+            if (isConfigurableValue(columnSeparator) || getChildrenWithTag(configuration, "substitutionBindings")
+                    .anyMatch(binding -> binding.getAttribute("template").equals("colSeparator"))) {
+                throw new ParserException("Unsupported configurable column separator", configuration);
+            }
             String schemaElementQName = configuration.getAttribute("schemaElementQName");
             int prefixEnd = schemaElementQName.indexOf(':');
             if (schemaElementQName.substring(prefixEnd + 1).isEmpty()) {

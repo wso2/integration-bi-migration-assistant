@@ -123,6 +123,35 @@ public class XmlToModelTests {
     }
 
     @Test
+    public void testSpaceSeparator() throws Exception {
+        assertEquals(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", " ",
+                                "orders:order")))
+                .orElseThrow().columnSeparator(), " ");
+    }
+
+    @Test
+    public void testGlobalVarSeparator() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", "%%Separator%%",
+                                "orders:order")))
+                .isEmpty());
+    }
+
+    @Test
+    public void testBoundSeparator() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", "|",
+                                "orders:order").replace("<fieldOffsets name=\"orderId\"/>",
+                                "<substitutionBindings template=\"colSeparator\" propName=\"Separator\"/>"
+                                        + "<fieldOffsets name=\"orderId\"/>")))
+                .isEmpty());
+    }
+
+    @Test
     public void testParseDataFormatUndeclaredPrefix() throws Exception {
         assertTrue(XmlToTibcoModelParser
                 .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
