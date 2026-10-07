@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.sftp.ArchiveProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/sftp"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:sca-bpel="http://docs.oasis-open.org/ns/opencsa/sca-bpel/200801"
+    xmlns:ns1="http://tns.tibco.com/bw/activity/dir"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <bpws:variables>
+        <bpws:variable name="ArchiveOrderFile-input" sca-bpel:internal="true"/>
+        <bpws:variable name="ArchiveReport-input" sca-bpel:internal="true"/>
+        <bpws:variable name="CleanupMarkerFiles-input" sca-bpel:internal="true"/>
+        <bpws:variable name="ListInbound-input" sca-bpel:internal="true"/>
+        <bpws:variable element="ns1:Output" name="ListInbound" sca-bpel:internal="true"/>
+        <bpws:variable name="FetchOrders-input" sca-bpel:internal="true"/>
+        <bpws:variable name="FetchOrders" sca-bpel:internal="true"/>
+        <bpws:variable name="PublishOrders-input" sca-bpel:internal="true"/>
+        <bpws:variable name="PublishOrders" sca-bpel:internal="true"/>
+        <bpws:variable name="OrdersSftpConnection" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://ns.tibco.com/bw/palette/sftpconnection}sftpconnection" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Orders.SftpConnection</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+        <bpws:variable name="ReportsSftpConnection" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://ns.tibco.com/bw/palette/sftpconnection}sftpconnection" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Reports.SftpConnection</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+    </bpws:variables>
+    <bpws:scope name="scope">
+        <bpws:flow name="flow">
+            <bpws:links>
+                <bpws:link name="StartToArchiveOrderFile" tibex:linkType="SUCCESS"/>
+                <bpws:link name="ArchiveOrderFileToArchiveReport" tibex:linkType="SUCCESS"/>
+                <bpws:link name="ArchiveReportToCleanupMarkerFiles" tibex:linkType="SUCCESS"/>
+                <bpws:link name="CleanupMarkerFilesToListInbound" tibex:linkType="SUCCESS"/>
+                <bpws:link name="ListInboundToFetchOrders" tibex:linkType="SUCCESS"/>
+                <bpws:link name="FetchOrdersToPublishOrders" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:extensionActivity>
+                <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Start"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="StartToArchiveOrderFile"/>
+                    </bpws:sources>
+                    <tibex:eventSource>
+                        <tibex:StartEvent xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+                    </tibex:eventSource>
+                </tibex:receiveEvent>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="ArchiveOrderFile-input" name="ArchiveOrderFile"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="StartToArchiveOrderFile"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="ArchiveOrderFileToArchiveReport"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/renameFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;ArchiveOrderFile-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;OldRemoteFileName>&lt;xsl:value-of select=&quot;concat('/inbound/', 'orders.csv')&quot;/>&lt;/OldRemoteFileName>&lt;NewRemoteFileName>&lt;xsl:value-of select=&quot;concat('/archive/', 'orders.csv')&quot;/>&lt;/NewRemoteFileName>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sftp.renameFile"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sp#//SFTPRenameFile"/>
+                                    <value sftpConnection="OrdersSftpConnection" xsi:type="sftpPalette:SFTPRenameFile"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="ArchiveReport-input" name="ArchiveReport"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="ArchiveOrderFileToArchiveReport"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="ArchiveReportToCleanupMarkerFiles"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/renameFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;ArchiveReport-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;OldRemoteFileName>&lt;xsl:value-of select=&quot;'/reports/daily.pdf'&quot;/>&lt;/OldRemoteFileName>&lt;NewRemoteFileName>&lt;xsl:value-of select=&quot;'/reports/archive/daily.pdf'&quot;/>&lt;/NewRemoteFileName>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sftp.renameFile"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sp#//SFTPRenameFile"/>
+                                    <value sftpConnection="ReportsSftpConnection" xsi:type="sftpPalette:SFTPRenameFile"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="CleanupMarkerFiles-input" name="CleanupMarkerFiles"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="ArchiveReportToCleanupMarkerFiles"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="CleanupMarkerFilesToListInbound"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/removeRemoteFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;CleanupMarkerFiles-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;'/inbound/*.done'&quot;/>&lt;/RemoteFileName>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sftp.removeFile"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sp#//SFTPDeleteFile"/>
+                                    <value sftpConnection="OrdersSftpConnection" xsi:type="sftpPalette:SFTPDeleteFile"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="ListInbound-input" name="ListInbound" outputVariable="ListInbound"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="CleanupMarkerFilesToListInbound"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="ListInboundToFetchOrders"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/dir&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;ListInbound-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;Directory>&lt;xsl:value-of select=&quot;'/inbound/'&quot;/>&lt;/Directory>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sftp.dir"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sp#//SFTPDir"/>
+                                    <value nlst="true" sftpConnection="OrdersSftpConnection" xsi:type="sftpPalette:SFTPDir"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="FetchOrders-input" name="FetchOrders" outputVariable="FetchOrders"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="ListInboundToFetchOrders"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="FetchOrdersToPublishOrders"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/getFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;FetchOrders-input&quot; match=&quot;/&quot;>&lt;tns1:SFTPGetInputDataFile>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;'/inbound/orders.csv'&quot;/>&lt;/RemoteFileName>&lt;LocalFileName>&lt;xsl:value-of select=&quot;'/work/orders.csv'&quot;/>&lt;/LocalFileName>&lt;/tns1:SFTPGetInputDataFile>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sftp.get"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sp#//SFTPGet"/>
+                                    <value binary="true" overwriteExistingFile="true" sftpConnection="OrdersSftpConnection" xsi:type="sftpPalette:SFTPGet"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="PublishOrders-input" name="PublishOrders" outputVariable="PublishOrders"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="FetchOrdersToPublishOrders"/>
+                    </bpws:targets>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/putFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;PublishOrders-input&quot; match=&quot;/&quot;>&lt;tns1:SFTPPutInputDataFile>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;'/outbound/orders.csv'&quot;/>&lt;/RemoteFileName>&lt;LocalFileName>&lt;xsl:value-of select=&quot;'/work/orders.csv'&quot;/>&lt;/LocalFileName>&lt;/tns1:SFTPPutInputDataFile>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sftp.put"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sp#//SFTPPut"/>
+                                    <value binary="true" overwriteExistingFile="true" sftpConnection="OrdersSftpConnection" xsi:type="sftpPalette:SFTPPut"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>
