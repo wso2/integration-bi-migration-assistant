@@ -4,7 +4,7 @@ import ballerina/http;
 import ballerina/sql;
 import ballerina/xslt;
 
-function activityExtension(Context cx) returns error? {
+function QueryRecords(Context cx) returns error? {
     xml var0 = getFromContext(cx, "QueryRecords-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/namespaces/tnt/plugins/jdbc+b75f079e-d363-4c28-9b66-44009f6eacf8+input" xmlns:tns1="http://www.example.com/namespaces/tns/1535845694732" version="2.0"><xsl:param name="Start"/><xsl:template name="JDBCQuery-input" match="/"><tns:jdbcQueryActivityInput><firstName><xsl:value-of select="$Start/root/FirstName"/></firstName><lastName><xsl:value-of select="$Start/root/LastName"/></lastName><age><xsl:value-of select="$Start/root/Age"/></age></tns:jdbcQueryActivityInput></xsl:template></xsl:stylesheet>`);
@@ -24,7 +24,7 @@ function activityExtension(Context cx) returns error? {
     addToContext(cx, "QueryRecords", var7);
 }
 
-function receiveEvent(Context cx) returns error? {
+function Start(Context cx) returns error? {
     addToContext(cx, "Start", getFromContext(cx, "$input"));
 }
 
@@ -46,8 +46,8 @@ function reply(Context cx) returns error? {
 }
 
 function scopeActivityRunner(Context cx) returns error? {
-    check receiveEvent(cx);
-    check activityExtension(cx);
+    check Start(cx);
+    check QueryRecords(cx);
     check reply(cx);
 }
 

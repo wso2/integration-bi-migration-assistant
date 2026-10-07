@@ -48,7 +48,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -267,17 +269,31 @@ public class TibcoConverter {
             SerializedProject serialized) {
     }
 
+    private static String uniquePackageName(ConversionContext cx, Set<String> usedPackageNames, String packageName) {
+        String uniqueName = packageName;
+        for (int suffix = 2; !usedPackageNames.add(uniqueName); suffix++) {
+            uniqueName = packageName + "_" + suffix;
+        }
+        if (!uniqueName.equals(packageName)) {
+            cx.log(LoggingUtils.Level.WARN, "Project " + packageName + " renamed to package " + uniqueName
+                    + " to avoid a clash with another project");
+        }
+        return uniqueName;
+    }
+
     public static List<MultiRootSerializedProjectInfo> processMultiRootProjects(ConversionContext cx, Path inputPath,
             Optional<String> projectName) {
         // Stage 0: Initialize project info
         List<MultiRootProjectInfo> projectInfoList = new ArrayList<>();
+        Set<String> usedPackageNames = new HashSet<>();
         try {
             Files.list(inputPath)
                     .filter(Files::isDirectory)
+                    .sorted(Comparator.comparing(childDir -> childDir.getFileName().toString()))
                     .forEach(childDir -> {
                         String childName = childDir.getFileName().toString();
-                        String finalProjectName = projectName.orElse(childName);
-                        String escapedProjectName = common.ConversionUtils.escapeIdentifier(finalProjectName);
+                        String escapedProjectName = uniquePackageName(cx, usedPackageNames,
+                                common.ConversionUtils.escapeIdentifier(projectName.orElse(childName)));
                         ProjectConversionContext context = new ProjectConversionContext(cx, escapedProjectName);
 
                         projectInfoList.add(new MultiRootProjectInfo(

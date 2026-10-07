@@ -51,6 +51,17 @@ public class IntrinsicsTest {
     }
 
     @Test(groups = { "tibco", "converter" })
+    public void testPsgSetAndLogUsesStringLiteralKeys() {
+        // log:KeyValues only has rest fields, so identifier keys fail to compile (BCE2515).
+        String body = Intrinsics.PSG_SET_AND_LOG.body;
+        for (String key : new String[]{"targetSystem", "sessionId", "correlationId", "trackingId", "sender",
+                "serviceScope"}) {
+            Assert.assertTrue(body.contains("\"%s\": %s".formatted(key, key)),
+                    "Expected log:KeyValues key '%s' to be a string literal".formatted(key));
+        }
+    }
+
+    @Test(groups = { "tibco", "converter" })
     public void testPsgExceptionLogLogsError() {
         String body = Intrinsics.PSG_EXCEPTION_LOG.body;
         Assert.assertTrue(body.contains("error psgError = error(errorMessage"),

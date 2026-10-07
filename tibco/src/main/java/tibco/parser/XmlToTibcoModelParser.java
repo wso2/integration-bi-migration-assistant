@@ -256,12 +256,17 @@ public final class XmlToTibcoModelParser {
             Optional<Integer> port = tcpDetails.hasAttribute("port")
                     ? Optional.of(expectIntAttribute(tcpDetails, "port"))
                     : Optional.empty();
-            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(tcpDetails,
-                    "substitutionBindings")
+            boolean ssl = Boolean.parseBoolean(configuration.getAttribute("useSSL"))
+                    || Boolean.parseBoolean(configuration.getAttribute("useDefaultSSL"));
+            // The SSL flags are bound on the configuration element, the host and port on tcpDetails.
+            Collection<Resource.SubstitutionBinding> substitutionBindings = Stream.concat(
+                            getChildrenWithTag(configuration, "substitutionBindings"),
+                            getChildrenWithTag(tcpDetails, "substitutionBindings"))
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
             cx.log(INFO, "Done parsing HTTPClientResource: " + name);
             cx.logState("Parsed HTTPClientResource: " + name);
-            return Optional.of(new Resource.HTTPClientResource(name, cx.getResourcePath(), port, substitutionBindings));
+            return Optional.of(new Resource.HTTPClientResource(name, cx.getResourcePath(),
+                    parseOptionalAttribute(tcpDetails, "host"), port, ssl, substitutionBindings));
         } catch (Exception ex) {
             cx.registerUnsupportedResource(root, name);
             return Optional.empty();
@@ -1406,8 +1411,13 @@ public final class XmlToTibcoModelParser {
             case FILE_WRITE -> new Config.FileWrite();
             case FILE_RENAME -> parseFileRename(activity);
             case LIST_FILES -> parseListFiles(activity);
-            case SFTP_RENAME_FILE -> parseSFTPRenameFile(activity);
+            case SFTP_RENAME_FILE -> new Config.SFTPRenameFile(parseSFTPConnection(activity));
+            case SFTP_DELETE_FILE -> new Config.SFTPDeleteFile(parseSFTPConnection(activity));
+            case SFTP_DIR -> parseSFTPDir(activity);
+            case SFTP_GET -> parseSFTPGet(activity);
+            case SFTP_PUT -> parseSFTPPut(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
+            case REST_INVOKE -> parseRestInvoke(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
             case JSON_PARSER -> parseJSONOperation(config, Config.ExtensionKind.JSON_PARSER);
             case LOG -> new Config.Log();
@@ -1439,11 +1449,32 @@ public final class XmlToTibcoModelParser {
         return new Config.ListFiles(InlineActivity.ListFilesActivity.Mode.from(mode));
     }
 
-    private static Config.@NotNull SFTPRenameFile parseSFTPRenameFile(Element activity) {
+    private static Config.@NotNull SFTPDir parseSFTPDir(Element activity) {
+        return new Config.SFTPDir(parseSFTPConnection(activity),
+                Boolean.parseBoolean(sftpActivityValue(activity).getAttribute("nlst")));
+    }
+
+    private static Config.@NotNull SFTPGet parseSFTPGet(Element activity) {
+        Element value = sftpActivityValue(activity);
+        return new Config.SFTPGet(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
+                Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")));
+    }
+
+    private static Config.@NotNull SFTPPut parseSFTPPut(Element activity) {
+        Element value = sftpActivityValue(activity);
+        return new Config.SFTPPut(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
+                Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")),
+                Boolean.parseBoolean(value.getAttribute("append")));
+    }
+
+    private static @NotNull String parseSFTPConnection(Element activity) {
+        return sftpActivityValue(activity).getAttribute("sftpConnection");
+    }
+
+    private static @NotNull Element sftpActivityValue(Element activity) {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
-        Element value = getFirstChildWithTag(properties, "value");
-        return new Config.SFTPRenameFile(value.getAttribute("sftpConnection"));
+        return getFirstChildWithTag(properties, "value");
     }
   
     private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {
@@ -1529,6 +1560,17 @@ public final class XmlToTibcoModelParser {
         Element values = getFirstChildWithTag(properties, "value");
         String httpClientResource = values.getAttribute("httpClientResource");
         return new Config.HTTPSend(httpClientResource);
+    }
+
+    private static Config.@NotNull RestInvoke parseRestInvoke(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element values = getFirstChildWithTag(properties, "value");
+        return new Config.RestInvoke(values.getAttribute("httpClientSR"),
+                parseOptionalAttribute(values, "httpMethod").orElse("GET"),
+                parseOptionalAttribute(values, "resourcePath"),
+                parseOptionalAttribute(values, "requestContentType").orElse("JSON"),
+                parseOptionalAttribute(values, "responseAcceptType").orElse("JSON"));
     }
 
     private static Config.PsgLog parsePsgLog(Element activity) {

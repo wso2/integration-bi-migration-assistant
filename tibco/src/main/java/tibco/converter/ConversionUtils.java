@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -129,8 +130,17 @@ public final class ConversionUtils {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    private static final Set<String> BALLERINA_KEYWORDS = Set.of(
+            "any", "anydata", "as", "boolean", "break", "byte", "check", "checkpanic", "client", "const",
+            "continue", "decimal", "do", "else", "enum", "error", "fail", "false", "final", "float", "foreach",
+            "fork", "from", "function", "future", "handle", "if", "import", "in", "int", "is", "isolated",
+            "json", "let", "listener", "lock", "map", "match", "never", "new", "null", "object", "panic",
+            "private", "public", "readonly", "record", "remote", "resource", "retry", "return", "returns",
+            "select", "service", "start", "stream", "string", "table", "transaction", "trap", "true", "type",
+            "typedesc", "typeof", "var", "wait", "where", "while", "worker", "xml", "xmlns");
+
     private static boolean isReserved(String name) {
-        return name.equals("type");
+        return BALLERINA_KEYWORDS.contains(name);
     }
 
     public static @NotNull String getSanitizedUniqueName(String name, Collection<String> allocatedNames) {

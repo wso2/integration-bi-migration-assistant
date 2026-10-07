@@ -21,6 +21,8 @@ package tibco.analyzer;
 import common.LoggingUtils;
 import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
+import tibco.converter.ConversionUtils;
+import tibco.converter.Intrinsics;
 import tibco.converter.ProjectConverter.ProjectResources;
 import tibco.model.Process;
 import tibco.model.Resource;
@@ -28,6 +30,7 @@ import tibco.model.Scope;
 import tibco.model.XSD;
 import tibco.util.PathResolver;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -38,9 +41,20 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ProjectAnalysisContext implements LoggingContext {
+
+    private static final Pattern DECLARED_SYMBOL =
+            Pattern.compile("^\\s*(?:function|type)\\s+([A-Za-z_][A-Za-z0-9_]*)", Pattern.MULTILINE);
+    private static final Set<String> GENERATED_MODULE_SYMBOLS = Stream.concat(
+            Stream.of("main", "init", "toXML", "initContext", "addToContext", "getFromContext",
+                    "responseFromContext", "setJSONResponse", "setXMLResponse", "setTextResponse",
+                    "Context", "Response", "JSONResponse", "XMLResponse", "TextResponse"),
+            Arrays.stream(Intrinsics.values()).flatMap(ProjectAnalysisContext::declaredSymbols))
+            .collect(Collectors.toUnmodifiableSet());
 
     private final Set<String> controlFlowFunctionNames = new LinkedHashSet<>();
     private final Map<Scope.Flow.Activity, String> activityFunctionNames =
@@ -77,6 +91,26 @@ public class ProjectAnalysisContext implements LoggingContext {
 
     public Map<Scope.Flow.Activity, String> activityFunctionNames() {
         return activityFunctionNames;
+    }
+
+    Set<String> unavailableActivityFunctionNames() {
+        Set<String> names = new HashSet<>(GENERATED_MODULE_SYMBOLS);
+        names.addAll(activityFunctionNames.values());
+        controlFlowFunctionNames.forEach(base -> {
+            names.add(base + "ScopeFn");
+            names.add(base + "ActivityRunner");
+            names.add(base + "FaultHandler");
+        });
+        xsdTypes.values().stream().map(XSD.XSDType::names).flatMap(Collection::stream).forEach(typeName -> {
+            names.add(typeName);
+            names.add(ConversionUtils.sanitizes(typeName));
+        });
+        return names;
+    }
+
+    private static Stream<String> declaredSymbols(Intrinsics intrinsic) {
+        return Stream.concat(Stream.of(intrinsic.name),
+                DECLARED_SYMBOL.matcher(intrinsic.body).results().map(result -> result.group(1)));
     }
 
     public Map<String, XSD.XSDType> xsdTypes() {

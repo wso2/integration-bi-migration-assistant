@@ -500,6 +500,12 @@ public class ProjectContext implements LoggingContext {
                 .orElseGet(() -> addConfigurableVariable(typedLogicalName, propName, type));
     }
 
+    // Process properties bound to the same module property share its configurable; XPath lookups still go by the
+    // property's own name.
+    void addPropertyConfigurable(String propertyName, String source) {
+        configurableVarNamesByLogicalName.put(propertyName, getOrAddConfigurableVariable(source, STRING));
+    }
+
     @NotNull
     private Set<String> emittedVarNames() {
         return utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).collect(Collectors.toSet());
@@ -602,13 +608,13 @@ public class ProjectContext implements LoggingContext {
     public void registerControlFlowFunctionGenerationError(Process process, Exception e) {
         log(LoggingUtils.Level.SEVERE,
                 "Failed to generate control flow function for process: " + process.name() + ". Error: "
-                + e.getMessage());
+                + e);
     }
 
     public void registerControlFlowFunctionGenerationError(Scope scope, Exception ex) {
         log(LoggingUtils.Level.SEVERE,
                 "Failed to generate control flow function for scope: " + scope.name() + ". Error: "
-                + ex.getMessage());
+                + ex);
     }
 
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
@@ -778,6 +784,35 @@ public class ProjectContext implements LoggingContext {
     public String getGetSharedVariableFn() {
         utilityIntrinsics.add(Intrinsics.GET_SHARED_VARIABLE);
         return Intrinsics.GET_SHARED_VARIABLE.name;
+    }
+
+    public @NotNull String getSftpDeleteFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_DELETE_FILES);
+        return Intrinsics.SFTP_DELETE_FILES.name;
+    }
+
+    public @NotNull String getSftpGetFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_GET_FILES);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        return Intrinsics.SFTP_GET_FILES.name;
+    }
+
+    public @NotNull String getSftpPutFilesFunction() {
+        addSftpRemoteFilesFunction();
+        utilityIntrinsics.add(Intrinsics.SFTP_PUT_FILES);
+        importLibraryIfNeededToUtility(Library.FILE);
+        importLibraryIfNeededToUtility(Library.IO);
+        return Intrinsics.SFTP_PUT_FILES.name;
+    }
+
+    private void addSftpRemoteFilesFunction() {
+        utilityIntrinsics.add(Intrinsics.SFTP_GLOB_TO_REGEX);
+        utilityIntrinsics.add(Intrinsics.SFTP_REMOTE_FILES);
+        importLibraryIfNeededToUtility(Library.FTP);
+        importLibraryIfNeededToUtility(Library.REGEX);
     }
 
     public String getFilesInPathFunction() {

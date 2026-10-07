@@ -1613,6 +1613,7 @@ final class ActivityConverter {
         ActivityConversionResult conversion = switch (config) {
             case ActivityExtension.Config.End ignored -> emptyExtensionConversion(cx, result);
             case ActivityExtension.Config.HTTPSend httpSend -> createHttpSend(cx, result, httpSend);
+            case ActivityExtension.Config.RestInvoke restInvoke -> createRestInvoke(cx, result, restInvoke);
             case JsonOperation jsonOperation -> createJsonOperation(cx, result, jsonOperation);
             case ActivityExtension.Config.SQL sql -> createSQLOperation(cx, result, sql);
             case ActivityExtension.Config.SendHTTPResponse sendHTTPResponse ->
@@ -1622,6 +1623,11 @@ final class ActivityConverter {
             case ActivityExtension.Config.ListFiles listFiles -> createListFilesOperation(cx, result, listFiles);
             case ActivityExtension.Config.SFTPRenameFile sftpRenameFile ->
                     createSFTPRenameFileOperation(cx, result, sftpRenameFile);
+            case ActivityExtension.Config.SFTPDeleteFile sftpDeleteFile ->
+                    createSFTPDeleteFileOperation(cx, result, sftpDeleteFile);
+            case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
+            case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
+            case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -1914,6 +1920,102 @@ final class ActivityConverter {
         return new ActivityConversionResult(result, body);
     }
 
+    private static @NotNull ActivityConversionResult createSFTPDeleteFileOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPDeleteFile sftpDeleteFile) {
+        List<Statement> body = new ArrayList<>();
+        VariableReference client = sftpClient(cx, body, sftpDeleteFile.sftpConnection());
+        // TIBCO concatenates the optional RemoteDirectory with RemoteFileName as-is, without adding a separator.
+        VarDeclStatment remotePath = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%1$s/**/<RemoteDirectory>/*).toString() + (%1$s/**/<RemoteFileName>/*).toString()"
+                        .formatted(result.varName())));
+        body.add(remotePath);
+        body.add(new CallStatement(new Check(new FunctionCall(cx.getSftpDeleteFilesFunction(),
+                List.of(client, remotePath.ref())))));
+        return new ActivityConversionResult(result, body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPDirOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPDir sftpDir) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpDir.shortFileNames()) {
+            cx.log(WARN, "SFTP Dir: the detailed listing format is not supported; only file names are listed.");
+            body.add(new Comment("WARNING: SFTP Dir detailed listing is not supported; only file names are listed."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpDir.sftpConnection());
+        VarDeclStatment directory = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<Directory>/*).toString()".formatted(result.varName())));
+        body.add(directory);
+        cx.addLibraryImport(Library.FTP);
+        // TIBCO lists the current remote directory when Directory is not given.
+        VarDeclStatment entries = new VarDeclStatment(typeFrom("ftp:FileInfo[]"), cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "list",
+                        List.of(exprFrom("%1$s == \"\" ? \".\" : %1$s".formatted(directory.ref()))))));
+        body.add(entries);
+        VarDeclStatment directoryItems = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(""));
+        body.add(directoryItems);
+        body.add(stmtFrom("""
+                foreach ftp:FileInfo entry in %s {
+                    %s += xml `<DirectoryItems>${entry.name}</DirectoryItems>`;
+                }
+                """.formatted(entries.ref(), directoryItems.ref())));
+        // The root wrapper stands in for the activity's Output element; downstream XPath is rewritten to
+        // $Var/root/DirectoryItems, so ItemCount and DirectoryItems must be its direct children.
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<root><ItemCount>${%s.length()}</ItemCount>${%s}</root>"
+                        .formatted(entries.ref(), directoryItems.ref())));
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPGetOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPGet sftpGet) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpGet.binary()) {
+            cx.log(WARN, "SFTP Get: ASCII mode line-ending conversion is not supported; files are copied as-is.");
+            body.add(new Comment("WARNING: SFTP Get ASCII mode is not supported; files are copied byte for byte."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpGet.sftpConnection());
+        VarDeclStatment remoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<RemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(remoteFileName);
+        VarDeclStatment localFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<LocalFileName>/*).toString()".formatted(result.varName())));
+        body.add(localFileName);
+        VarDeclStatment filesTransferred = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(cx.getSftpGetFilesFunction(), List.of(client, remoteFileName.ref(),
+                        localFileName.ref(), new BallerinaModel.Expression.BooleanConstant(sftpGet.overwrite())))));
+        body.add(filesTransferred);
+        // The root wrapper stands in for the activity's SFTPGetOutputFile element, as for SFTP Dir.
+        VarDeclStatment output = wrapWithRoot(cx, filesTransferred.ref());
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull ActivityConversionResult createSFTPPutOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SFTPPut sftpPut) {
+        List<Statement> body = new ArrayList<>();
+        if (!sftpPut.binary()) {
+            cx.log(WARN, "SFTP Put: ASCII mode line-ending conversion is not supported; files are copied as-is.");
+            body.add(new Comment("WARNING: SFTP Put ASCII mode is not supported; files are copied byte for byte."));
+        }
+        VariableReference client = sftpClient(cx, body, sftpPut.sftpConnection());
+        VarDeclStatment localFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<LocalFileName>/*).toString()".formatted(result.varName())));
+        body.add(localFileName);
+        VarDeclStatment remoteFileName = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<RemoteFileName>/*).toString()".formatted(result.varName())));
+        body.add(remoteFileName);
+        VarDeclStatment filesTransferred = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new Check(new FunctionCall(cx.getSftpPutFilesFunction(), List.of(client, localFileName.ref(),
+                        remoteFileName.ref(), new BallerinaModel.Expression.BooleanConstant(sftpPut.overwrite()),
+                        new BallerinaModel.Expression.BooleanConstant(sftpPut.append())))));
+        body.add(filesTransferred);
+        // The root wrapper stands in for the activity's SFTPPutOutputFile element, as for SFTP Get.
+        VarDeclStatment output = wrapWithRoot(cx, filesTransferred.ref());
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
     private static @NotNull VariableReference sftpClient(ActivityContext cx, List<Statement> body,
                                                         String sftpConnection) {
         Optional<VariableReference> client = cx.client(sftpConnection);
@@ -2053,19 +2155,7 @@ final class ActivityConverter {
             ActivityContext cx, VariableReference configVar, ActivityExtension.Config.HTTPSend httpSend) {
         List<Statement> body = new ArrayList<>();
 
-        // Handle missing HTTP client resource
-        Optional<VariableReference> clientOpt = cx.client(httpSend.httpClientResource());
-        VariableReference client;
-        if (clientOpt.isEmpty()) {
-            cx.log(SEVERE, "WARNING: Failed to find http client for " + httpSend.httpClientResource()
-                    + ". Creating placeholder client.");
-            body.add(new Comment("WARNING: Missing HTTP client resource '" + httpSend.httpClientResource()
-                    + "'. Using placeholder client."));
-            client = declarePlaceholderClient(cx, body, "http:Client", Library.HTTP, "http",
-                    httpSend.httpClientResource());
-        } else {
-            client = clientOpt.get();
-        }
+        VariableReference client = httpClient(cx, body, httpSend.httpClientResource());
 
         VarDeclStatment method = new VarDeclStatment(STRING, cx.getAnnonVarName(),
                 exprFrom("(%s/**/<Method>[0]).data()".formatted(configVar.varName())));
@@ -2105,6 +2195,100 @@ final class ActivityConverter {
         body.add(resultDecl);
 
         return new ActivityConversionResult(new VariableReference(resultDecl.varName()), body);
+    }
+
+    private static @NotNull ActivityConversionResult createRestInvoke(
+            ActivityContext cx, VariableReference input, ActivityExtension.Config.RestInvoke restInvoke) {
+        List<Statement> body = new ArrayList<>();
+        cx.log(WARN, "REST Invoke: path and query parameters are not mapped.");
+        body.add(new Comment("WARNING: REST Invoke path and query parameters are not mapped."));
+        VariableReference client = httpClient(cx, body, restInvoke.httpClientProperty());
+        VarDeclStatment headers = new VarDeclStatment(typeFrom("map<string>"), cx.getAnnonVarName(),
+                exprFrom("{\"Accept\": \"%s\"}".formatted(restMediaType(restInvoke.responseAcceptType()))));
+        body.add(headers);
+        // Standard HttpHeaders elements (Accept, Content-Type, Cookie, ...) override the configured types, and
+        // DynamicHeaders are applied last so they win over both.
+        body.add(stmtFrom("""
+                foreach xml header in %s/**/<HttpHeaders>/* {
+                    if header is xml:Element && header.getName() != "DynamicHeaders" && header.data() != "" {
+                        %s[header.getName()] = header.data();
+                    }
+                }
+                """.formatted(input.varName(), headers.varName())));
+        body.add(stmtFrom("""
+                foreach xml header in %s/**/<DynamicHeaders>/<Header> {
+                    %s[(header/<Name>).data()] = (header/<Value>).data();
+                }
+                """.formatted(input.varName(), headers.varName())));
+        // The input ResourcePath, when mapped, overrides the configured one.
+        VarDeclStatment resourcePath = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<ResourcePath>).data()".formatted(input.varName())));
+        body.add(resourcePath);
+        String method = restInvoke.method().toUpperCase(Locale.ROOT);
+        BallerinaModel.Expression message;
+        BallerinaModel.Expression mediaType;
+        if (List.of("GET", "HEAD", "OPTIONS", "TRACE").contains(method)) {
+            message = exprFrom("()");
+            mediaType = exprFrom("()");
+        } else {
+            VarDeclStatment requestBody = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                    exprFrom("(%s/**/<MessageBody>/<asciiContent>).data()".formatted(input.varName())));
+            body.add(requestBody);
+            message = requestBody.ref();
+            mediaType = new StringConstant(restMediaType(restInvoke.requestContentType()));
+        }
+        VarDeclStatment response = new VarDeclStatment(typeFrom("http:Response"), cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "execute", List.of(new StringConstant(method),
+                        exprFrom("%1$s == \"\" ? %2$s : %1$s".formatted(resourcePath.varName(),
+                                new StringConstant(restInvoke.resourcePath().orElse("")))),
+                        message, headers.ref(), mediaType))));
+        body.add(response);
+        VarDeclStatment textPayload = new VarDeclStatment(typeFrom("string|error"), cx.getAnnonVarName(),
+                exprFrom("%s.getTextPayload()".formatted(response.varName())));
+        body.add(textPayload);
+        VarDeclStatment responseBody = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("%1$s is string ? %1$s : \"\"".formatted(textPayload.varName())));
+        body.add(responseBody);
+        // TIBCO raises HttpClientException for 4XX and HttpServerException for 5XX, so error transitions must fire.
+        body.add(stmtFrom("""
+                if %1$s.statusCode >= 400 {
+                    string fault = %1$s.statusCode >= 500 ? "HttpServerException" : "HttpClientException";
+                    return error(string `${fault}: HTTP ${%1$s.statusCode} ${%1$s.reasonPhrase}: ${%2$s}`);
+                }
+                """.formatted(response.varName(), responseBody.varName())));
+        // A successful response without a body is an empty MessageBody; any other payload read failure is an error.
+        body.add(stmtFrom("""
+                if %1$s is error && %1$s !is http:NoContentError {
+                    return %1$s;
+                }
+                """.formatted(textPayload.varName())));
+        // The root wrapper stands in for the activity's RestActivityOutput element.
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                ("<root><statusCode>${%1$s.statusCode}</statusCode><reasonPhrase>${%1$s.reasonPhrase}</reasonPhrase>"
+                        + "<MessageBody><asciiContent>${%2$s}</asciiContent></MessageBody></root>")
+                        .formatted(response.varName(), responseBody.varName())));
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull String restMediaType(String contentType) {
+        return switch (contentType.toUpperCase(Locale.ROOT)) {
+            case "JSON" -> "application/json";
+            case "XML" -> "application/xml";
+            default -> "text/plain";
+        };
+    }
+
+    private static @NotNull VariableReference httpClient(ActivityContext cx, List<Statement> body,
+                                                        String clientProperty) {
+        Optional<VariableReference> client = cx.client(clientProperty);
+        if (client.isPresent()) {
+            return client.get();
+        }
+        cx.log(SEVERE, "WARNING: Failed to find http client for " + clientProperty + ". Creating placeholder client.");
+        body.add(new Comment("WARNING: Missing HTTP client resource '" + clientProperty
+                + "'. Using placeholder client."));
+        return declarePlaceholderClient(cx, body, "http:Client", Library.HTTP, "http", clientProperty);
     }
 
     private static List<Statement> convertReceiveEvent(ActivityContext cx, ReceiveEvent receiveEvent) {
