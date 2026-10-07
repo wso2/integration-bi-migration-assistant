@@ -300,9 +300,17 @@ public class ProjectContext implements LoggingContext {
         return typeCx.serialize();
     }
 
-    FunctionData getProcessStartFunction(String processName) {
-        Process process = getProcess(processName);
-        return getProcessContext(process).getProcessStartFunction();
+    FunctionData getProcessStartFunction(String processName, Set<BallerinaModel.Import> callerImports) {
+        return findLocalProcess(processName)
+                .map(process -> getProcessContext(process).getProcessStartFunction())
+                .or(() -> getProcessFunction(processName, callerImports).map(FunctionData::new))
+                .orElseGet(() -> {
+                    log(LoggingUtils.Level.SEVERE, "WARNING: Failed to find process: " + processName
+                            + ". Returning placeholder process.");
+                    Process placeholder = new Process5("placeholder_" + processName, "/placeholder", List.of(),
+                            new Process5.ExplicitTransitionGroup());
+                    return getProcessContext(placeholder).getProcessStartFunction();
+                });
     }
 
     String getRenderJsonAsXMLFunction(String type) {
@@ -532,19 +540,11 @@ public class ProjectContext implements LoggingContext {
     }
 
     Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
-        Process process = getProcess(processName);
-        return getProcessContext(process).getDefaultClient();
+        return findLocalProcess(processName).flatMap(process -> getProcessContext(process).getDefaultClient());
     }
 
-    private Process getProcess(String processName) {
-        return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
-                .findAny()
-                .orElseGet(() -> {
-                    log(LoggingUtils.Level.SEVERE,
-                            "WARNING: Failed to find process: " + processName + ". Returning placeholder process.");
-                    return new Process5("placeholder_" + processName, "/placeholder", List.of(),
-                            new Process5.ExplicitTransitionGroup());
-                });
+    private Optional<Process> findLocalProcess(String processName) {
+        return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName)).findAny();
     }
 
     public String getAnonName() {
@@ -629,11 +629,11 @@ public class ProjectContext implements LoggingContext {
         log(LoggingUtils.Level.WARN, "Partially supported activity: " + name);
     }
 
-    public Optional<String> getProcessFunction(String processName) {
+    public Optional<String> getProcessFunction(String processName, Set<BallerinaModel.Import> callerImports) {
         // The symbol comes from the resolved process, not from the reference: a reference may be
         // an absolute or partial form of the path the target's function name was derived from.
         return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
-            utilityFunctionImports.add(imp);
+            callerImports.add(imp);
             return imp.moduleName() + ":" + result.symbol();
         }).orElseGet(result::symbol));
     }
