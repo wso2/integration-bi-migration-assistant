@@ -1160,8 +1160,15 @@ public class MuleToBalConverter {
             return Map.of();
         }
         Map<ApiSpec.Operation, Resource> resources = new LinkedHashMap<>();
-        for (ApiSpec.Operation operation : ApiContractChecker.unimplementedOperations(loaded.spec(),
-                ctx.projectCtx.apiKitFlows.getOrDefault(configName, List.of()))) {
+        List<ApiKitFlowName> flows = ctx.projectCtx.apiKitFlows.getOrDefault(configName, List.of());
+        Set<String> flowRouteShapes = flows.stream()
+                .map(flow -> flow.method() + " " + flow.path().replaceAll("\\{[^}]+}", "{}"))
+                .collect(Collectors.toSet());
+        for (ApiSpec.Operation operation : ApiContractChecker.unimplementedOperations(loaded.spec(), flows)) {
+            if (flowRouteShapes.contains(operation.method() + " "
+                    + operation.path().replaceAll("\\{[^}]+}", "{}"))) {
+                continue;
+            }
             SpecResourceSignature.of(operation, loaded.spec().types(), Optional.empty(),
                     ctx.projectCtx.apiTypeGenerators.get(configName), Set.of()).ifPresent(signature -> resources.put(
                     operation, new Resource(operation.method(), withPrefix(resourcePrefix, signature.resourcePath()),

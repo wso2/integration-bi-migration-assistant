@@ -120,6 +120,8 @@ public class MigrateMuleCommand implements BLauncherCmd {
                 " all of them\n");
         stringBuilder.append("  --org-name, -g           Organization name for the generated Ballerina package\n");
         stringBuilder.append("  --project-name, -p       Project name for the generated Ballerina package\n");
+        stringBuilder.append("  --check-responses        Check APIkit responses against the API spec; " + 
+                "a mismatch fails with 500\n");
     }
 
     @Override
