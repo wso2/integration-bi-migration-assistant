@@ -25,6 +25,7 @@ import common.BallerinaModel.Expression.MappingConstructor;
 import common.BallerinaModel.Expression.MappingConstructor.MappingField;
 import common.BallerinaModel.Expression.NewExpression;
 import common.BallerinaModel.Expression.StringConstant;
+import common.BallerinaModel.Expression.TernaryExpression;
 import common.BallerinaModel.ModuleVar;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
@@ -45,6 +46,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static tibco.converter.Library.JMS;
@@ -156,30 +158,40 @@ final class ResourceConvertor {
     public static void convertHttpConnectionResource(ProjectContext cx, HTTPConnectionResource resource) {
     }
 
+    // TODO: the resource's timeout, connection pooling, redirect and custom TLS trust store settings are not mapped
+    //  to http:Client yet, so only the host, port and SSL flag shape the generated client.
     public static void convertHttpClientResource(ProjectContext cx, HTTPClientResource resource) {
         try {
-            Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
-            String hostName = hostName(resource);
-            if (resource.port().isPresent()) {
-                hostName = hostName + ":" + resource.port().get();
-            }
-            NewExpression constructorCall = new NewExpression(List.of(toExpr(substitutions, hostName)));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
-                    ConversionUtils.resourceNameFromPath(resource.path())), "http:Client",
+            String host = httpClientBinding(resource, "host")
+                    .map(propName -> "${" + cx.getOrAddConfigurableVariable(propName, STRING) + "}")
+                    .orElseGet(() -> resource.host().orElse("localhost"));
+            String port = httpClientBinding(resource, "port")
+                    .map(propName -> ":${" + cx.getOrAddConfigurableVariable(propName, INT) + "}")
+                    .or(() -> resource.port().map(value -> ":" + value))
+                    // TIBCO's documented Default Port is 80, even when SSL is enabled.
+                    .orElse(":80");
+            String scheme = httpClientBinding(resource, "useSSL")
+                    .or(() -> httpClientBinding(resource, "useDefaultSSL"))
+                    .map(propName -> "${" + cx.getOrAddConfigurableVariable(propName, BOOLEAN)
+                            + " ? \"https\" : \"http\"}")
+                    .orElse(resource.ssl() ? "https" : "http");
+            NewExpression constructorCall = new NewExpression(List.of(
+                    new Expression.StringTemplate(scheme + "://" + host + port)));
+            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(resource.name().isEmpty()
+                    ? ConversionUtils.resourceNameFromPath(resource.path()) : resource.name()), "http:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.path(), resourceVar, substitutions.values(), List.of(Library.HTTP));
+            cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.HTTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
     }
 
-    private static String hostName(HTTPClientResource resource) {
-        for (Resource.SubstitutionBinding binding : resource.substitutionBindings()) {
-            if (binding.template().equals("host")) {
-                return binding.propName();
-            }
-        }
-        return "localhost";
+    @NotNull
+    private static Optional<String> httpClientBinding(HTTPClientResource resource, String template) {
+        return resource.substitutionBindings().stream()
+                .filter(binding -> binding.template().equals(template))
+                .map(Resource.SubstitutionBinding::propName)
+                .findFirst();
     }
 
     public static void convertSftpResource(ProjectContext cx, SFTPResource resource) {
@@ -193,25 +205,49 @@ final class ResourceConvertor {
                     Optional.of(new Expression.IntConstant(DEFAULT_SFTP_PORT)), configurables);
             MappingField username = new MappingField("username",
                     sftpConfigValue(cx, resource, clientName, "userName", STRING, Optional.empty(), configurables));
-            List<MappingField> auth = resource.privKeyAuth()
-                    ? List.of(
-                            new MappingField("credentials", new MappingConstructor(List.of(username))),
-                            new MappingField("privateKey", new MappingConstructor(
-                                    sftpPrivateKeyFields(cx, resource, clientName, configurables))))
-                    : List.of(new MappingField("credentials", new MappingConstructor(List.of(username,
-                            new MappingField("password",
-                                    sftpSecretValue(cx, resource, clientName, "password", configurables))))));
+            Expression auth = sftpBindingName(resource, "privKeyAuth")
+                    .map(privKeyAuthModuleProperty -> sftpAuthChosenAtRuntime(cx, resource, clientName, username,
+                            privKeyAuthModuleProperty, configurables))
+                    .orElseGet(() -> resource.privKeyAuth()
+                            ? sftpPrivateKeyAuth(cx, resource, clientName, username, configurables)
+                            : sftpPasswordAuth(cx, resource, clientName, username, configurables));
             MappingConstructor clientConfig = new MappingConstructor(List.of(
                     new MappingField("protocol", new Expression.VariableReference("ftp:SFTP")),
                     new MappingField("host", host),
                     new MappingField("port", port),
-                    new MappingField("auth", new MappingConstructor(auth))));
+                    new MappingField("auth", auth)));
             ModuleVar resourceVar = new ModuleVar(clientName, "ftp:Client",
                     Optional.of(new CheckPanic(new NewExpression(List.of(clientConfig)))), false, false);
             cx.addResourceDeclaration(resource.path(), resourceVar, configurables.values(), List.of(Library.FTP));
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
+    }
+
+    @NotNull
+    private static Expression sftpAuthChosenAtRuntime(ProjectContext cx, SFTPResource resource, String clientName,
+                                                      MappingField username, String privKeyAuthModuleProperty,
+                                                      Map<String, ModuleVar> configurables) {
+        return new TernaryExpression(sftpModuleProperty(cx, privKeyAuthModuleProperty, BOOLEAN),
+                sftpPrivateKeyAuth(cx, resource, clientName, username, configurables),
+                sftpPasswordAuth(cx, resource, clientName, username, configurables));
+    }
+
+    @NotNull
+    private static MappingConstructor sftpPrivateKeyAuth(ProjectContext cx, SFTPResource resource, String clientName,
+                                                         MappingField username, Map<String, ModuleVar> configurables) {
+        return new MappingConstructor(List.of(
+                new MappingField("credentials", new MappingConstructor(List.of(username))),
+                new MappingField("privateKey", new MappingConstructor(
+                        sftpPrivateKeyFields(cx, resource, clientName, configurables)))));
+    }
+
+    @NotNull
+    private static MappingConstructor sftpPasswordAuth(ProjectContext cx, SFTPResource resource, String clientName,
+                                                       MappingField username, Map<String, ModuleVar> configurables) {
+        return new MappingConstructor(List.of(new MappingField("credentials", new MappingConstructor(List.of(username,
+                new MappingField("password",
+                        sftpSecretValue(cx, resource, clientName, "password", configurables)))))));
     }
 
     // An unencrypted private key has no passphrase, so the password field is only emitted when the resource sets one.
@@ -249,11 +285,26 @@ final class ResourceConvertor {
         }
         Optional<String> literal = Optional.ofNullable(resource.configuration().get(field));
         if (literal.isPresent()) {
-            return type == INT
-                    ? new Expression.IntConstant(Integer.parseInt(literal.get().trim()))
-                    : new StringConstant(ConversionUtils.escapeString(literal.get()));
+            if (type != INT) {
+                return new StringConstant(ConversionUtils.escapeString(literal.get()));
+            }
+            String trimmed = literal.get().trim();
+            if (!trimmed.isEmpty()) {
+                return parseIntLiteral(trimmed)
+                        .<Expression>map(Expression.IntConstant::new)
+                        .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+            }
         }
         return defaultValue.orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+    }
+
+    @NotNull
+    private static Optional<Integer> parseIntLiteral(String literal) {
+        try {
+            return Optional.of(Integer.parseInt(literal));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     @NotNull

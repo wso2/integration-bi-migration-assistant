@@ -19,6 +19,8 @@
 package tibco.analyzer;
 
 import common.LoggingUtils;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import tibco.LoggingContext;
 import tibco.converter.ConversionUtils;
 import tibco.model.PartnerLink;
@@ -188,10 +190,35 @@ public class ProcessAnalysisContext implements LoggingContext {
             }
             case ExplicitTransitionGroup.InlineActivity inlineActivity -> inlineActivity.name();
         };
-        String activityName = ConversionUtils.getSanitizedUniqueName(prefix,
-                activityFunctionNames.values());
+        String activityName = ConversionUtils.getSanitizedUniqueName(designerName(activity).orElse(prefix),
+                projectAnalysisContext.unavailableActivityFunctionNames());
         activityFunctionNames.put(activity, activityName);
         activities.add(activity);
+    }
+
+    private static Optional<String> designerName(Scope.Flow.Activity activity) {
+        if (activity instanceof ExplicitTransitionGroup.InlineActivity) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(activity.element())
+                .flatMap(element -> nameAttribute(element).or(() -> wrappedActivityName(element)));
+    }
+
+    private static Optional<String> nameAttribute(Element element) {
+        return Optional.of(element.getAttribute("name")).filter(name -> !name.isBlank());
+    }
+
+    private static Optional<String> wrappedActivityName(Element element) {
+        if (!element.getTagName().endsWith("extensionActivity")) {
+            return Optional.empty();
+        }
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (children.item(i) instanceof Element child) {
+                return nameAttribute(child);
+            }
+        }
+        return Optional.empty();
     }
 
     public void addDestination(Scope.Flow.Activity source, Scope.Flow.Activity destination) {

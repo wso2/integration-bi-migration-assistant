@@ -55,9 +55,7 @@ import tibco.model.Variable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -736,24 +734,21 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             ProcessContext cx, List<Activity> activities, Function<FunctionCall, Expression> callHandler,
             List<Statement> body, VariableReference input) {
         VariableReference context = new VariableReference("cx");
-        Map<Activity, VariableReference> activityResult = new HashMap<>();
         for (Activity activity : activities) {
-            generateActivityFunctionCall(cx, activityResult, activity, callHandler, body, input, context);
+            generateActivityFunctionCall(cx, activity, callHandler, body, input, context);
         }
     }
 
     private static void generateActivityFunctionCall(
-            ProcessContext cx, Map<Activity, VariableReference> activityResults, Activity activity,
+            ProcessContext cx, Activity activity,
             Function<FunctionCall, Expression> callHandler, List<Statement> body, VariableReference input,
             VariableReference context) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
-        record TransitionFunctionData(VariableReference inputVar, String functionName) {
-
-        }
+        // Transition predicates resolve their `$var` references from the context, so the input document is only
+        // the XPath evaluation root and carries no data.
         List<FunctionCall> predicates = analysisResult.transitionConditions(activity)
-                .map(data -> new TransitionFunctionData(activityResults.get(data.activity()),
-                        cx.predicateFunction(data.predicate())))
-                .map(data -> new FunctionCall(data.functionName, List.of(data.inputVar, context)))
+                .map(data -> new FunctionCall(cx.predicateFunction(data.predicate()),
+                        List.of(new XMLTemplate("<root></root>"), context)))
                 .toList();
 
         if (predicates.isEmpty()) {

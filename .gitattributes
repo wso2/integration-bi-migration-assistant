@@ -10,3 +10,8 @@
 # Binary files should be left untouched
 *.jar           binary
 
+# Test fixtures are compared byte-for-byte against converter output, which is LF on CI.
+*.bal           text eol=lf
+*.bwp           text eol=lf
+*.xml           text eol=lf
+*.sftpResource  text eol=lf
