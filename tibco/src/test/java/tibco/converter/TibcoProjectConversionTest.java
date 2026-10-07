@@ -186,6 +186,41 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    @Test(groups = {"tibco", "converter"})
+    public void testRestInvokeHttpImport() throws Exception {
+        Path tempDir = Files.createTempDirectory("tibco-keep-structure-test");
+        ProjectConversionContext cx = new ProjectConversionContext(
+                TestUtils.createTestConversionContext("testOrg", false, true), "RestInvokeBW6");
+        try {
+            TibcoConverter.migrateTibcoProject(cx,
+                    Path.of("src", "test", "resources", "tibco.projects", "RestInvokeBW6").toString(),
+                    tempDir.toString());
+            List<Path> balFiles;
+            try (Stream<Path> files = Files.walk(tempDir)) {
+                balFiles = files.filter(file -> file.toString().endsWith(".bal")).toList();
+            }
+            Assert.assertTrue(balFiles.stream().anyMatch(file -> readString(file).contains("http:NoContentError")),
+                    "expected a converted REST Invoke activity");
+            for (Path file : balFiles) {
+                String content = readString(file);
+                if (content.contains("http:")) {
+                    Assert.assertTrue(content.contains("import ballerina/http;"),
+                            file.getFileName() + " uses the http module without importing it");
+                }
+            }
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
+    private static String readString(Path file) {
+        try {
+            return Files.readString(file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversionByAPI(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create parameter map for the API

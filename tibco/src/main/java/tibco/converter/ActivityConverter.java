@@ -2199,6 +2199,7 @@ final class ActivityConverter {
 
     private static @NotNull ActivityConversionResult createRestInvoke(
             ActivityContext cx, VariableReference input, ActivityExtension.Config.RestInvoke restInvoke) {
+        cx.addLibraryImport(Library.HTTP);
         List<Statement> body = new ArrayList<>();
         cx.log(WARN, "REST Invoke: path and query parameters are not mapped.");
         body.add(new Comment("WARNING: REST Invoke path and query parameters are not mapped."));
