@@ -47,7 +47,7 @@ public class ApiKitInterceptorTest {
     public void testImplicitDefaultResourceWithRouterBecomesErrorFallback() {
         String source = convert("<apikit:router config-ref=\"api-config\"/>", "", "", IMPLEMENTATION_FLOW);
         Assert.assertTrue(source.contains("resource function default [string... path](http:Request request)"));
-        Assert.assertTrue(source.contains("return error(\"APIKIT:NOT_FOUND\");"));
+        Assert.assertTrue(source.contains("return error APIKIT__NOT_FOUND(\"APIKIT:NOT_FOUND\");"));
         Assert.assertTrue(source.contains("resource function get orders/[string id]"));
         assertNoLegacyRouting(source);
     }
@@ -58,7 +58,7 @@ public class ApiKitInterceptorTest {
                 " allowedMethods=\"GET\"", "", IMPLEMENTATION_FLOW);
         Assert.assertEquals(count(source, "resource function get "), 2);
         Assert.assertTrue(source.contains("resource function get orders/[string id](http:Request request)"));
-        Assert.assertTrue(source.contains("return error(\"APIKIT:NOT_FOUND\");"));
+        Assert.assertTrue(source.contains("return error APIKIT__NOT_FOUND(\"APIKIT:NOT_FOUND\");"));
     }
 
     @Test
@@ -163,10 +163,10 @@ public class ApiKitInterceptorTest {
     }
 
     @Test
-    public void testListenerResponseDefinitionsCreateTheirInterceptors() {
+    public void testListenerResponseIsAppliedByResourceAndErrorResponseByInterceptor() {
         String source = convertWithListenerChildren("<logger level=\"INFO\" message=\"main\"/>",
                 "<http:response/><http:error-response/>");
-        Assert.assertTrue(source.contains("service class MuleResponseInterceptor0"));
+        Assert.assertFalse(source.contains("MuleResponseInterceptor"));
         Assert.assertTrue(source.contains("service class MuleResponseErrorInterceptor0"));
         Assert.assertFalse(source.contains("MuleRequestErrorInterceptor"));
     }

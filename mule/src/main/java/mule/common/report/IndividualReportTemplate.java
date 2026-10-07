@@ -326,6 +326,7 @@ public class IndividualReportTemplate {
                     .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
                     .drawer.open { max-height: 500px; }
                     .empty-message { text-align: center; padding: 20px; color: #666; }
+                    .api-contract th { width: 240px; }
                   %s
                   </style>
                 </head>
@@ -460,6 +461,7 @@ public class IndividualReportTemplate {
                       </p>
                     </div>
                   </div>
+              %s
                 </div>
                 <footer><p>Report generated on: <span id="datetime"></span></p></footer>
                 <script>

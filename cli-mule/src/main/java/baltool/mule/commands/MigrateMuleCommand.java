@@ -37,7 +37,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
     private static final String CMD_NAME = "migrate-mule";
     private static final String USAGE = "bal migrate-mule <source-project/s-directory-or-file> " +
             "[-o|--out <output-directory>] [-f|--force-version <3|4>]" +
-            "[-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-m|--multi-root] " +
+            "[-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [--check-responses] [-m|--multi-root] " +
             "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
 
     public MigrateMuleCommand() {
@@ -66,6 +66,11 @@ public class MigrateMuleCommand implements BLauncherCmd {
             description = "Keep mule project structure", defaultValue = "false")
     private boolean keepStructure;
 
+    @CommandLine.Option(names = {"--check-responses"},
+            description = "Check the responses of APIkit resources against the API spec; a response that does not "
+                    + "match it fails with 500", defaultValue = "false")
+    private boolean checkResponses;
+
     @CommandLine.Option(names = {"--multi-root", "-m"},
             description = "Treat each child directory as a separate project and convert all of them",
             defaultValue = "false")
@@ -86,7 +91,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
             onInvalidInput();
         }
         MuleMigrator.migrateAndExportMuleSource(sourcePath, outputPath, orgName, projectName, muleVersion, dryRun,
-                verbose, keepStructure, multiRoot);
+                verbose, keepStructure, checkResponses, multiRoot);
     }
 
     private void onInvalidInput() {

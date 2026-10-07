@@ -24,10 +24,17 @@ import mule.common.DWConstructBase;
 import mule.common.MigrationMetrics;
 import mule.common.MuleXMLNavigator;
 import mule.common.MultiRootContext;
+import mule.common.apispec.ApiContractChecker;
+import mule.common.apispec.ApiKitFlowName;
+import mule.common.apispec.ApiSpec;
+import mule.common.apispec.ApiSpecLoader;
+import mule.common.apispec.ApiSpecResult;
+import mule.common.apispec.ApiTypeGenerator;
 import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel;
 import mule.v4.model.MuleModel.AnypointMqConfig;
 import mule.v4.model.MuleModel.ApiKitConfig;
+import mule.v4.model.MuleModel.ApiKitRouter;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.HttpListener;
 import mule.v4.model.MuleModel.PubSubConfig;
@@ -41,12 +48,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,6 +79,7 @@ public class Context extends ContextBase {
     public final ProjectContext projectCtx = new ProjectContext();
     public FileContext currentFileCtx;
     private final boolean isStandaloneBalFile;
+    public final boolean checkResponses;
     public final MigrationMetrics<DWConstruct> migrationMetrics = new MigrationMetrics<>();
     private final Map<File, ParseResult> parseResults = new HashMap<>();
     private final Map<File, FileContext> fileContexts = new HashMap<>();
@@ -85,18 +95,29 @@ public class Context extends ContextBase {
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
                    mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result,
                    mule.common.MultiRootContext multiRootContext) {
-        super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
-                logger, result, multiRootContext);
-        isStandaloneBalFile = muleAppDir == null;
+        this(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure, false,
+                logger, result, multiRootContext, Collections.emptyList());
     }
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
                    mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result,
                    mule.common.MultiRootContext multiRootContext, List<File> munitXmlFiles) {
+        this(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure, false,
+                logger, result, multiRootContext, munitXmlFiles);
+    }
+
+    /**
+     * @param checkResponses whether APIkit resources check their responses against the API spec
+     */
+    public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
+                   List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
+                   boolean checkResponses, mule.common.MuleLogger logger, mule.common.ProjectMigrationResult result,
+                   mule.common.MultiRootContext multiRootContext, List<File> munitXmlFiles) {
         super(xmlFiles, yamlFiles, muleAppDir, muleVersion, propertyFiles, sourceName, dryRun, keepStructure,
                 logger, result, multiRootContext, munitXmlFiles);
         isStandaloneBalFile = muleAppDir == null;
+        this.checkResponses = checkResponses;
     }
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, mule.common.MuleLogger logger) {
@@ -138,6 +159,14 @@ public class Context extends ContextBase {
         return testDocs;
     }
 
+    /**
+     * @return the tests that check the APIkit services against their specs, when a spec was read
+     */
+    public Optional<BallerinaModel.TextDocument> apiSpecTestDocument() {
+        return ApiSpecTestGenerator.generate(projectCtx.apiSpecs, projectCtx.apiTypeGenerators,
+                projectCtx.apiKitServiceAddresses);
+    }
+
     public boolean hasMUnitFiles() {
         return !munitXmlFiles.isEmpty();
     }
@@ -170,6 +199,85 @@ public class Context extends ContextBase {
                 logger.logSevere("Error while parsing %s".formatted(xmlFile));
             }
         }
+        loadApiSpecs();
+        checkApiContracts();
+        createApiTypeGenerators();
+    }
+
+    private Map<String, String> apiRefsByApiKitConfig() {
+        Map<String, String> apiRefsByConfig = new LinkedHashMap<>();
+        projectCtx.apiKitConfigMaps.forEach(configs -> configs.values()
+                .forEach(config -> apiRefsByConfig.put(config.name(), config.api())));
+        return apiRefsByConfig;
+    }
+
+    private void loadApiSpecs() {
+        Map<String, String> apiRefsByConfig = apiRefsByApiKitConfig();
+        if (apiRefsByConfig.isEmpty()) {
+            return;
+        }
+        Optional<Path> projectRoot = getMuleProjectRoot();
+        if (projectRoot.isEmpty()) {
+            apiRefsByConfig.keySet().forEach(configName -> projectCtx.apiSpecs.put(configName, new ApiSpecResult
+                    .Unavailable("API specs are only looked up when migrating a project directory")));
+        } else {
+            projectCtx.apiSpecs.putAll(ApiSpecLoader.load(projectRoot.get(), apiRefsByConfig));
+        }
+        projectCtx.apiSpecs.forEach((configName, result) -> {
+            switch (result) {
+                case ApiSpecResult.Loaded loaded -> logger.logInfo(
+                        "Read API spec %s for apikit:config '%s': %d operations".formatted(
+                                loaded.specFile().getFileName(), configName, loaded.spec().operations().size()));
+                case ApiSpecResult.Unavailable unavailable -> logger.logWarn(
+                        "No API spec for apikit:config '%s', so its routes come from flow names: %s"
+                                .formatted(configName, unavailable.reason()));
+            }
+        });
+    }
+
+    private void createApiTypeGenerators() {
+        Set<String> usedNames = new HashSet<>(Set.of(Constants.CONTEXT_RECORD_TYPE, Constants.VARS_TYPE,
+                Constants.ATTRIBUTES_TYPE));
+        projectCtx.typeDefMaps.forEach(typeDefs -> usedNames.addAll(typeDefs.keySet()));
+        Map<ApiSpec, ApiTypeGenerator> generatorsBySpec = new IdentityHashMap<>();
+        projectCtx.apiSpecs.forEach((configName, result) -> {
+            if (result instanceof ApiSpecResult.Loaded loaded) {
+                projectCtx.apiTypeGenerators.put(configName, generatorsBySpec.computeIfAbsent(loaded.spec(),
+                        spec -> new ApiTypeGenerator(spec, usedNames)));
+            }
+        });
+    }
+
+    private void checkApiContracts() {
+        Map<String, String> routerFlowsByConfig = new HashMap<>();
+        xmlFiles.stream()
+                .map(parseResults::get)
+                .filter(parseResult -> parseResult != null && parseResult.flows() != null)
+                .flatMap(parseResult -> parseResult.flows().stream())
+                .forEach(flow -> {
+                    ApiKitFlowName.parse(flow.name()).ifPresent(flowName -> projectCtx.apiKitFlows
+                            .computeIfAbsent(flowName.configName(), configName -> new ArrayList<>()).add(flowName));
+                    flow.flowBlocks().stream()
+                            .filter(ApiKitRouter.class::isInstance)
+                            .forEach(router -> routerFlowsByConfig.put(((ApiKitRouter) router).configRef(),
+                                    flow.name()));
+                });
+        apiRefsByApiKitConfig().forEach((configName, apiRef) -> migrationMetrics.apiContractChecks.add(
+                ApiContractChecker.check(configName, apiRef, projectCtx.apiSpecs.get(configName),
+                        projectCtx.apiKitFlows.getOrDefault(configName, List.of()),
+                        Optional.ofNullable(routerFlowsByConfig.get(configName)).flatMap(this::autodiscoveryApiId))));
+    }
+
+    /**
+     * @param flowName name of a flow
+     * @return API Manager id of the API the flow serves, when an autodiscovery registers it; a property placeholder
+     *         is resolved where the project defines the property
+     */
+    public Optional<String> autodiscoveryApiId(String flowName) {
+        return projectCtx.apiAutodiscoveries.stream()
+                .filter(autodiscovery -> autodiscovery.flowRef().equals(flowName))
+                .map(autodiscovery -> resolveProjectProperty(autodiscovery.apiId()).orElse(autodiscovery.apiId()))
+                .findFirst();
     }
 
     @Override
@@ -231,6 +339,9 @@ public class Context extends ContextBase {
             // TODO: at the moment only http provides 'attributes'
             contextImports.add(new Import("ballerina", "http"));
         }
+        if (projectCtx.apiTypeGenerators.values().stream().anyMatch(ApiTypeGenerator::usesConstraints)) {
+            contextImports.add(new Import("ballerina", "constraint"));
+        }
         return contextImports;
     }
 
@@ -284,6 +395,23 @@ public class Context extends ContextBase {
 
         // Shared mule configs
         List<HashMap<String, ApiKitConfig>> apiKitConfigMaps = new ArrayList<>();
+        // Specs referenced by the configs in apiKitConfigMaps, keyed by apikit:config name
+        public final Map<String, ApiSpecResult> apiSpecs = new LinkedHashMap<>();
+        // Generators of the spec types used by converted code, keyed by apikit:config name; configs that share a
+        // spec file share its generator
+        public final Map<String, ApiTypeGenerator> apiTypeGenerators = new LinkedHashMap<>();
+        // http:response of the listener of each APIkit router, keyed by apikit:config name; the router's
+        // implementation flows apply it, since only they see the variables their flow set
+        public final Map<String, MuleModel.HttpResponse> apiKitRouterResponses = new HashMap<>();
+        // Ballerina path prefix of the APIkit resources of each router, from its listener path, keyed by
+        // apikit:config name; absent when the listener path is not a fixed path
+        public final Map<String, String> apiKitResourcePrefixes = new HashMap<>();
+        // How the API spec tests reach the service of each APIkit router, keyed by apikit:config name
+        public final Map<String, ApiSpecTestGenerator.ServiceAddress> apiKitServiceAddresses = new LinkedHashMap<>();
+        // APIkit flows of all files, keyed by the apikit:config name in their flow names
+        public final Map<String, List<ApiKitFlowName>> apiKitFlows = new LinkedHashMap<>();
+        // Autodiscoveries of all files, since one usually sits in a global file apart from the flow it names
+        public final List<MuleModel.ApiAutodiscovery> apiAutodiscoveries = new ArrayList<>();
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
