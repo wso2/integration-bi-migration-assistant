@@ -1,7 +1,7 @@
 import ballerina/io;
 import ballerina/xslt;
 
-function activityExtension(Context cx) returns error? {
+function ParseOrders(Context cx) returns error? {
     xml var0 = getFromContext(cx, "ParseOrders-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/parse/xsd/+ParseOrders+input" version="2.0"><xsl:template name="ParseOrders-input" match="/"><tns1:Input><fileName><xsl:value-of select="'/data/inbound/orders.txt'"/></fileName><startRecord><xsl:value-of select="1"/></startRecord><noOfRecords><xsl:value-of select="-1"/></noOfRecords></tns1:Input></xsl:template></xsl:stylesheet>`);
@@ -15,7 +15,7 @@ function activityExtension(Context cx) returns error? {
     addToContext(cx, "ParseOrders", var8);
 }
 
-function activityExtension_1(Context cx) returns error? {
+function RenderReport(Context cx) returns error? {
     xml var0 = getFromContext(cx, "RenderReport-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://tns.tibco.com/bw/activity/render/xsd/+RenderReport+input" xmlns:tns2="http://example.com/xsd/orders" version="2.0"><xsl:param name="ParseOrders"/><xsl:template name="RenderReport-input" match="/"><tns1:Rows><xsl:for-each select="$ParseOrders/root/Rows/tns2:order"><tns2:order><tns2:orderId><xsl:value-of select="tns2:orderId"/></tns2:orderId><tns2:customer><xsl:value-of select="upper-case(tns2:customer)"/></tns2:customer><tns2:amount><xsl:value-of select="tns2:amount"/></tns2:amount></tns2:order></xsl:for-each></tns1:Rows></xsl:template></xsl:stylesheet>`);
@@ -25,7 +25,10 @@ function activityExtension_1(Context cx) returns error? {
     addToContext(cx, "RenderReport", var4);
 }
 
-function activityExtension_2(Context cx) returns error? {
+function Start(Context cx) returns error? {
+}
+
+function WriteReport(Context cx) returns error? {
     xml var0 = getFromContext(cx, "WriteReport-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns3="http://www.tibco.com/namespaces/tnt/plugins/file" version="2.0"><xsl:param name="RenderReport"/><xsl:template name="WriteReport-input" match="/"><tns3:WriteActivityInputTextClass><fileName><xsl:value-of select="'/data/outbound/orders-report.txt'"/></fileName><textContent><xsl:value-of select="$RenderReport"/></textContent></tns3:WriteActivityInputTextClass></xsl:template></xsl:stylesheet>`);
@@ -35,14 +38,11 @@ function activityExtension_2(Context cx) returns error? {
     check io:fileWriteString(fileName, content, "OVERWRITE");
 }
 
-function receiveEvent(Context cx) returns error? {
-}
-
 function scopeActivityRunner(Context cx) returns error? {
-    check receiveEvent(cx);
-    check activityExtension(cx);
-    check activityExtension_1(cx);
-    check activityExtension_2(cx);
+    check Start(cx);
+    check ParseOrders(cx);
+    check RenderReport(cx);
+    check WriteReport(cx);
 }
 
 function scopeFaultHandler(error err, Context cx) returns () {
