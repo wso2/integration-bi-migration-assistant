@@ -31,7 +31,7 @@ $ bal tool pull migrate-mule
 ### Command Syntax
 
 ```bash
-$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-f|--force-version <3|4>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [--check-responses] [-m|--multi-root]
+$ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-directory>] [-f|--force-version <3|4>] [-k|--keep-structure] [-v|--verbose] [-d|--dry-run] [-c|--check-responses] [-m|--multi-root]
 ```
 
 ### Parameters
@@ -44,7 +44,7 @@ $ bal migrate-mule <source-project-directory-or-file> [-o|--out <output-director
 - **-k or --keep-structure** - *Optional*. If specified, preserves the original Mule project structure during migration. By default, this option is disabled.
 - **-v or --verbose** - *Optional*. Enable verbose output during conversion.
 - **-d or --dry-run** - *Optional*. Run the parsing and analysis phases and generate the `migration_report.html` file without generating the Ballerina package.
-- **--check-responses** - *Optional*. Make the migrated APIkit services check their success responses against the project's API spec (RAML). When the spec describes a JSON body for the status a flow answers with, a body that does not match it fails with a 500 error instead of being sent. By default, responses are sent as the flow produced them, the same as in Mule.
+- **-c or --check-responses** - *Optional*. Make the migrated APIkit services check their success responses against the project's API spec (RAML). When the spec describes a JSON body for the status a flow answers with, a body that does not match it fails with a 500 error instead of being sent. By default, responses are sent as the flow produced them, the same as in Mule.
 - **-m or --multi-root** - *Optional*. Treat each child directory as a separate project and convert all of them. The source must be a directory containing multiple MuleSoft projects.
 
 ### Project Structure Requirements
