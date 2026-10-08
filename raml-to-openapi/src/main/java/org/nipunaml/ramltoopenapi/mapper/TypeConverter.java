@@ -9,14 +9,19 @@ import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import org.nipunaml.ramltoopenapi.exception.ConverterException;
+import org.raml.v2.api.model.v10.datamodel.AnyTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.ArrayTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.BooleanTypeDeclaration;
+import org.raml.v2.api.model.v10.datamodel.DateTimeOnlyTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.DateTimeTypeDeclaration;
+import org.raml.v2.api.model.v10.datamodel.DateTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.FileTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.IntegerTypeDeclaration;
+import org.raml.v2.api.model.v10.datamodel.NullTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.NumberTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.ObjectTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.StringTypeDeclaration;
+import org.raml.v2.api.model.v10.datamodel.TimeOnlyTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.UnionTypeDeclaration;
 import org.slf4j.Logger;
@@ -24,9 +29,12 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Converts RAML type declarations to OpenAPI/JSON Schema types.
@@ -34,6 +42,12 @@ import java.util.Map;
 public class TypeConverter {
     
     private static final Logger logger = LoggerFactory.getLogger(TypeConverter.class);
+
+    /**
+     * OpenAPI has no format for a date-time without a time zone; formats are open-ended, so tools that do not know
+     * this one treat the value as a plain string.
+     */
+    public static final String DATETIME_ONLY_FORMAT = "datetime-only";
 
     /**
      * Converts a RAML type to an OpenAPI schema.
@@ -54,7 +68,8 @@ public class TypeConverter {
             if (context.hasSchema(baseType)) {
                 // Check if array schema exists (e.g., "ProductArray")
                 String arraySchemaName = baseType + "Array";
-                if (context.hasSchema(arraySchemaName)) {
+                // A $ref cannot carry facets such as minItems, so an array with facets is always inlined
+                if (context.hasSchema(arraySchemaName) && !hasArrayFacets(type)) {
                     // Reference the array schema
                     Schema<?> refSchema = new Schema<>();
                     refSchema.set$ref("#/components/schemas/" + arraySchemaName);
@@ -66,6 +81,9 @@ public class TypeConverter {
                     Schema<?> refSchema = new Schema<>();
                     refSchema.set$ref("#/components/schemas/" + baseType);
                     arraySchema.setItems(refSchema);
+                    if (type instanceof ArrayTypeDeclaration) {
+                        applyArrayFacets((ArrayTypeDeclaration) type, arraySchema);
+                    }
                     logger.debug("  Created inline array reference to: {}", baseType);
                     return arraySchema;
                 }
@@ -73,7 +91,8 @@ public class TypeConverter {
         }
 
         // Check if this is a direct reference to a named type
-        if (typeName != null && context.hasSchema(typeName)) {
+        if (typeName != null && context.hasSchema(typeName)
+                && !(type instanceof ObjectTypeDeclaration objectType && addsPropertiesToClosedType(objectType))) {
             Schema<?> refSchema = new Schema<>();
             refSchema.set$ref("#/components/schemas/" + typeName);
             logger.debug("  Created reference to: {}", typeName);
@@ -99,6 +118,17 @@ public class TypeConverter {
             return convertFileType((FileTypeDeclaration) type);
         } else if (type instanceof NumberTypeDeclaration) {
             return convertNumberType((NumberTypeDeclaration) type);
+        } else if (type instanceof DateTypeDeclaration) {
+            return new StringSchema().format("date");
+        } else if (type instanceof TimeOnlyTypeDeclaration) {
+            return new StringSchema().format("time");
+        } else if (type instanceof DateTimeOnlyTypeDeclaration) {
+            return new StringSchema().format(DATETIME_ONLY_FORMAT);
+        } else if (type instanceof NullTypeDeclaration) {
+            // OpenAPI 3.0 has no null type; a nullable schema without a type is the closest equivalent
+            return new Schema<>().nullable(true);
+        } else if (type instanceof AnyTypeDeclaration) {
+            return new Schema<>();
         }
 
         // Handle reference to named type
@@ -106,9 +136,9 @@ public class TypeConverter {
             return createReference(typeName);
         }
 
-        // Default to object schema
-        logger.warn("Unknown type: {}, defaulting to object", typeName);
-        return new ObjectSchema();
+        // External JSON/XML schemas and anything else unrecognised accept any value
+        logger.warn("Unknown type: {}, defaulting to any", typeName);
+        return new Schema<>();
     }
     
     /**
@@ -239,20 +269,50 @@ public class TypeConverter {
             logger.debug("  Array items: {}", type.items().type());
         }
         
-        // Min/Max items
+        applyArrayFacets(type, schema);
+        
+        return schema;
+    }
+
+    /**
+     * RAML objects are open unless they set {@code additionalProperties: false}.
+     */
+    static boolean allowsAdditionalProperties(ObjectTypeDeclaration type) {
+        return !Boolean.FALSE.equals(type.additionalProperties());
+    }
+
+    /**
+     * A closed parent's {@code $ref} would reject the properties a subtype adds, so such a subtype is converted as a
+     * flat object. The RAML parser already lists the inherited properties in {@code properties()}.
+     */
+    static boolean addsPropertiesToClosedType(ObjectTypeDeclaration type) {
+        return type.parentTypes().stream().anyMatch(parent -> parent instanceof ObjectTypeDeclaration parentObject
+                && !allowsAdditionalProperties(parentObject)
+                && !propertyNames(parentObject).containsAll(propertyNames(type)));
+    }
+
+    private static Set<String> propertyNames(ObjectTypeDeclaration type) {
+        return type.properties().stream().map(TypeDeclaration::name).collect(Collectors.toSet());
+    }
+
+    private static boolean hasArrayFacets(TypeDeclaration type) {
+        if (!(type instanceof ArrayTypeDeclaration)) {
+            return false;
+        }
+        ArrayTypeDeclaration array = (ArrayTypeDeclaration) type;
+        return array.minItems() != null || array.maxItems() != null || array.uniqueItems() != null;
+    }
+
+    private static void applyArrayFacets(ArrayTypeDeclaration type, ArraySchema schema) {
         if (type.minItems() != null) {
             schema.setMinItems(type.minItems());
         }
         if (type.maxItems() != null) {
             schema.setMaxItems(type.maxItems());
         }
-        
-        // Unique items
         if (type.uniqueItems() != null) {
             schema.setUniqueItems(type.uniqueItems());
         }
-        
-        return schema;
     }
 
     /**
@@ -268,7 +328,8 @@ public class TypeConverter {
         boolean isInheritance = baseTypeName != null &&
                 !baseTypeName.equals("object") &&
                 !"any".equals(baseTypeName) &&
-                context.hasSchema(baseTypeName);
+                context.hasSchema(baseTypeName) &&
+                !addsPropertiesToClosedType(type);
 
         if (isInheritance) {
             return createInheritedSchema(type, baseTypeName, context);
@@ -312,7 +373,7 @@ public class TypeConverter {
             }
         }
 
-        schema.setAdditionalProperties(true);
+        schema.setAdditionalProperties(allowsAdditionalProperties(type));
 
         return schema;
     }
@@ -409,7 +470,7 @@ public class TypeConverter {
             }
         }
 
-        schema.setAdditionalProperties(true);
+        schema.setAdditionalProperties(allowsAdditionalProperties(type));
 
         return schema;
     }
@@ -420,18 +481,59 @@ public class TypeConverter {
     private Schema<?> convertUnionType(UnionTypeDeclaration type, MapperContext context) 
             throws ConverterException {
         
-        Schema<?> schema = new Schema<>();
         List<Schema> oneOf = new ArrayList<>();
+        boolean nullable = false;
         
         for (TypeDeclaration option : type.of()) {
-            Schema<?> optionSchema = convertType(option, context);
-            oneOf.add(optionSchema);
+            if (option instanceof NullTypeDeclaration) {
+                nullable = true;
+            } else if (context.hasSchema(option.name())) {
+                // A named option reports the base type ("object") as type(), so its own name decides; inlining it
+                // would recurse forever on a self-referencing type such as "parent: Order | nil"
+                oneOf.add(createReference(option.name()));
+            } else {
+                oneOf.add(convertType(option, context));
+            }
         }
         
-        schema.setOneOf(oneOf);
-        logger.debug("  Union of {} types", oneOf.size());
+        // OpenAPI 3.0 expresses "T | nil" as T with nullable: true. nullable takes effect only next to a type, which
+        // a $ref or a oneOf wrapper cannot have, so those unions take null as an option of its own.
+        Schema<?> schema;
+        if (oneOf.size() == 1 && oneOf.get(0).get$ref() == null) {
+            schema = oneOf.get(0);
+            if (nullable) {
+                schema.setNullable(true);
+            }
+        } else {
+            if (nullable) {
+                oneOf.add(createNullSchema());
+            }
+            schema = new Schema<>();
+            if (!oneOf.isEmpty()) {
+                schema.setOneOf(oneOf);
+            }
+        }
+        logger.debug("  Union of {} types, nullable: {}", oneOf.size(), nullable);
         
         return schema;
+    }
+
+    /**
+     * OpenAPI 3.0 has no null type: nullable lets the typed schema take null, and the enum then allows nothing else.
+     */
+    private static Schema<?> createNullSchema() {
+        ObjectSchema schema = new ObjectSchema();
+        schema.setNullable(true);
+        schema.setEnum(Collections.singletonList(null));
+        return schema;
+    }
+
+    /**
+     * Whether the schema accepts only null, as the nil option of a union that is not a single typed schema does.
+     */
+    public static boolean isNullSchema(Schema<?> schema) {
+        return Boolean.TRUE.equals(schema.getNullable()) && schema.getEnum() != null
+                && schema.getEnum().size() == 1 && schema.getEnum().get(0) == null;
     }
     
     /**

@@ -24,8 +24,8 @@ service http:InterceptableService /mule4 on config {
     function init() returns error? {
     }
 
-    public function createInterceptors() returns [MuleResponseErrorInterceptor0, MuleResponseInterceptor0] {
-        return [new MuleResponseErrorInterceptor0(), new MuleResponseInterceptor0()];
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
     }
 
     resource function get demo(http:Request request) returns http:Response|error {
@@ -33,8 +33,19 @@ service http:InterceptableService /mule4 on config {
         ctx.vars.httpStatus = "202";
         log:printInfo("xxx: logger invoked");
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+
+        // http response headers
+        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            response.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
+        return response;
     }
 }
 
@@ -47,30 +58,12 @@ service class MuleResponseErrorInterceptor0 {
         // set payload
         anydata payload0 = ctx.payload;
         ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
 
         // http response status code
         interceptedResponse.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 500).toString());
         return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseInterceptor0 {
-    *http:ResponseInterceptor;
-
-    remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
-        Context ctx = {attributes: {response: response}};
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-
-        // http response headers
-        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
-        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
-        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
-            response.setHeader(headerName, headerValue);
-        }
-
-        // http response status code
-        response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
-        return response;
     }
 }

@@ -12,10 +12,15 @@ service http:InterceptableService / on http\-listener\-config {
     }
 
     resource function default api(http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
-    resource function get orders/[string id](http:Request request) returns http:Response|error {
+    resource function get api/orders(string id, http:Request request) returns error {
+        // No flow implements this operation of the API spec
+        return error APIKIT__NOT_IMPLEMENTED("APIKIT:NOT_IMPLEMENTED");
+    }
+
+    resource function get api/orders/[string id](http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {id}}};
         log:printInfo(string `Received order id: ${id.toString()}`);
 
@@ -44,7 +49,9 @@ service class MuleResponseErrorInterceptor0 {
         log:printError("Trace: " + err.stackTrace().toString());
 
         log:printError("APIKit error handled");
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
         return <http:Response>ctx.attributes.response;
     }
 }
@@ -55,7 +62,9 @@ service class MuleResponseInterceptor0 {
     remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
         Context ctx = {attributes: {response: response}};
         log:printInfo("After APIKit router");
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
         return response;
     }
 }

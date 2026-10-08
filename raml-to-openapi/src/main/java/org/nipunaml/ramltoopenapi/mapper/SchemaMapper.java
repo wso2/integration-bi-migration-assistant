@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import org.nipunaml.ramltoopenapi.exception.ConverterException;
 import org.raml.v2.api.model.v10.api.Api;
 import org.raml.v2.api.model.v10.bodies.Response;
+import org.raml.v2.api.model.v10.datamodel.ObjectTypeDeclaration;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.resources.Resource;
@@ -24,6 +25,11 @@ import java.util.Set;
 public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
     
     private static final Logger logger = LoggerFactory.getLogger(SchemaMapper.class);
+
+    /**
+     * Extension set on a schema that stands in for a RAML type that could not be converted.
+     */
+    public static final String CONVERSION_ERROR_EXTENSION = "x-raml-conversion-error";
     
     private final TypeConverter typeConverter;
     private final PropertyMapper propertyMapper;
@@ -67,7 +73,11 @@ public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
                     if (context.isStrict()) {
                         throw new ConverterException(message, e);
                     } else {
+                        // Keep the name so references to it still resolve; the extension records why it is empty
                         logger.warn("⚠ {}", message);
+                        Schema<?> placeholder = new Schema<>();
+                        placeholder.addExtension(CONVERSION_ERROR_EXTENSION, message);
+                        schemas.put(typeName, placeholder);
                     }
                 }
             }
@@ -153,7 +163,7 @@ public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
             throws ConverterException {
 
         // Check if this type has inheritance BEFORE converting
-        if (hasParentType(type)) {
+        if (hasParentType(type, context)) {
             // Handle inheritance - convert only own properties, not parent
             return handleInheritance(type, context);
         }
@@ -188,7 +198,7 @@ public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
     /**
      * Checks if a type has a parent type (inheritance).
      */
-    private boolean hasParentType(TypeDeclaration type) {
+    private boolean hasParentType(TypeDeclaration type, MapperContext context) {
         String typeName = type.type();
         
         // If type is a built-in type, no inheritance
@@ -196,8 +206,10 @@ public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
             return false;
         }
         
-        // If type name is different from the declaration name, it's inheritance
-        return !typeName.equals(type.name());
+        // Only an object can extend a named schema. Other declarations name a type expression such as
+        // "string | nil" or "Order[]", or narrow a named scalar; those are converted as the type they resolve to.
+        return type instanceof ObjectTypeDeclaration objectType && context.hasSchema(typeName)
+                && !typeName.equals(type.name()) && !TypeConverter.addsPropertiesToClosedType(objectType);
     }
     
     /**
@@ -295,8 +307,7 @@ public class SchemaMapper implements ComponentMapper<Api, Map<String, Schema>> {
             }
         }
 
-        // Set additionalProperties to true to match RAML's open object model
-        schema.setAdditionalProperties(true);
+        schema.setAdditionalProperties(TypeConverter.allowsAdditionalProperties(objectType));
 
         return schema;
     }

@@ -545,14 +545,10 @@ public class CodeGenerator {
     }
 
     private String constructFunctionParameterString(List<Parameter> parameters, boolean skipDefaultExpr) {
-        if (skipDefaultExpr) {
-            return String.join(",", parameters.stream().map(p -> String.format("%s %s", p.type(), p.name()))
-                    .toList());
-        }
-
-        return String.join(",", parameters.stream().map(p -> p.defaultExpr().isPresent() ?
-                String.format("%s %s = %s", p.type(), p.name(), p.defaultExpr().get().expr()) :
-                String.format("%s %s", p.type(), p.name())).toList());
+        return String.join(",", parameters.stream()
+                .map(p -> skipDefaultExpr ? new Parameter(p.name(), p.type(), Optional.empty(), p.annotation()) : p)
+                .map(Parameter::toString)
+                .toList());
     }
 
     private FunctionBodyBlockNode constructFunctionBodyBlock(List<Statement> body) {

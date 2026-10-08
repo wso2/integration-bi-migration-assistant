@@ -8,24 +8,6 @@ configurable string application_version = ?;
 configurable string tracepoint_beforeRequest = ?;
 configurable string tracepoint_afterRequest = ?;
 
-public function _dwMethod1(Context ctx) returns json|error {
-    string logPayload = "";
-    string status = "ok";
-    string msg = "After Request Send Email";
-    return CustomLogMapper::logger({
-                                      "correlationId": correlationId,
-                                      "app": app,
-                                      "mule": mule,
-                                      "status": status,
-                                      "message": msg,
-                                      "version": application_version,
-                                      "tracepoint": tracepoint_afterRequest,
-                                      "businessProcess": check vars.businessProcess,
-                                      ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
-                                      "env": p("mule.env")
-                                  });
-}
-
 public function send\-email(Context ctx) {
     json logMessage0 = check _dwMethod(ctx);
     log:printInfo(logMessage0.toJsonString());
@@ -51,6 +33,24 @@ public function _dwMethod(Context ctx) returns json|error {
                                       "message": msg,
                                       "version": application_version,
                                       "tracepoint": tracepoint_beforeRequest,
+                                      "businessProcess": check vars.businessProcess,
+                                      ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
+                                      "env": p("mule.env")
+                                  });
+}
+
+public function _dwMethod1(Context ctx) returns json|error {
+    string logPayload = "";
+    string status = "ok";
+    string msg = "After Request Send Email";
+    return CustomLogMapper::logger({
+                                      "correlationId": correlationId,
+                                      "app": app,
+                                      "mule": mule,
+                                      "status": status,
+                                      "message": msg,
+                                      "version": application_version,
+                                      "tracepoint": tracepoint_afterRequest,
                                       "businessProcess": check vars.businessProcess,
                                       ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
                                       "env": p("mule.env")

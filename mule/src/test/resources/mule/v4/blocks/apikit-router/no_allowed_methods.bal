@@ -12,6 +12,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 public listener http:Listener listener\-config = new (8080);
 
 service / on listener\-config {
@@ -19,7 +21,7 @@ service / on listener\-config {
     }
 
     resource function default [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
