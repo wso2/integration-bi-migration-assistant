@@ -20,6 +20,7 @@ package tibco.converter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -514,7 +515,7 @@ public class TibcoProjectConversionTest {
     }
 
     @DataProvider(name = "keepStructureOptions")
-    public Object[][] keepStructureOptions() {
+    public @NotNull Object[][] keepStructureOptions() {
         return new Object[][]{{false}, {true}};
     }
 

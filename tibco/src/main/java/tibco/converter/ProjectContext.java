@@ -300,6 +300,7 @@ public class ProjectContext implements LoggingContext {
         return typeCx.serialize();
     }
 
+    @NotNull
     FunctionData getProcessStartFunction(String processName, Set<BallerinaModel.Import> callerImports) {
         return findLocalProcess(processName)
                 .map(process -> getProcessContext(process).getProcessStartFunction())
@@ -543,7 +544,7 @@ public class ProjectContext implements LoggingContext {
         return findLocalProcess(processName).flatMap(process -> getProcessContext(process).getDefaultClient());
     }
 
-    private Optional<Process> findLocalProcess(String processName) {
+    private @NotNull Optional<Process> findLocalProcess(String processName) {
         return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName)).findAny();
     }
 
@@ -629,7 +630,7 @@ public class ProjectContext implements LoggingContext {
         log(LoggingUtils.Level.WARN, "Partially supported activity: " + name);
     }
 
-    public Optional<String> getProcessFunction(String processName, Set<BallerinaModel.Import> callerImports) {
+    public @NotNull Optional<String> getProcessFunction(String processName, Set<BallerinaModel.Import> callerImports) {
         // The symbol comes from the resolved process, not from the reference: a reference may be
         // an absolute or partial form of the path the target's function name was derived from.
         return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
