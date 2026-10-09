@@ -18,6 +18,8 @@
 
 package tibco.parser;
 
+import com.google.gson.JsonParser;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
@@ -26,6 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+
+import javax.xml.xpath.XPathFactory;
 
 import common.LoggingUtils;
 import tibco.ConversionContext;
@@ -279,6 +283,44 @@ public class XmlToModelTests {
         Scope.Flow.Activity actual = XmlToTibcoModelParser.parseActivity(getProcessContext(),
                 TestUtils.stringToElement(activityXml)).get();
         assertEquals(((Scope.Flow.Activity.Throw) actual).faultName(), "ns:SomeFault");
+    }
+
+    @DataProvider
+    public Object[][] jsonLiteralPayloads() {
+        return new Object[][]{
+                {"reason", "archive-complete"},
+                {"event", "orders-archived"}
+        };
+    }
+
+    @Test(dataProvider = "jsonLiteralPayloads")
+    public void testXsltKeepsJsonQuotes(String key, String value) throws Exception {
+        String activityXml = """
+                <bpws:throw faultName="ns:SomeFault" name="Throw"
+                        xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:inputBindings xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <tibex:inputBinding expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"
+                                expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;\
+                &lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; version=&quot;2.0&quot;&gt;\
+                &lt;xsl:template name=&quot;Throw-input&quot; match=&quot;/&quot;&gt;&lt;asciiContent&gt;\
+                &lt;xsl:value-of select=&quot;'{&amp;quot;%1$s&amp;quot;: &amp;quot;%2$s&amp;quot;}'&quot;/&gt;\
+                &lt;/asciiContent&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;"/>
+                    </tibex:inputBindings>
+                </bpws:throw>
+                """.formatted(key, value);
+        Scope.Flow.Activity.Throw activity = (Scope.Flow.Activity.Throw) XmlToTibcoModelParser.parseActivity(
+                getProcessContext(), TestUtils.stringToElement(activityXml)).get();
+        Scope.Flow.Activity.InputBinding.CompleteBinding binding =
+                (Scope.Flow.Activity.InputBinding.CompleteBinding) activity.inputBindings().get(0);
+        String styleSheet = ((Scope.Flow.Activity.Expression.XSLT) binding.expression()).expression();
+
+        Element valueOf = (Element) TestUtils.stringToElement(styleSheet)
+                .getElementsByTagName("xsl:value-of").item(0);
+        String payload = XPathFactory.newInstance().newXPath()
+                .evaluate(valueOf.getAttribute("select"), valueOf.getOwnerDocument());
+
+        assertEquals(payload, "{\"" + key + "\": \"" + value + "\"}");
+        assertEquals(JsonParser.parseString(payload).getAsJsonObject().get(key).getAsString(), value);
     }
 
     @Test

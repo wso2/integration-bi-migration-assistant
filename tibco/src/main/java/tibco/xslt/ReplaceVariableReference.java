@@ -22,12 +22,13 @@ public class ReplaceVariableReference implements Transform {
 
     @Override
     public String transform(TransformContext cx, String content) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("bw:getModuleProperty\\('([^']+)'\\)");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "bw:getModuleProperty\\((?:'([^']+)'|&quot;(.+?)&quot;)\\)");
         java.util.regex.Matcher matcher = pattern.matcher(content);
         StringBuilder result = new StringBuilder();
 
         while (matcher.find()) {
-            String propertyName = matcher.group(1);
+            String propertyName = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
             String configVarName = cx.getConfigVarName(propertyName);
             matcher.appendReplacement(result, "\\$\\{" + configVarName + "\\}");
         }

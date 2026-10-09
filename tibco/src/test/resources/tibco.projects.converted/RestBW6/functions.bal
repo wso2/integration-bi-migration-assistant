@@ -35,7 +35,7 @@ function SendHTTPResponse(Context cx) returns error? {
             </asciiContent>
             <Headers>
                 <Content-Type>
-                    <xsl:value-of select="'application/json'"/>
+                    <xsl:value-of select="&quot;application/json&quot;"/>
                 </Content-Type>
             </Headers>
         </tns1:ResponseActivityInput>
