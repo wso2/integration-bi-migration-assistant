@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.dataformat.OrderReportProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/dataformat"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:sca-bpel="http://docs.oasis-open.org/ns/opencsa/sca-bpel/200801"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <bpws:variables>
+        <bpws:variable name="ParseOrders-input" sca-bpel:internal="true"/>
+        <bpws:variable name="ParseOrders" sca-bpel:internal="true"/>
+        <bpws:variable name="RenderReport-input" sca-bpel:internal="true"/>
+        <bpws:variable name="RenderReport" sca-bpel:internal="true"/>
+        <bpws:variable name="WriteReport-input" sca-bpel:internal="true"/>
+        <bpws:variable name="orderFormat" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://ns.tibco.com/bw/palette/dataformat}DataFormat" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Orders.OrderFormat</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+    </bpws:variables>
+    <bpws:scope name="scope">
+        <bpws:flow name="flow">
+            <bpws:links>
+                <bpws:link name="StartToParseOrders" tibex:linkType="SUCCESS"/>
+                <bpws:link name="ParseOrdersToRenderReport" tibex:linkType="SUCCESS"/>
+                <bpws:link name="RenderReportToWriteReport" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:extensionActivity>
+                <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Start"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="StartToParseOrders"/>
+                    </bpws:sources>
+                    <tibex:eventSource>
+                        <tibex:StartEvent xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+                    </tibex:eventSource>
+                </tibex:receiveEvent>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="ParseOrders-input" name="ParseOrders"
+                    outputVariable="ParseOrders" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="StartToParseOrders"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="ParseOrdersToRenderReport"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/parse/xsd/+ParseOrders+input&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;ParseOrders-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;fileName>&lt;xsl:value-of select=&quot;'/data/inbound/orders.txt'&quot;/>&lt;/fileName>&lt;startRecord>&lt;xsl:value-of select=&quot;1&quot;/>&lt;/startRecord>&lt;noOfRecords>&lt;xsl:value-of select=&quot;-1&quot;/>&lt;/noOfRecords>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.parse.parsedata"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:parse="http://ns.tibco.com/bw/palette/parse"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/parse#//ParseData"/>
+                                    <value dataFormat="orderFormat" encoding="UTF-8" inputType="File"
+                                        manuallySpecifiedStartRecord="true" xsi:type="parse:ParseData"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="RenderReport-input" name="RenderReport"
+                    outputVariable="RenderReport" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="ParseOrdersToRenderReport"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="RenderReportToWriteReport"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/render/xsd/+RenderReport+input&quot; xmlns:tns2=&quot;http://example.com/xsd/orders&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;ParseOrders&quot;/>&lt;xsl:template name=&quot;RenderReport-input&quot; match=&quot;/&quot;>&lt;tns1:Rows>&lt;xsl:for-each select=&quot;$ParseOrders/Rows/tns2:order&quot;>&lt;tns2:order>&lt;tns2:orderId>&lt;xsl:value-of select=&quot;tns2:orderId&quot;/>&lt;/tns2:orderId>&lt;tns2:customer>&lt;xsl:value-of select=&quot;upper-case(tns2:customer)&quot;/>&lt;/tns2:customer>&lt;tns2:amount>&lt;xsl:value-of select=&quot;tns2:amount&quot;/>&lt;/tns2:amount>&lt;/tns2:order>&lt;/xsl:for-each>&lt;/tns1:Rows>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.parse.renderdata"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:parse="http://ns.tibco.com/bw/palette/parse"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/parse#//RenderData"/>
+                                    <value dataFormat="orderFormat" xsi:type="parse:RenderData"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="WriteReport-input" name="WriteReport"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="RenderReportToWriteReport"/>
+                    </bpws:targets>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns3=&quot;http://www.tibco.com/namespaces/tnt/plugins/file&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;RenderReport&quot;/>&lt;xsl:template name=&quot;WriteReport-input&quot; match=&quot;/&quot;>&lt;tns3:WriteActivityInputTextClass>&lt;fileName>&lt;xsl:value-of select=&quot;'/data/outbound/orders-report.txt'&quot;/>&lt;/fileName>&lt;textContent>&lt;xsl:value-of select=&quot;$RenderReport&quot;/>&lt;/textContent>&lt;/tns3:WriteActivityInputTextClass>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.file.write"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:file="http://ns.tibco.com/bw/palette/file"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/file#//WriteFile"/>
+                                    <value append="false" createMissingDirectories="true" encoding="text"
+                                        xsi:type="file:WriteFile"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

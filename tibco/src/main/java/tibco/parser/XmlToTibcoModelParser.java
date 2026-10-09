@@ -72,6 +72,10 @@ import static common.LoggingUtils.Level.WARN;
 
 public final class XmlToTibcoModelParser {
 
+    private static final String DELIMITED_DATA_FORMAT = "Delimiter separated";
+    private static final String SINGLE_SEPARATOR_PARSE_RULE =
+            "Treat all characters as entered as a single column separator string";
+
     private XmlToTibcoModelParser() {
     }
 
@@ -294,6 +298,69 @@ public final class XmlToTibcoModelParser {
             cx.registerUnsupportedResource(root, name);
             return Optional.empty();
         }
+    }
+
+    public static @NotNull Optional<Resource.DataFormatResource> parseDataFormatResource(ResourceContext cx,
+                                                                                         Element root) {
+        cx.log(INFO, "Start parsing DataFormatResource");
+        cx.logState("Start parsing DataFormatResource");
+        String name = "";
+        try {
+            name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
+            Element configuration = getFirstChildWithTag(root, "configuration");
+            String formatType = configuration.getAttribute("formatType");
+            if (!formatType.equals(DELIMITED_DATA_FORMAT)) {
+                throw new ParserException("Unsupported data format type: " + formatType, configuration);
+            }
+            String parseRule = configuration.getAttribute("colSeparatorParseRule");
+            if (!parseRule.isEmpty() && !parseRule.equals(SINGLE_SEPARATOR_PARSE_RULE)) {
+                throw new ParserException("Unsupported column separator parse rule: " + parseRule, configuration);
+            }
+            String columnSeparator = configuration.getAttribute("colSeparator");
+            if (columnSeparator.isEmpty()) {
+                throw new ParserException("Data format has no column separator", configuration);
+            }
+            if (isConfigurableValue(columnSeparator) || getChildrenWithTag(configuration, "substitutionBindings")
+                    .anyMatch(binding -> binding.getAttribute("template").equals("colSeparator"))) {
+                throw new ParserException("Unsupported configurable column separator", configuration);
+            }
+            String schemaElementQName = configuration.getAttribute("schemaElementQName");
+            int prefixEnd = schemaElementQName.indexOf(':');
+            if (schemaElementQName.substring(prefixEnd + 1).isEmpty()) {
+                throw new ParserException("Data format has no schema element", configuration);
+            }
+            String rowNamespace = prefixEnd < 0 ? root.getAttribute("xmlns")
+                    : root.getAttribute("xmlns:" + schemaElementQName.substring(0, prefixEnd));
+            if (prefixEnd >= 0 && rowNamespace.isEmpty()) {
+                throw new ParserException("Undeclared schema element prefix: " + schemaElementQName, configuration);
+            }
+            List<String> fieldNames = getChildrenWithTag(configuration, "fieldOffsets")
+                    .map(fieldOffset -> fieldOffset.getAttribute("name"))
+                    .toList();
+            cx.log(INFO, "Done parsing DataFormatResource: " + name);
+            cx.logState("Parsed DataFormatResource: " + name);
+            return Optional.of(new Resource.DataFormatResource(name, cx.getResourcePath(),
+                    columnSeparator(columnSeparator),
+                    lineSeparator(configuration, configuration.getAttribute("lineSeparator")), rowNamespace,
+                    schemaElementQName.substring(prefixEnd + 1), fieldNames));
+        } catch (Exception ex) {
+            cx.registerUnsupportedResource(root, name);
+            return Optional.empty();
+        }
+    }
+
+    private static @NotNull String columnSeparator(String separator) {
+        return separator.equals("Tab") ? "\t" : separator;
+    }
+
+    private static @NotNull String lineSeparator(Element configuration, String separator) {
+        return switch (separator) {
+            case "New Line", "" -> "\n";
+            case "Carriage Return/Line Feed (windows)" -> "\r\n";
+            case "Carriage Return" -> "\r";
+            default -> throw new ParserException("Unsupported data format line separator: " + separator,
+                    configuration);
+        };
     }
 
     private static Resource.SubstitutionBinding parseSubstitutionBinding(Element element) {
@@ -1414,6 +1481,8 @@ public final class XmlToTibcoModelParser {
             case SFTP_DIR -> parseSFTPDir(activity);
             case SFTP_GET -> parseSFTPGet(activity);
             case SFTP_PUT -> parseSFTPPut(activity);
+            case PARSE_DATA -> parseParseData(activity);
+            case RENDER_DATA -> parseRenderData(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
             case REST_INVOKE -> parseRestInvoke(activity);
             case JSON_RENDER -> parseJSONOperation(config, Config.ExtensionKind.JSON_RENDER);
@@ -1473,6 +1542,29 @@ public final class XmlToTibcoModelParser {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
         return getFirstChildWithTag(properties, "value");
+    }
+
+    private static Config.@NotNull ParseData parseParseData(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        try {
+            return new Config.ParseData(value.getAttribute("dataFormat"),
+                    Config.ParseData.InputType.from(value.getAttribute("inputType")),
+                    parseOptionalAttribute(value, "encoding").orElse("UTF-8"),
+                    Boolean.parseBoolean(value.getAttribute("skipBlankLines")),
+                    Boolean.parseBoolean(value.getAttribute("manuallySpecifiedStartRecord")),
+                    Boolean.parseBoolean(value.getAttribute("continueOnError")));
+        } catch (IllegalArgumentException ex) {
+            throw new ParserException(ex.getMessage(), value);
+        }
+    }
+
+    private static Config.@NotNull RenderData parseRenderData(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        return new Config.RenderData(value.getAttribute("dataFormat"));
     }
   
     private static Config.@NotNull ParseXML parseXmlParseExtension(Element activity) {

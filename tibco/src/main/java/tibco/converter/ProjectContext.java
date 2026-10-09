@@ -98,6 +98,8 @@ public class ProjectContext implements LoggingContext {
     private final ContextWrapperForTypeFile typeCx = new ContextWrapperForTypeFile(this);
     private final ProjectConversionContext conversionContext;
     private final Map<String, String> generatedResources = new HashMap<>();
+    private final Map<String, Resource.DataFormatResource> dataFormatResources = new HashMap<>();
+    private final Set<String> unqualifiedFieldDataFormats = new HashSet<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
@@ -418,6 +420,35 @@ public class ProjectContext implements LoggingContext {
 
     public void addJMSResource(Resource.JMSSharedResource jmsResource) {
         jmsResourceMap.put(jmsResource.path(), jmsResource);
+    }
+
+    void addDataFormatResource(Resource.DataFormatResource dataFormatResource, boolean qualifiedFields) {
+        dataFormatResources.put(dataFormatResource.path(), dataFormatResource);
+        if (!qualifiedFields) {
+            unqualifiedFieldDataFormats.add(dataFormatResource.path());
+        }
+    }
+
+    boolean hasQualifiedDataFormatFields(String resourcePath) {
+        return !unqualifiedFieldDataFormats.contains(resourcePath);
+    }
+
+    Optional<Resource.DataFormatResource> getDataFormatResource(String resourcePath) {
+        return Optional.ofNullable(dataFormatResources.get(resourcePath));
+    }
+
+    Collection<String> getDataFormatResourceKeys() {
+        return dataFormatResources.keySet();
+    }
+
+    public String getParseDelimitedDataFunction() {
+        utilityIntrinsics.add(Intrinsics.PARSE_DELIMITED_DATA);
+        return Intrinsics.PARSE_DELIMITED_DATA.name;
+    }
+
+    public String getRenderDelimitedDataFunction() {
+        utilityIntrinsics.add(Intrinsics.RENDER_DELIMITED_DATA);
+        return Intrinsics.RENDER_DELIMITED_DATA.name;
     }
 
     public Resource.JMSSharedResource getJMSResource(String resourcePath) {

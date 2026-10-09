@@ -109,7 +109,9 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         // form is preferred, since it disambiguates resources that share a bare file name.
         List<String> qualifiedMatches = new ArrayList<>();
         List<String> bareMatches = new ArrayList<>();
-        for (String resourcePath : projectContext.getGeneratedResourceKeys()) {
+        List<String> candidatePaths = new ArrayList<>(projectContext.getGeneratedResourceKeys());
+        candidatePaths.addAll(projectContext.getDataFormatResourceKeys());
+        for (String resourcePath : candidatePaths) {
             String name = tibco.converter.ConversionUtils.resourceNameFromPath(resourcePath);
             String qualifiedName = tibco.converter.ConversionUtils.qualifiedResourceNameFromPath(resourcePath, name);
             if (qualifiedName.equals(resourceName)) {
@@ -274,6 +276,23 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
             return Optional.empty();
         }
         return projectContext.dbClient(resourceRef);
+    }
+
+    Optional<Resource.DataFormatResource> dataFormat(String dataFormatPropertyName) {
+        return Optional.ofNullable(propertyVariableToResourceMap.get(dataFormatPropertyName))
+                .flatMap(projectContext::getDataFormatResource);
+    }
+
+    boolean hasQualifiedDataFormatFields(Resource.DataFormatResource dataFormat) {
+        return projectContext.hasQualifiedDataFormatFields(dataFormat.path());
+    }
+
+    String getParseDelimitedDataFunction() {
+        return projectContext.getParseDelimitedDataFunction();
+    }
+
+    String getRenderDelimitedDataFunction() {
+        return projectContext.getRenderDelimitedDataFunction();
     }
 
     String getAddToContextFn() {
