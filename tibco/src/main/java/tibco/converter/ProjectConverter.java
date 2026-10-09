@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
@@ -102,7 +103,8 @@ public class ProjectConverter {
     public static @NotNull ConversionResult convertProject(
             ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
-            ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
+            ProjectResources projectResources, tibco.parser.ProjectContext parserContext,
+            Optional<NodeResponse> generatedTypes) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         cx.logState("CodeGeneration started for project");
         convertResources(cx, projectResources);
@@ -111,12 +113,7 @@ public class ProjectConverter {
                 processes.stream()
                         .map(process -> convertServices(cx, process))
                         .toList();
-        List<Type.Schema> schemas = new ArrayList<>(types);
-        for (Process each : processes) {
-            if (each instanceof Process6 process6) {
-                accumSchemas(process6, schemas);
-            }
-        }
+        List<Type.Schema> schemas = collectSchemas(types, processes);
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
                 .map(result -> {
                     Process process = result.process();
@@ -124,8 +121,10 @@ public class ProjectConverter {
                     conversionContext.registerProcessTextDocument(process, textdocument);
                     return textdocument;
                 }).toList();
+        // Schemas added while converting activities were not part of the analysis-time generation.
+        Optional<NodeResponse> reusableTypes = cx.getXSDSchemas().isEmpty() ? generatedTypes : Optional.empty();
         schemas.addAll(cx.getXSDSchemas());
-        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
+        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas, reusableTypes);
         cx.logState("CodeGeneration completed for project");
         cx.logState("Generating analysis report for project");
         TibcoAnalysisReport parserReport = new TibcoAnalysisReport(
@@ -211,6 +210,17 @@ public class ProjectConverter {
         return new ProcessResult(process, ProcessConverter.convertTypes(cx.getProcessContext(process), process));
     }
 
+    public static @NotNull List<Type.Schema> collectSchemas(Collection<Type.Schema> types,
+                                                            Collection<Process> processes) {
+        List<Type.Schema> schemas = new ArrayList<>(types);
+        for (Process each : processes) {
+            if (each instanceof Process6 process6) {
+                accumSchemas(process6, schemas);
+            }
+        }
+        return schemas;
+    }
+
     private static void accumSchemas(Process6 process, Collection<Type.Schema> accum) {
         for (Type each : process.types()) {
             if (each instanceof Type.Schema schema) {
@@ -246,8 +256,9 @@ public class ProjectConverter {
         }
     }
 
-    static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas) {
+    static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas,
+                                   Optional<NodeResponse> pregenerated) {
         ContextWithFile typeContext = cx.getTypeContext();
-        return TypeConverter.convertSchemas(typeContext, schemas);
+        return TypeConverter.convertSchemas(typeContext, schemas, pregenerated);
     }
 }

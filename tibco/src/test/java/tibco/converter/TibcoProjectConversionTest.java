@@ -35,9 +35,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
+
+    private static final Pattern MODULE_SYMBOL_DECLARATION = Pattern.compile(
+            "^(?:public\\s+)?(?:isolated\\s+)?(?:(?:function|type|enum)\\s+'?(?<named>[A-Za-z_][A-Za-z0-9_]*)"
+                    + "|const\\s+(?:[^=;\\n]*?\\s)?'?(?<constant>[A-Za-z_][A-Za-z0-9_]*)\\s*=)",
+            Pattern.MULTILINE);
 
     /**
      * Recursively compares two JSON Maps, handling nested Maps, Lists, and
@@ -688,6 +695,36 @@ public class TibcoProjectConversionTest {
                 "Call was emitted as an error stub although the target is in the same module");
         Assert.assertFalse(functions.contains("import testOrg/"),
                 "A locally defined process must not be called through a module import");
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testModuleSymbolsDoNotClashWithXsdTypes() throws Exception {
+        Path tempDir = Files.createTempDirectory("tibco-name-clash-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", "XsdTypeNameClash"),
+                    Path.of("src", "test", "resources", "tibco.name-clash", "XsdTypeNameClash").toString(),
+                    tempDir.toString());
+            String generated;
+            try (Stream<Path> balFiles = Files.walk(tempDir)) {
+                generated = balFiles.filter(p -> p.toString().endsWith(".bal"))
+                        .map(TibcoProjectConversionTest::readString)
+                        .collect(Collectors.joining("\n"));
+            }
+            Map<String, Long> declarationCounts = MODULE_SYMBOL_DECLARATION.matcher(generated).results()
+                    .collect(Collectors.groupingBy(result -> Optional.ofNullable(result.group("named"))
+                            .orElseGet(() -> result.group("constant")), Collectors.counting()));
+            List<String> redeclared = declarationCounts.entrySet().stream()
+                    .filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).sorted().toList();
+            Assert.assertEquals(redeclared, List.of(), "Redeclared module symbols in:\n" + generated);
+            for (String xsdType : List.of("Response", "Context", "SharedVariableContext", "MainScopeActivityRunner",
+                    "InlineShape", "SequenceGroup")) {
+                Assert.assertEquals(declarationCounts.get(xsdType), Long.valueOf(1),
+                        "XSD type " + xsdType + " must keep its name");
+            }
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
     }
 
     private String convertedFunctions(String projectName) throws Exception {

@@ -46,7 +46,7 @@ public interface AnalysisResult {
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), Collections.emptySet(), TibcoAnalysisReport.empty());
+                Collections.emptyMap(), Collections.emptySet(), Collections.emptySet(), TibcoAnalysisReport.empty());
     }
 
     Collection<String> inputTypeName(Process process);
@@ -95,7 +95,7 @@ public interface AnalysisResult {
 
     XSD.XSDType getType(String name);
 
-    Set<String> getTypeNames();
+    Set<String> moduleSymbolNames();
 
     boolean isProcessCalled(Process process);
 

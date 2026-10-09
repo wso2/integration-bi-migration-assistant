@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.nameclash.OtherProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/nameclash/other"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:tns="http://xmlns.example.com/test/nameclash/other">
+    <tibex:Types>
+        <xs:schema elementFormDefault="qualified"
+            targetNamespace="http://xmlns.example.com/test/nameclash/shapes"
+            xmlns:xs="http://www.w3.org/2001/XMLSchema">
+            <xs:element name="InlineShape">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Width" type="xs:int"/>
+                        <xs:element name="Height" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+    </tibex:Types>
+    <bpws:scope name="OtherScope">
+        <bpws:flow name="otherFlow">
+            <bpws:throw faultName="tns:OtherFault" name="RaiseOther"/>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

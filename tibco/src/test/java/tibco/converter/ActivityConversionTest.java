@@ -370,7 +370,7 @@ public class ActivityConversionTest {
                 }
 
                 @Override
-                public Set<String> getTypeNames() {
+                public Set<String> moduleSymbolNames() {
                     return Set.of();
                 }
 
