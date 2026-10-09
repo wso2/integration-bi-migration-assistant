@@ -91,6 +91,7 @@ public class TibcoConverter {
     public static @NotNull ParsedProject parseProject(ProjectConversionContext cx, String projectPath) {
         try {
             tibco.parser.ProjectContext pcx = new tibco.parser.ProjectContext(cx, projectPath);
+            cx.setModulePropertyDefaults(TibcoToBalConverter.parseModulePropertyDefaults(cx, projectPath));
             Set<Process> processes = TibcoToBalConverter.parseProcesses(pcx);
             Set<Schema> types = TibcoToBalConverter.parseTypes(pcx);
             ProjectResources resources = TibcoToBalConverter.parseResources(pcx);
@@ -570,6 +571,9 @@ public class TibcoConverter {
 
                 [build-options]
                 observabilityIncluded = true""".formatted(cx.org(), cx.name(), version, distribution));
+        if (!cx.javaDependencies().isEmpty()) {
+            tomlContent.append("\n");
+        }
         for (var each : cx.javaDependencies()) {
             tomlContent.append("\n");
             tomlContent.append(each.dependencyParam);

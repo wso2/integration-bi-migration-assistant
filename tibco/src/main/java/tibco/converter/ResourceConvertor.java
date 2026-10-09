@@ -29,7 +29,6 @@ import common.BallerinaModel.Expression.TernaryExpression;
 import common.BallerinaModel.ModuleVar;
 import common.LoggingUtils;
 import org.jetbrains.annotations.NotNull;
-import tibco.LoggingContext;
 import tibco.TibcoToBalConverter;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource;
 import tibco.model.Resource;
@@ -55,6 +54,31 @@ import static tibco.converter.Library.JMS;
 final class ResourceConvertor {
 
     private static final int DEFAULT_SFTP_PORT = 22;
+    private static final Map<String, TibcoToBalConverter.JavaDependencies> JDBC_CONNECTORS_BY_PREFIX = Map.ofEntries(
+            Map.entry("org.h2.", TibcoToBalConverter.JavaDependencies.JDBC_H2),
+            Map.entry("jdbc:h2:", TibcoToBalConverter.JavaDependencies.JDBC_H2),
+            Map.entry("com.mysql.", TibcoToBalConverter.JavaDependencies.JDBC_MYSQL),
+            Map.entry("jdbc:mysql:", TibcoToBalConverter.JavaDependencies.JDBC_MYSQL),
+            Map.entry("org.postgresql.", TibcoToBalConverter.JavaDependencies.JDBC_POSTGRESQL),
+            Map.entry("jdbc:postgresql:", TibcoToBalConverter.JavaDependencies.JDBC_POSTGRESQL),
+            Map.entry("oracle.jdbc.", TibcoToBalConverter.JavaDependencies.JDBC_ORACLE),
+            Map.entry("jdbc:oracle:", TibcoToBalConverter.JavaDependencies.JDBC_ORACLE),
+            Map.entry("org.mariadb.", TibcoToBalConverter.JavaDependencies.JDBC_MARIADB),
+            Map.entry("jdbc:mariadb:", TibcoToBalConverter.JavaDependencies.JDBC_MARIADB),
+            Map.entry("com.microsoft.sqlserver.", TibcoToBalConverter.JavaDependencies.JDBC_MSSQL),
+            Map.entry("jdbc:sqlserver:", TibcoToBalConverter.JavaDependencies.JDBC_MSSQL),
+            Map.entry("com.ibm.db2.", TibcoToBalConverter.JavaDependencies.JDBC_DB2),
+            Map.entry("jdbc:db2:", TibcoToBalConverter.JavaDependencies.JDBC_DB2),
+            Map.entry("tibcosoftwareinc.jdbc.oracle.", TibcoToBalConverter.JavaDependencies.JDBC_ORACLE),
+            Map.entry("jdbc:tibcosoftwareinc:oracle:", TibcoToBalConverter.JavaDependencies.JDBC_ORACLE),
+            Map.entry("tibcosoftwareinc.jdbc.sqlserver.", TibcoToBalConverter.JavaDependencies.JDBC_MSSQL),
+            Map.entry("jdbc:tibcosoftwareinc:sqlserver:", TibcoToBalConverter.JavaDependencies.JDBC_MSSQL),
+            Map.entry("tibcosoftwareinc.jdbc.mysql.", TibcoToBalConverter.JavaDependencies.JDBC_MYSQL),
+            Map.entry("jdbc:tibcosoftwareinc:mysql:", TibcoToBalConverter.JavaDependencies.JDBC_MYSQL),
+            Map.entry("tibcosoftwareinc.jdbc.postgresql.", TibcoToBalConverter.JavaDependencies.JDBC_POSTGRESQL),
+            Map.entry("jdbc:tibcosoftwareinc:postgresql:", TibcoToBalConverter.JavaDependencies.JDBC_POSTGRESQL),
+            Map.entry("tibcosoftwareinc.jdbc.db2.", TibcoToBalConverter.JavaDependencies.JDBC_DB2),
+            Map.entry("jdbc:tibcosoftwareinc:db2:", TibcoToBalConverter.JavaDependencies.JDBC_DB2));
 
     private ResourceConvertor() {
 
@@ -62,37 +86,73 @@ final class ResourceConvertor {
 
     public static void convertJDBCResource(ProjectContext cx, JDBCResource resource) {
         try {
-            Map<String, ModuleVar> substitutions = convertSubstitutionBindings(cx, resource.substitutionBindings());
-            NewExpression constructorCall = new NewExpression(
-                    Stream.of(resource.dbUrl(), resource.userName(), resource.password())
-                            .map(value -> toExpr(substitutions, value))
-                            .toList());
+            NewExpression constructorCall = new NewExpression(List.of(
+                    jdbcFieldValue(cx, resource, "dbURL", resource.dbUrl()),
+                    jdbcFieldValue(cx, resource, "username", resource.userName()),
+                    jdbcFieldValue(cx, resource, "password", resource.password())));
             ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
                     ConversionUtils.resourceNameFromPath(resource.path())), "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.path(), resourceVar, substitutions.values(), List.of(Library.JDBC));
-            cx.addJavaDependency(pickJavaSQLConnector(cx, resource.dbUrl()));
+            cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.JDBC));
+            addJavaSQLConnector(cx, resource.path(), Stream.of(
+                    jdbcResolvedValue(cx, resource, "jdbcDriver", resource.jdbcDriver()),
+                    jdbcResolvedValue(cx, resource, "dbURL", resource.dbUrl()))
+                    .flatMap(Optional::stream)
+                    .toList());
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
     }
 
-    private static TibcoToBalConverter.JavaDependencies pickJavaSQLConnector(LoggingContext cx, String dbUrl) {
-        String url = dbUrl.trim();
-        if (url.startsWith("jdbc:h2:")) {
-            return TibcoToBalConverter.JavaDependencies.JDBC_H2;
-        } else if (url.startsWith("jdbc:mysql:")) {
-            return TibcoToBalConverter.JavaDependencies.JDBC_MYSQL;
-        } else if (url.startsWith("jdbc:postgresql:")) {
-            return TibcoToBalConverter.JavaDependencies.JDBC_POSTGRESQL;
-        } else if (url.startsWith("jdbc:oracle:")) {
-            return TibcoToBalConverter.JavaDependencies.JDBC_ORACLE;
-        } else if (url.startsWith("jdbc:mariadb:")) {
-            return TibcoToBalConverter.JavaDependencies.JDBC_MARIADB;
+    @NotNull
+    private static Expression jdbcFieldValue(ProjectContext cx, JDBCResource resource, String field, String literal) {
+        return jdbcBindingName(resource, field)
+                .<Expression>map(propName -> new Expression.VariableReference(
+                        cx.getOrAddConfigurableVariable(propName, STRING)))
+                .orElseGet(() -> new StringConstant(literal));
+    }
+
+    // A bound field's value is only known through the module property's default in META-INF/default.substvar; an
+    // unbound field the resource leaves out is parsed as its own field name, which carries no information.
+    @NotNull
+    private static Optional<String> jdbcResolvedValue(ProjectContext cx, JDBCResource resource, String field,
+                                                      String literal) {
+        Optional<String> bindingName = jdbcBindingName(resource, field);
+        if (bindingName.isPresent()) {
+            return cx.modulePropertyDefault(bindingName.get());
         }
-        // Default to H2 for unknown JDBC URLs
-        cx.log(LoggingUtils.Level.WARN, "Unknown JDBC URL format: " + url + ". Defaulting to H2 connector.");
-        return TibcoToBalConverter.JavaDependencies.JDBC_H2;
+        return literal.isBlank() || literal.equals(field) ? Optional.empty() : Optional.of(literal);
+    }
+
+    @NotNull
+    private static Optional<String> jdbcBindingName(JDBCResource resource, String field) {
+        return resource.substitutionBindings().stream()
+                .filter(binding -> binding.template().equals(field))
+                .map(Resource.SubstitutionBinding::propName)
+                .findFirst();
+    }
+
+    private static void addJavaSQLConnector(ProjectContext cx, String resourcePath, List<String> driverOrUrlHints) {
+        List<String> hints = driverOrUrlHints.stream().map(String::trim).toList();
+        // TIBCO's bundled DataDirect drivers aren't available outside BW, so the open-source driver for the same
+        // database replaces them; its URL syntax differs, so a DataDirect URL must be rewritten even when the driver
+        // class alone picked the dependency.
+        boolean usesDataDirect = hints.stream()
+                .anyMatch(hint -> hint.startsWith("tibcosoftwareinc.") || hint.startsWith("jdbc:tibcosoftwareinc:"));
+        hints.stream()
+                .flatMap(hint -> JDBC_CONNECTORS_BY_PREFIX.entrySet().stream()
+                        .filter(entry -> hint.startsWith(entry.getKey()))
+                        .map(Map.Entry::getValue))
+                .findFirst()
+                .ifPresentOrElse(dependency -> {
+                    cx.addJavaDependency(dependency);
+                    if (usesDataDirect) {
+                        cx.log(LoggingUtils.Level.WARN, resourcePath + " uses TIBCO's DataDirect JDBC driver; "
+                                + "replaced it with " + dependency.name()
+                                + ", so rewrite its connection URL in that driver's format.");
+                    }
+                }, () -> cx.log(LoggingUtils.Level.WARN, "Unable to determine the JDBC driver for " + resourcePath
+                        + "; add the driver dependency to Ballerina.toml manually."));
     }
 
     public static void convertHttpConnectionResource(ProjectContext cx, HTTPConnectionResource resource) {
@@ -290,11 +350,7 @@ final class ResourceConvertor {
             ModuleVar resourceVar = new ModuleVar(clientName, "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
             cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.JDBC));
-            cx.addJavaDependency(
-                    resource.location().map(location -> pickJavaSQLConnector(cx, location)).orElseGet(() -> {
-                        cx.log(LoggingUtils.Level.WARN, "JDBC url not given. Defaulting to H2 connector.");
-                        return TibcoToBalConverter.JavaDependencies.JDBC_H2;
-                    }));
+            addJavaSQLConnector(cx, resource.path(), resource.location().stream().toList());
         } catch (Exception e) {
             cx.registerResourceConversionFailure(resource);
         }
