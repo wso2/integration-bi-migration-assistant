@@ -47,6 +47,8 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
     }
 
 
+    private static final String QUOT_ENTITY = "&quot;";
+
     private static final Collection<String> XPATH_ATTRIBUTES =
             Set.of("select", "test", "match", "xpath", "from", "count");
 
@@ -189,6 +191,14 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                 case '\'' -> {
                     index = incrementWhile(xPath, index + 1, Predicate.not((chr) -> chr.equals('\'')));
                     continue;
+                }
+                // Attribute values are raw XML text, so a double-quoted XPath literal appears as &quot;...&quot;
+                case '&' -> {
+                    if (xPath.startsWith(QUOT_ENTITY, index)) {
+                        int literalEnd = xPath.indexOf(QUOT_ENTITY, index + QUOT_ENTITY.length());
+                        index = literalEnd == -1 ? xPath.length() : literalEnd + QUOT_ENTITY.length();
+                        continue;
+                    }
                 }
                 case '$' -> {
                     int paramStart = index;
