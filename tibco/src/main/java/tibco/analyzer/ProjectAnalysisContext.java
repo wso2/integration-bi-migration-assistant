@@ -105,6 +105,12 @@ public class ProjectAnalysisContext implements LoggingContext {
             names.add(typeName);
             names.add(ConversionUtils.sanitizes(typeName));
         });
+        currentProcesses.forEach(process -> {
+            String processName = ConversionUtils.sanitizes(process.name());
+            names.add(ConversionUtils.processFunctionName(process));
+            names.add(processName + "_listener");
+            names.add(processName + "_client");
+        });
         return names;
     }
 

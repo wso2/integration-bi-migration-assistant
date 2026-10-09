@@ -26,6 +26,7 @@ import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.TibcoToBalConverter;
@@ -459,7 +460,7 @@ public class ProjectContext implements LoggingContext {
     private SharedVariableInfo addProjectSharedVariable(Resource.SharedVariable sharedVariable) {
         assert sharedVariable.isShared() : "job shared variables must be declared within service";
         assert !sharedVariable.initialValue().isBlank() : "Initial value should be a valid XML";
-        String name = ConversionUtils.getSanitizedUniqueName(sharedVariable.name(), utilityVars.keySet());
+        String name = ConversionUtils.getSanitizedUniqueIdentifier(sharedVariable.name(), unavailableModuleVarNames());
         BallerinaModel.ModuleVar var = new BallerinaModel.ModuleVar(name, XML,
                 new BallerinaModel.Expression.XMLTemplate(sharedVariable.initialValue()));
         utilityVars.put(name, var);
@@ -471,8 +472,8 @@ public class ProjectContext implements LoggingContext {
     }
 
     public @NotNull String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
-        String uniqueName =
-                ConversionUtils.getSanitizedUniqueName(ConversionUtils.sanitizePath(source), emittedVarNames());
+        String uniqueName = ConversionUtils.getSanitizedUniqueIdentifier(ConversionUtils.sanitizePath(source),
+                unavailableModuleVarNames());
         utilityVars.put(uniqueName, BallerinaModel.ModuleVar.configurable(uniqueName, type));
         configurableVarNamesByLogicalName.put(name, uniqueName);
         return uniqueName;
@@ -503,8 +504,13 @@ public class ProjectContext implements LoggingContext {
     }
 
     @NotNull
-    private Set<String> emittedVarNames() {
-        return utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).collect(Collectors.toSet());
+    private Set<String> unavailableModuleVarNames() {
+        Set<String> names = new HashSet<>(utilityVars.keySet());
+        utilityVars.values().stream().map(BallerinaModel.ModuleVar::name).forEach(names::add);
+        analysisResult.values().forEach(result -> result.activities().stream()
+                .map(activity -> result.from(activity).functionName())
+                .forEach(names::add));
+        return names;
     }
 
     public BallerinaModel.Expression.VariableReference getHttpClient(String path) {
@@ -583,17 +589,60 @@ public class ProjectContext implements LoggingContext {
 
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
         String fileName = activity.fileName();
-        String name;
+        Optional<ActivityIdentity> identity = tryIdentifyActivity(activity);
+        identity.ifPresentOrElse(
+                id -> unhandledActivities.add(
+                        new NamedUnhandledActivityElement(id.name(), id.type(), activity.element(), fileName)),
+                () -> unhandledActivities.add(new UnNamedUnhandledActivityElement(activity.element(), fileName)));
+        log(LoggingUtils.Level.SEVERE, "Failed to convert activity: "
+                + identity.map(ActivityIdentity::name).orElse("<unnamed>") + ". Error: " + e.getMessage());
+    }
+
+    private record ActivityIdentity(String name, String type) {
+
+    }
+
+    private static @NotNull Optional<ActivityIdentity> tryIdentifyActivity(tibco.model.Scope.Flow.Activity activity) {
         if (activity instanceof InlineActivity inlineActivity) {
-            name = inlineActivity.name();
-            String type = inlineActivity.type().toTibcoType();
-            Element element = inlineActivity.element();
-            unhandledActivities.add(new NamedUnhandledActivityElement(name, type, element, fileName));
-        } else {
-            name = "<unnamed>";
-            unhandledActivities.add(new UnNamedUnhandledActivityElement(activity.element(), fileName));
+            return Optional.of(new ActivityIdentity(inlineActivity.name(), inlineActivity.type().toTibcoType()));
         }
-        log(LoggingUtils.Level.SEVERE, "Failed to convert activity: " + name + ". Error: " + e.getMessage());
+        Element element = activity.element();
+        if (element == null) {
+            return Optional.empty();
+        }
+        String tagName = ConversionUtils.stripNamespace(element.getTagName());
+        String type = activity instanceof Scope.Flow.Activity.ActivityExtension
+                ? findDescendantWithTag(element, "BWActivity")
+                        .map(bwActivity -> bwActivity.getAttribute("activityTypeID"))
+                        .filter(typeId -> !typeId.isEmpty())
+                        .orElse(tagName)
+                : tagName;
+        if (type.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new ActivityIdentity(
+                (activity instanceof Scope.Flow.Activity.ActivityWithName activityWithName
+                        ? activityWithName.getName()
+                        : Optional.of(element.getAttribute("name")))
+                        .filter(name -> !name.isEmpty()).orElse(type),
+                type));
+    }
+
+    private static @NotNull Optional<Element> findDescendantWithTag(Element element, String tag) {
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (!(children.item(i) instanceof Element child)) {
+                continue;
+            }
+            if (ConversionUtils.stripNamespace(child.getTagName()).equals(tag)) {
+                return Optional.of(child);
+            }
+            Optional<Element> match = findDescendantWithTag(child, tag);
+            if (match.isPresent()) {
+                return match;
+            }
+        }
+        return Optional.empty();
     }
 
     public void registerTransitionPredicateError(Scope.Flow.Activity.ActivityWithSources activity, Exception e) {
@@ -615,18 +664,14 @@ public class ProjectContext implements LoggingContext {
 
     public void registerPartiallySupportedActivity(tibco.model.Scope.Flow.Activity activity) {
         String fileName = activity.fileName();
-        String name;
-        if (activity instanceof InlineActivity inlineActivity) {
-            name = inlineActivity.name();
-            String type = inlineActivity.type().toTibcoType();
-            Element element = inlineActivity.element();
-            partiallySupportedActivities.add(new NamedPartiallySupportedActivityElement(name, type, element, fileName));
-        } else {
-            name = "<unnamed>";
-            partiallySupportedActivities.add(
-                    new UnNamedPartiallySupportedActivityElement(activity.element(), fileName));
-        }
-        log(LoggingUtils.Level.WARN, "Partially supported activity: " + name);
+        Optional<ActivityIdentity> identity = tryIdentifyActivity(activity);
+        identity.ifPresentOrElse(
+                id -> partiallySupportedActivities.add(
+                        new NamedPartiallySupportedActivityElement(id.name(), id.type(), activity.element(), fileName)),
+                () -> partiallySupportedActivities.add(
+                        new UnNamedPartiallySupportedActivityElement(activity.element(), fileName)));
+        log(LoggingUtils.Level.WARN, "Partially supported activity: "
+                + identity.map(ActivityIdentity::name).orElse("<unnamed>"));
     }
 
     public Optional<String> getProcessFunction(String processName) {
@@ -683,7 +728,7 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getUtilityVarName(String base) {
-        return ConversionUtils.getSanitizedUniqueName(base, utilityVars.keySet());
+        return ConversionUtils.getSanitizedUniqueName(base, unavailableModuleVarNames());
     }
 
     public String getAddToContextFn() {
