@@ -92,6 +92,17 @@ public class ActivityConversionTest {
         Assert.assertEquals(actual, expected);
     }
 
+    @Test(groups = { "tibco", "converter" })
+    public void testEmptyActivityProducesNoFunction() throws ParserConfigurationException, IOException,
+            SAXException {
+        Element activityElement = stringToElement(
+                "<bpws:empty name=\"MyEmpty\" " +
+                        "xmlns:bpws=\"http://docs.oasis-open.org/wsbpel/2.0/process/executable\"/>");
+        Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(getProcessContextForElement(activityElement),
+                activityElement).get();
+        Assert.assertTrue(ActivityConverter.convertActivity(getProcessContext(activity), activity).isEmpty());
+    }
+
     private static void bless(Path expectedFunction, String value) {
         try {
             Files.writeString(expectedFunction, value);
