@@ -256,7 +256,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     ProjectContext.FunctionData getProcessStartFunction(String processName) {
-        return projectContext.getProcessStartFunction(processName);
+        return projectContext.getProcessStartFunction(processName, imports);
     }
 
     String getJsonToXMLFunction() {
@@ -419,7 +419,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     public Optional<String> getProcessFunction(String processName) {
-        return projectContext.getProcessFunction(processName);
+        return projectContext.getProcessFunction(processName, imports);
     }
 
     static final class DefaultClientDetails {

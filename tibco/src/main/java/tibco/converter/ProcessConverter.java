@@ -579,8 +579,10 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 };
         body.add(new Statement.CallStatement(new FunctionCall(controlFlowFunctions.scopeFn(), List.of(params))));
 
-        return new BallerinaModel.Function(startFuncData.name(),
-                List.of(new Parameter(params.varName(), cx.contextType())), NIL, body);
+        return new BallerinaModel.Function(cx.isShared(process) ? Optional.of("public") : Optional.empty(),
+                startFuncData.name(),
+                List.of(new Parameter(params.varName(), cx.contextType())), Optional.of(NIL),
+                new BallerinaModel.BlockFunctionBody(body));
     }
 
     private static BallerinaModel.Function generateProcessFunction(ProcessContext cx, Process6 process) {
