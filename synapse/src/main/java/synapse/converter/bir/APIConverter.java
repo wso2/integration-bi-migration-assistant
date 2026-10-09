@@ -23,6 +23,7 @@ import common.BallerinaModel.Service;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.BuiltinType;
+import common.ConversionUtils;
 import synapse.converter.ConversionContext;
 import synapse.converter.ResourceContext;
 import synapse.model.Synapse.Api;
@@ -62,7 +63,13 @@ public class APIConverter implements BIRConverter<ConversionContext> {
                 resources.add(convertResource(resource, context));
             }
         }
-        Service service = new Service(api.context(), DEFAULT_LISTENER_REF, resources);
+        // Beyond the shared listener every <api> binds to, an inbound endpoint whose
+        // dispatch.filter.pattern matched this api's context additionally exposes this
+        // same service on its own dedicated listener.
+        List<String> listenerRefs = new ArrayList<>(List.of(DEFAULT_LISTENER_REF));
+        listenerRefs.addAll(context.extraApiListeners(api.name()));
+        Service service = new Service(api.context(), listenerRefs, Optional.empty(), resources,
+                List.of(), List.of());
         context.addService(service);
     }
 
@@ -98,10 +105,7 @@ public class APIConverter implements BIRConverter<ConversionContext> {
 
     private static String buildResourcePath(String synapsePath) {
         List<String> segments = new ArrayList<>();
-        for (String segment : synapsePath.split("/")) {
-            if (segment.isEmpty()) {
-                continue;
-            }
+        for (String segment : ConversionUtils.splitPathSegments(synapsePath)) {
             if (segment.startsWith("{") && segment.endsWith("}")) {
                 String paramName = segment.substring(1, segment.length() - 1);
                 segments.add("[string " + paramName + "]");

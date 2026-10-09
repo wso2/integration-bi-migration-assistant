@@ -42,7 +42,7 @@ Mediator not supported; manual conversion required.
 
 ## Unsupported inbound endpoint parameter (7)
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="interval">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'interval' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -50,7 +50,7 @@ Inbound endpoint 'JMSInboundEndpoint' parameter 'interval' is not mapped to any 
 <parameter name="interval">1000</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="sequential">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'sequential' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -58,7 +58,7 @@ Inbound endpoint 'JMSInboundEndpoint' parameter 'sequential' is not mapped to an
 <parameter name="sequential">true</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="coordination">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'coordination' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -66,7 +66,7 @@ Inbound endpoint 'JMSInboundEndpoint' parameter 'coordination' is not mapped to 
 <parameter name="coordination">true</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.jms.ConnectionFactoryJNDIName">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.ConnectionFactoryJNDIName' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -74,7 +74,7 @@ Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.ConnectionFactory
 <parameter name="transport.jms.ConnectionFactoryJNDIName">QueueConnectionFactory</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.jms.SessionTransacted">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.SessionTransacted' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -82,7 +82,7 @@ Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.SessionTransacted
 <parameter name="transport.jms.SessionTransacted">false</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.jms.SessionAcknowledgement">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.SessionAcknowledgement' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -90,7 +90,7 @@ Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.SessionAcknowledg
 <parameter name="transport.jms.SessionAcknowledgement">AUTO_ACKNOWLEDGE</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="transport.jms.ContentType">` — inboundEndpoint.xml
 
 Inbound endpoint 'JMSInboundEndpoint' parameter 'transport.jms.ContentType' is not mapped to any Ballerina construct; manual conversion required.
 

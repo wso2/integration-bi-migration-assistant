@@ -69,6 +69,7 @@ public class ConversionContext {
     private final List<ModuleVar> moduleVars = new ArrayList<>();
 
     private final Map<String, SequenceMetadata> sequenceMetadata = new HashMap<>();
+    private final Map<String, List<String>> extraApiListeners = new HashMap<>();
     private final Map<String, Set<Import>> importsByFile = new HashMap<>();
     private final Map<String, PropertyInfo> properties = new LinkedHashMap<>();
     private final Map<String, Function> converterFunctions = new LinkedHashMap<>();
@@ -262,6 +263,24 @@ public class ConversionContext {
     }
 
     /**
+     * Registers that the {@code <api>} named {@code apiName} must also be exposed on {@code listenerRef}.
+     * Populated by {@link DispatchFilterIndexer} in a pre-pass before any artifact is converted, since an
+     * {@code <api>} and the {@code <inboundEndpoint>} whose pattern matches it have no dependency edge
+     * and may convert in either order; preserved across {@link #clearArtifactOutput()} like
+     * {@link #sequenceMetadata}.
+     */
+    public void addExtraApiListener(String apiName, String listenerRef) {
+        assert apiName != null : "apiName must not be null";
+        assert listenerRef != null : "listenerRef must not be null";
+        extraApiListeners.computeIfAbsent(apiName, key -> new ArrayList<>()).add(listenerRef);
+    }
+
+    @NotNull
+    public List<String> extraApiListeners(String apiName) {
+        return extraApiListeners.getOrDefault(apiName, List.of());
+    }
+
+    /**
      * Registers a Synapse property so it becomes a field of the generated {@code Context} record. The
      * types seen for a name are accumulated and its scope retained; the {@code Context} record
      * aggregates every property across the whole project, so this map is populated as artifacts are
@@ -300,6 +319,17 @@ public class ConversionContext {
         Set<String> available = new LinkedHashSet<>(properties.keySet());
         available.addAll(WELL_KNOWN_DEFAULT_SCOPE_PROPERTIES);
         return available;
+    }
+
+    /**
+     * Declares {@code name} on the generated {@code Variables} record if it's a well-known default-scope
+     * property (currently only {@link Synapse#ERROR_MESSAGE_PROPERTY}) - a no-op for anything else,
+     * including an explicit property already registered via {@link #addProperty}.
+     */
+    public void ensureWellKnownPropertyDeclared(String name) {
+        if (WELL_KNOWN_DEFAULT_SCOPE_PROPERTIES.contains(name)) {
+            addProperty(name, "string", "default");
+        }
     }
 
     /**
