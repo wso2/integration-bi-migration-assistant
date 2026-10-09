@@ -363,6 +363,10 @@ public class ProcessAnalysisContext implements LoggingContext {
         return projectAnalysisContext.xsdTypes();
     }
 
+    Set<String> reservedTypeNames() {
+        return projectAnalysisContext.reservedTypeNames();
+    }
+
     @Override
     public void log(LoggingUtils.Level level, String message) {
         projectAnalysisContext.log(level, message);

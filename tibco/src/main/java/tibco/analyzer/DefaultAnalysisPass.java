@@ -77,7 +77,7 @@ public final class DefaultAnalysisPass extends AnalysisPass {
                 activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
                 cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions(),
-                cx.xsdTypes(), Collections.emptySet(), TibcoAnalysisReport.empty()
+                cx.xsdTypes(), cx.reservedTypeNames(), Collections.emptySet(), TibcoAnalysisReport.empty()
         );
     }
 

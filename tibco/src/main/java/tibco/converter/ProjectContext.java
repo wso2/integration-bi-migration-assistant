@@ -107,6 +107,7 @@ public class ProjectContext implements LoggingContext {
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
     private ContextTypeNames contextTypeNames = null;
+    private Set<String> moduleSymbolNames = null;
     private final Set<Resource.SharedVariable> sharedVariables = new HashSet<>();
     private final Set<UnhandledActivityElement> unhandledActivities = new HashSet<>();
     private final Set<PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
@@ -736,17 +737,21 @@ public class ProjectContext implements LoggingContext {
     private ContextTypeNames getContextTypeNames() {
         if (contextTypeNames == null) {
             contextTypeNames = new ContextTypeNames(
-                    getTypeName("Context"), getTypeName("Response"), getTypeName("JSONResponse"),
-                    getTypeName("XMLResponse"), getTypeName("TextResponse"));
+                    allocateModuleSymbol("Context"), allocateModuleSymbol("Response"),
+                    allocateModuleSymbol("JSONResponse"), allocateModuleSymbol("XMLResponse"),
+                    allocateModuleSymbol("TextResponse"));
         }
         return contextTypeNames;
     }
 
-    private String getTypeName(String name) {
-        Set<String> used =
-                analysisResult.values().stream().map(AnalysisResult::getTypeNames).flatMap(Set::stream).collect(
-                        Collectors.toSet());
-        return ConversionUtils.getSanitizedUniqueName(name, used);
+    String allocateModuleSymbol(String name) {
+        if (moduleSymbolNames == null) {
+            moduleSymbolNames = analysisResult.values().stream().map(AnalysisResult::moduleSymbolNames)
+                    .flatMap(Set::stream).collect(Collectors.toCollection(HashSet::new));
+        }
+        String symbolName = ConversionUtils.getSanitizedUniqueName(name, moduleSymbolNames);
+        moduleSymbolNames.add(symbolName);
+        return symbolName;
     }
 
     public String getParseHeadersFn() {

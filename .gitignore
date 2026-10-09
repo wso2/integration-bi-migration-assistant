@@ -52,3 +52,5 @@ bin/
 scripts/replace-tibco-jar-in-bi.ps1
 scripts/revert-tibco-jar-in-bi.ps1
 scripts/tibco-bi-jar-common.ps1
+scripts/use-central-tibco.ps1
+scripts/use-local-tibco.ps1
