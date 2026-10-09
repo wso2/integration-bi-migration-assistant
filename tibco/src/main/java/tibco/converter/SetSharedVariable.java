@@ -18,7 +18,22 @@
 
 package tibco.converter;
 
-public record ContextTypeNames(String context, String response, String jsonResponse, String xmlResponse,
-                               String textResponse, String sharedVariableContext) {
+public record SetSharedVariable(ContextTypeNames typeNames) implements ComptimeFunction {
+    private static final String FUNCTION_NAME = "setSharedVariable";
 
+    @Override
+    public String functionName() {
+        return FUNCTION_NAME;
+    }
+
+    @Override
+    public String intrinsify() {
+        return """
+                function setSharedVariable(%s cx, string varName, xml value) {
+                    %s varContext = cx.sharedVariables.get(varName);
+                    function(xml) setter = varContext.setter;
+                    setter(value);
+                }
+                """.formatted(typeNames.context(), typeNames.sharedVariableContext());
+    }
 }

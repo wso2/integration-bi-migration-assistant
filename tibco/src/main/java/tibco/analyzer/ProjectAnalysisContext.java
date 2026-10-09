@@ -55,6 +55,7 @@ public class ProjectAnalysisContext implements LoggingContext {
     private static final Set<String> GENERATED_MODULE_SYMBOLS = Stream.concat(
             Stream.of("main", "init", "toXML", "initContext", "addToContext", "getFromContext",
                     "responseFromContext", "setJSONResponse", "setXMLResponse", "setTextResponse",
+                    "setSharedVariable", "getSharedVariable",
                     "Context", "Response", "JSONResponse", "XMLResponse", "TextResponse", "SharedVariableContext"),
             Arrays.stream(Intrinsics.values()).flatMap(ProjectAnalysisContext::declaredSymbols))
             .collect(Collectors.toUnmodifiableSet());

@@ -211,7 +211,6 @@ public class ProjectContext implements LoggingContext {
         getOrCreateUtilityTypeDef(contextTypeNames.xmlResponse(), ConversionUtils.xmlResponseTypeDesc(responseTy));
         getOrCreateUtilityTypeDef(contextTypeNames.textResponse(), ConversionUtils.textResponseTypeDesc(responseTy));
 
-        // Create SharedVariableContext type
         BallerinaModel.TypeDesc getterFunctionType = new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(), XML);
         BallerinaModel.TypeDesc setterFunctionType = new BallerinaModel.TypeDesc.FunctionTypeDesc(
@@ -220,7 +219,8 @@ public class ProjectContext implements LoggingContext {
                 List.of(
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("getter", getterFunctionType),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("setter", setterFunctionType)));
-        getOrCreateUtilityTypeDef("SharedVariableContext", sharedVariableContextType);
+        BallerinaModel.TypeDesc.TypeReference sharedVariableContextTy =
+                getOrCreateUtilityTypeDef(contextTypeNames.sharedVariableContext(), sharedVariableContextType);
 
         return getOrCreateUtilityTypeDef(contextTypeNames.context(), new BallerinaModel.TypeDesc.RecordTypeDesc(
                 List.of(
@@ -229,8 +229,11 @@ public class ProjectContext implements LoggingContext {
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("sharedVariables",
-                                new BallerinaModel.TypeDesc.MapTypeDesc(
-                                        new BallerinaModel.TypeDesc.TypeReference("SharedVariableContext"))))));
+                                new BallerinaModel.TypeDesc.MapTypeDesc(sharedVariableContextTy)))));
+    }
+
+    String sharedVariableContextTypeName() {
+        return getContextTypeNames().sharedVariableContext();
     }
 
     private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
@@ -397,7 +400,7 @@ public class ProjectContext implements LoggingContext {
 
     public String getInitContextFn() {
         if (initContextFn == null) {
-            initContextFn = new InitContext(
+            initContextFn = new InitContext(getContextTypeNames(),
                     getProjectSharedVariables().map(this::addProjectSharedVariable).toList());
         }
         utilityCompTimeFunctions.add(initContextFn);
@@ -739,7 +742,7 @@ public class ProjectContext implements LoggingContext {
             contextTypeNames = new ContextTypeNames(
                     allocateModuleSymbol("Context"), allocateModuleSymbol("Response"),
                     allocateModuleSymbol("JSONResponse"), allocateModuleSymbol("XMLResponse"),
-                    allocateModuleSymbol("TextResponse"));
+                    allocateModuleSymbol("TextResponse"), allocateModuleSymbol("SharedVariableContext"));
         }
         return contextTypeNames;
     }
@@ -760,8 +763,9 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getSetSharedVariableFn() {
-        utilityIntrinsics.add(Intrinsics.SET_SHARED_VARIABLE);
-        return Intrinsics.SET_SHARED_VARIABLE.name;
+        ComptimeFunction setSharedVariable = new SetSharedVariable(getContextTypeNames());
+        utilityCompTimeFunctions.add(setSharedVariable);
+        return setSharedVariable.functionName();
     }
 
     public String getPsgLogFn() {
@@ -783,8 +787,9 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getGetSharedVariableFn() {
-        utilityIntrinsics.add(Intrinsics.GET_SHARED_VARIABLE);
-        return Intrinsics.GET_SHARED_VARIABLE.name;
+        ComptimeFunction getSharedVariable = new GetSharedVariable(getContextTypeNames());
+        utilityCompTimeFunctions.add(getSharedVariable);
+        return getSharedVariable.functionName();
     }
 
     public @NotNull String getSftpDeleteFilesFunction() {

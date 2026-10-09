@@ -42,7 +42,8 @@ import java.util.stream.Stream;
 public class TibcoProjectConversionTest {
 
     private static final Pattern MODULE_SYMBOL_DECLARATION = Pattern.compile(
-            "^(?:public\\s+)?(?:isolated\\s+)?(?:function|type|enum)\\s+'?([A-Za-z_][A-Za-z0-9_]*)",
+            "^(?:public\\s+)?(?:isolated\\s+)?(?:(?:function|type|enum)\\s+'?(?<named>[A-Za-z_][A-Za-z0-9_]*)"
+                    + "|const\\s+(?:[^=;\\n]*?\\s)?'?(?<constant>[A-Za-z_][A-Za-z0-9_]*)\\s*=)",
             Pattern.MULTILINE);
 
     /**
@@ -711,11 +712,13 @@ public class TibcoProjectConversionTest {
                         .collect(Collectors.joining("\n"));
             }
             Map<String, Long> declarationCounts = MODULE_SYMBOL_DECLARATION.matcher(generated).results()
-                    .collect(Collectors.groupingBy(result -> result.group(1), Collectors.counting()));
+                    .collect(Collectors.groupingBy(result -> Optional.ofNullable(result.group("named"))
+                            .orElseGet(() -> result.group("constant")), Collectors.counting()));
             List<String> redeclared = declarationCounts.entrySet().stream()
                     .filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).sorted().toList();
             Assert.assertEquals(redeclared, List.of(), "Redeclared module symbols in:\n" + generated);
-            for (String xsdType : List.of("Response", "Context", "InlineShape", "SequenceGroup")) {
+            for (String xsdType : List.of("Response", "Context", "SharedVariableContext", "MainScopeActivityRunner",
+                    "InlineShape", "SequenceGroup")) {
                 Assert.assertEquals(declarationCounts.get(xsdType), Long.valueOf(1),
                         "XSD type " + xsdType + " must keep its name");
             }

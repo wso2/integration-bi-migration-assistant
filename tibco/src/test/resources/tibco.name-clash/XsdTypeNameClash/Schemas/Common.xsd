@@ -5,6 +5,8 @@
         elementFormDefault="qualified">
     <element name="Response" type="tns:ResultType"/>
     <element name="Context" type="tns:ResultType"/>
+    <element name="SharedVariableContext" type="tns:ResultType"/>
+    <element name="MainScopeActivityRunner" type="tns:ResultType"/>
     <complexType name="ResultType">
         <sequence>
             <element name="Status" type="string"/>
