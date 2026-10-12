@@ -33,11 +33,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public final class ProjectConversionContext implements LoggingContext {
 
     private final String name;
     private final List<TibcoToBalConverter.JavaDependencies> javaDependencies = new ArrayList<>();
+    private final SortedMap<String, SortedSet<String>> javaClassesByPackage = new TreeMap<>();
     private final ConversionContext cx;
     private final Set<Resource> sharedResources = new HashSet<>();
     private final Set<Process> sharedProcesses = new HashSet<>();
@@ -81,6 +86,16 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
         javaDependencies.add(dependencies);
+    }
+
+    public void addJavaClassDependency(String className) {
+        int packageEnd = className.lastIndexOf('.');
+        String packageName = packageEnd < 0 ? "java-classes" : className.substring(0, packageEnd);
+        javaClassesByPackage.computeIfAbsent(packageName, ignored -> new TreeSet<>()).add(className);
+    }
+
+    public SortedMap<String, SortedSet<String>> javaClassesByPackage() {
+        return Collections.unmodifiableSortedMap(javaClassesByPackage);
     }
 
     public ConversionContext conversionContext() {
