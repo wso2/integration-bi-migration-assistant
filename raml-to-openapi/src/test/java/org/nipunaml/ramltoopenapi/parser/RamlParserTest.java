@@ -77,5 +77,17 @@ class RamlParserTest {
             .isInstanceOf(ConverterException.class)
             .hasMessageContaining("RAML file not found");
     }
+
+    @Test
+    @DisplayName("Should resolve exchange_modules and root-relative includes against the API root")
+    void shouldResolveIncludesAgainstApiRoot() throws ConverterException {
+        File ramlFile = getResourceFile("test-cases/includes/api-root-includes/api.raml");
+
+        RamlDocument document = parser.parse(ramlFile);
+
+        assertThat(document.getApi().types()).extracting(type -> type.name()).containsExactly("Order");
+        assertThat(document.getApi().resources().get(0).methods().get(0).responses().get(0).body().get(0)
+            .example().value()).contains("1001");
+    }
 }
 

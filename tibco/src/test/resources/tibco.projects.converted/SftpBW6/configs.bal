@@ -1,3 +1,8 @@
+configurable int Archive_SftpConnection_port = ?;
+configurable string Resources_SFTP_Archive_Password = ?;
+configurable string Resources_SFTP_Archive_PrivateKey = ?;
+configurable string Resources_SFTP_Archive_PrivateKeyPassword = ?;
+configurable boolean Resources_SFTP_Archive_UsePrivateKey = ?;
 configurable string Resources_SFTP_Orders_Host = ?;
 configurable string Resources_SFTP_Orders_Password = ?;
 configurable int Resources_SFTP_Orders_Port = ?;

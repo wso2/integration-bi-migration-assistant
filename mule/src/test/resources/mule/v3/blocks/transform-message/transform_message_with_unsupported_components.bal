@@ -2,10 +2,6 @@ public type Context record {|
     anydata payload = ();
 |};
 
-function _dwMethod1_(json payload) returns json {
-    // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
-}
-
 public function sampleFlow(Context ctx) {
 
     // TODO: DATAWEAVE PARSING FAILED.
@@ -28,4 +24,8 @@ public function sampleFlow(Context ctx) {
 
 function _dwMethod0_(xml payload) returns json {
     // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
+}
+
+function _dwMethod1_(json payload) returns json {
+    // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
 }

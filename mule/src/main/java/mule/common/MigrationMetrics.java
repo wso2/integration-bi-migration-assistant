@@ -17,6 +17,8 @@
  */
 package mule.common;
 
+import mule.common.apispec.ApiContractCheck;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,4 +28,5 @@ public class MigrationMetrics<T extends DWConstructBase> {
     public final LinkedHashMap<String, Integer> passedXMLTags = new LinkedHashMap<>();
     public final LinkedHashMap<String, Integer> failedXMLTags = new LinkedHashMap<>();
     public final List<String> failedBlocks = new ArrayList<>();
+    public final List<ApiContractCheck> apiContractChecks = new ArrayList<>();
 }

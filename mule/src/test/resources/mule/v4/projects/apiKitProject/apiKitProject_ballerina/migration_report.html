@@ -300,6 +300,7 @@
       .drawer { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 0; }
       .drawer.open { max-height: 500px; }
       .empty-message { text-align: center; padding: 20px; color: #666; }
+      .api-contract th { width: 240px; }
     .summary-container {
   background-color: #fff;
   padding: 25px;
@@ -577,6 +578,20 @@ implementation, and testing</li>
         </p>
       </div>
     </div>
+    <div class="summary-container">
+      <h2>API Contracts</h2>
+      <p>APIkit routes requests to flows by the operations of the API spec. Spec operations
+         without a flow answer with 501 Not Implemented.</p>
+<h3>apikit-config</h3>
+<table class="api-contract">
+<tr><th>API spec</th><td><code>resources:test.raml</code></td></tr>
+<tr><th>Read from</th><td><code>src/main/resources/api/test.raml</code></td></tr>
+<tr><th>Implemented operations</th><td>None</td></tr>
+<tr><th>Operations without a flow</th><td><code>GET /orders</code></td></tr>
+<tr><th>Flow issue</th><td><code>get:\orders\(id):apikit-config</code><br>The spec declares no GET /orders/{id} operation; the closest is GET /orders, which takes id as query parameters.</td></tr>
+</table>
+</div>
+
   </div>
   <footer><p>Report generated on: <span id="datetime"></span></p></footer>
   <script>

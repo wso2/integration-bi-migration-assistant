@@ -21,8 +21,20 @@ import common.BallerinaModel.Statement.BallerinaStatement;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
+import io.ballerina.compiler.syntax.tree.CaptureBindingPatternNode;
+import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.NodeVisitor;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import mule.common.MuleLogger;
+import mule.common.apispec.ApiContractChecker;
+import mule.common.apispec.ApiKitFlowName;
+import mule.common.apispec.ApiPolicies;
+import mule.common.apispec.ApiSpec;
+import mule.common.apispec.ApiSpecResult;
+import mule.common.apispec.ApiTypeGenerator;
+import mule.v4.ApiSpecTestGenerator.ServiceAddress;
+import mule.v4.converter.MuleConfigConverter;
+import mule.v4.converter.MuleConfigConverter.HttpResponseHeaders;
 import mule.v4.converter.ScriptConversionException;
 import mule.v4.model.MuleModel.AnypointMqSubscriber;
 import mule.v4.model.MuleModel.ApiKitConfig;
@@ -39,11 +51,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.ClassDef;
@@ -78,8 +94,11 @@ import static mule.v4.ConversionUtils.getBallerinaResourcePath;
 import static mule.v4.ConversionUtils.insertLeadingSlash;
 import static mule.v4.converter.MuleConfigConverter.convertErrorHandlerRecords;
 import static mule.v4.converter.MuleConfigConverter.convertHttpResponseBody;
+import static mule.v4.converter.MuleConfigConverter.convertHttpResponseHeaderMap;
 import static mule.v4.converter.MuleConfigConverter.convertHttpResponseHeaders;
 import static mule.v4.converter.MuleConfigConverter.convertHttpResponseStatusCode;
+import static mule.v4.converter.MuleConfigConverter.convertHttpResponseStatusCodeExpr;
+import static mule.v4.converter.MuleConfigConverter.setHttpResponseHeaders;
 import static mule.v4.converter.MuleConfigConverter.convertTopLevelMuleBlocks;
 import static mule.v4.model.MuleModel.DbConnection;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
@@ -100,6 +119,12 @@ import static mule.v4.model.MuleModel.VMListener;
 
 public class MuleToBalConverter {
 
+    // The response of the resource being generated, which the resource returns
+    private static final String RESPONSE_EXPR = "<%s>%s.%s".formatted(HTTP_RESPONSE_TYPE,
+            Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF);
+    private static final String RESPONSE_REF_EXPR = "(" + RESPONSE_EXPR + ")";
+    private static final String STATUS_CODE_VAR = "statusCode";
+
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath, MuleLogger logger) {
         Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of(), logger);
         ctx.parseAllFiles();
@@ -111,7 +136,7 @@ public class MuleToBalConverter {
                                                     List<Flow> flows, List<SubFlow> subFlows)
             throws ScriptConversionException {
         List<Service> services = new ArrayList<>();
-        Set<Function> functions = new HashSet<>();
+        Set<Function> functions = new LinkedHashSet<>();
         List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
         List<Listener> listeners = new ArrayList<>();
@@ -256,37 +281,51 @@ public class MuleToBalConverter {
         }
 
         ApiKitConfig.HTTPResourceData resourceData = apiKit.resourcePathData(flow);
-        List<String> pathParams = resourceData.pathParams();
-        String apiKitResourcePath = resourceData.resourcePath();
         String resourceMethod = resourceData.method();
-
-        // A resource path is relative to the HTTP service base path.
-        String combinedResourcePath = apiKitResourcePath.startsWith("/")
-                ? apiKitResourcePath.substring(1) : apiKitResourcePath;
-
-        List<Parameter> queryPrams = new ArrayList<>();
-        queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
-
-        List<Statement> bodyStmts = new ArrayList<>();
-        String attributesInitValue = getAttributesInitValue(ctx, pathParams);
-        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
-                Constants.ATTRIBUTES_REF, attributesInitValue)));
-
         List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
-        bodyStmts.addAll(bodyCoreStmts);
+        Optional<SpecResource> specResource = specResource(ctx, flow, apiKit, reservedNames(bodyCoreStmts));
+        Optional<SpecResourceSignature> specSignature = specResource.map(SpecResource::signature);
 
-        // Add return statement
-        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(HTTP_RESPONSE_TYPE,
-                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(
-                stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
-                        Constants.HTTP_RESPONSE_REF)));
+        String resourcePath;
+        List<Parameter> resourceParams;
+        Optional<String> uriParamsInit;
+        if (specSignature.isPresent()) {
+            resourcePath = specSignature.get().resourcePath();
+            resourceParams = specSignature.get().parameters();
+            uriParamsInit = specSignature.get().uriParamsInit();
+        } else {
+            // A resource path is relative to the HTTP service base path.
+            String apiKitResourcePath = resourceData.resourcePath();
+            resourcePath = apiKitResourcePath.startsWith("/") ? apiKitResourcePath.substring(1) : apiKitResourcePath;
+            resourceParams = List.of(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
+            uriParamsInit = uriParamsInit(resourceData.pathParams());
+        }
+        resourcePath = withPrefix(ctx.projectCtx.apiKitResourcePrefixes.getOrDefault(apiKit.name(), ""), resourcePath);
+
+        // In Mule the payload of a listener flow starts as the request body
+        String payloadField = specSignature.flatMap(SpecResourceSignature::payloadRef)
+                .map(payloadRef -> payloadRef.equals(Constants.PAYLOAD_REF)
+                        ? payloadRef + ", "
+                        : "%s: %s, ".formatted(Constants.PAYLOAD_REF, payloadRef))
+                .orElse("");
+        List<Statement> bodyStmts = new ArrayList<>();
+        bodyStmts.add(stmtFrom("Context %s = {%s%s: %s};".formatted(Constants.CONTEXT_REFERENCE, payloadField,
+                Constants.ATTRIBUTES_REF, getAttributesInitValue(ctx, uriParamsInit))));
+
+        bodyStmts.addAll(bodyCoreStmts);
+        Optional<HttpResponse> routerResponse =
+                Optional.ofNullable(ctx.projectCtx.apiKitRouterResponses.get(apiKit.name()));
+        Optional<CheckedResponse> checkedResponse = checkedResponse(ctx, routerResponse,
+                specResource.map(SpecResource::successResponses).orElse(List.of()));
+        bodyStmts.addAll(checkedResponse.map(CheckedResponse::statements)
+                .orElseGet(() -> responseStatements(ctx, routerResponse)));
 
         // Add service resources
-        TypeDesc returnType = typeFrom(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT);
+        TypeDesc returnType = typeFrom(checkedResponse.map(CheckedResponse::returnType)
+                .orElse(Constants.HTTP_RESOURCE_RETURN_TYPE_DEFAULT));
         ctx.currentFileCtx.balConstructs.imports.add(Constants.HTTP_MODULE_IMPORT);
 
-        Resource resource = new Resource(resourceMethod, combinedResourcePath, queryPrams, Optional.of(returnType),
+        Resource resource = new Resource(resourceMethod, resourcePath, resourceParams, Optional.of(returnType),
                 bodyStmts);
         lastHttpService.resources().add(resource);
         lastHttpService.initFunc().map(initFn -> switch (initFn.body()) {
@@ -295,6 +334,136 @@ public class MuleToBalConverter {
         });
         lastHttpService.fields().addAll(ctx.serviceFields);
         ctx.resetServiceState();
+    }
+
+    private static String withPrefix(String prefix, String resourcePath) {
+        if (prefix.isEmpty()) {
+            return resourcePath;
+        }
+        return resourcePath.isEmpty() || resourcePath.equals(".") ? prefix : prefix + "/" + resourcePath;
+    }
+
+    // The flow body and the response statements declare these names, so a parameter that took one would clash
+    private static Set<String> reservedNames(List<Statement> bodyStmts) {
+        Set<String> names = new HashSet<>(MuleConfigConverter.HTTP_RESPONSE_HEADER_VARS);
+        names.add(Constants.HTTP_RESPONSE_REF);
+        names.add(STATUS_CODE_VAR);
+        NodeParser.parseBlockStatement(bodyStmts.stream().map(Statement::toString)
+                .collect(Collectors.joining("\n", "{\n", "\n}"))).accept(new NodeVisitor() {
+                    @Override
+                    public void visit(CaptureBindingPatternNode captureBindingPattern) {
+                        names.add(captureBindingPattern.variableName().text());
+                    }
+                });
+        return names;
+    }
+
+    private static Optional<SpecResource> specResource(Context ctx, Flow flow, ApiKitConfig apiKit,
+                                                       Set<String> reservedNames) {
+        if (!(ctx.projectCtx.apiSpecs.get(apiKit.name()) instanceof ApiSpecResult.Loaded loaded)) {
+            return Optional.empty();
+        }
+        ApiTypeGenerator typeGenerator = ctx.projectCtx.apiTypeGenerators.get(apiKit.name());
+        return ApiKitFlowName.parse(flow.name()).flatMap(flowName -> loaded.spec()
+                .findOperation(flowName.method(), flowName.path(), Optional.empty())
+                .flatMap(operation -> SpecResourceSignature.of(operation, loaded.spec().types(),
+                                flowName.mediaType(), typeGenerator, reservedNames)
+                        .map(signature -> new SpecResource(signature, ctx.checkResponses
+                                ? SuccessResponse.of(operation, typeGenerator) : List.of()))));
+    }
+
+    /**
+     * @param signature        the resource's signature, from its spec operation
+     * @param successResponses the success responses the resource checks, none unless responses are checked
+     */
+    private record SpecResource(SpecResourceSignature signature, List<SuccessResponse> successResponses) {
+    }
+
+    // Mule answers with the listener's statusCode, or 200 without one, so that status picks the spec response the
+    // payload is checked against; a status the spec declares no JSON body for is answered unchecked, as Mule does
+    private static Optional<CheckedResponse> checkedResponse(Context ctx, Optional<HttpResponse> httpResponse,
+                                                             List<SuccessResponse> successResponses) {
+        if (successResponses.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Statement> stmts = new ArrayList<>();
+        Optional<String> statusCodeExpr = Optional.empty();
+        Optional<String> statusCode = httpResponse.flatMap(HttpResponse::statusCode);
+        if (statusCode.isPresent()) {
+            try {
+                statusCodeExpr = Optional.of(convertHttpResponseStatusCodeExpr(ctx, statusCode.get()));
+            } catch (ScriptConversionException e) {
+                stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
+            }
+        }
+        boolean answersAnyStatus = statusCodeExpr.isPresent();
+        List<SuccessResponse> checked = successResponses.stream()
+                .filter(response -> answersAnyStatus || response.status() == 200)
+                .toList();
+        if (checked.isEmpty()) {
+            return Optional.empty();
+        }
+
+        httpResponse.flatMap(HttpResponse::body)
+                .ifPresent(bodyScript -> stmts.addAll(convertHttpResponseBody(ctx, bodyScript)));
+        Optional<String> headersVar = Optional.empty();
+        if (httpResponse.isPresent() && httpResponse.get().headers().isPresent()) {
+            HttpResponseHeaders headers = convertHttpResponseHeaderMap(ctx, httpResponse.get().headers().get());
+            stmts.addAll(headers.statements());
+            headersVar = headers.mapVar();
+        }
+        statusCodeExpr.ifPresent(expr -> stmts.add(stmtFrom("\n\n// http response status code\nint %s = %s;"
+                .formatted(STATUS_CODE_VAR, expr))));
+
+        String headersField = headersVar.map(var -> "headers: %s, ".formatted(var)).orElse("");
+        String checkedPayload = "check %s(%s.payload)".formatted(Constants.FUNC_JSON_PAYLOAD,
+                Constants.CONTEXT_REFERENCE);
+        stmts.add(stmtFrom(answersAnyStatus
+                ? "\n\n// The payload is checked against the body the API spec declares for the status; other "
+                + "statuses send it unchecked\n"
+                : "\n\n// The payload is checked against the body the API spec declares for the response\n"));
+        for (SuccessResponse response : checked) {
+            String returnStmt = "return <%s>{%sbody: %s};".formatted(response.type(), headersField,
+                    response.hasRecordBody() ? "check constraint:validate(%s)".formatted(checkedPayload)
+                            : checkedPayload);
+            stmts.add(stmtFrom(answersAnyStatus
+                    ? "if %s == %d { %s }".formatted(STATUS_CODE_VAR, response.status(), returnStmt) : returnStmt));
+        }
+        if (answersAnyStatus) {
+            stmts.add(stmtFrom("%s %s = %s;".formatted(HTTP_RESPONSE_TYPE, Constants.HTTP_RESPONSE_REF,
+                    RESPONSE_EXPR)));
+            stmts.add(stmtFrom("%s.setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_REF,
+                    Constants.CONTEXT_REFERENCE)));
+            headersVar.ifPresent(var -> stmts.add(setHttpResponseHeaders(var, Constants.HTTP_RESPONSE_REF)));
+            stmts.add(stmtFrom("%s.statusCode = %s;".formatted(Constants.HTTP_RESPONSE_REF, STATUS_CODE_VAR)));
+            stmts.add(stmtFrom("return %s;".formatted(Constants.HTTP_RESPONSE_REF)));
+        }
+
+        if (checked.stream().anyMatch(SuccessResponse::hasRecordBody)) {
+            ctx.addImport(new Import(Constants.ORG_BALLERINA, "constraint"));
+        }
+        addJsonPayloadFunction(ctx);
+        return Optional.of(new CheckedResponse(stmts, checked.stream().map(SuccessResponse::type)
+                .collect(Collectors.joining("|")) + (answersAnyStatus ? "|" + HTTP_RESPONSE_TYPE : "") + "|error"));
+    }
+
+    private static void addJsonPayloadFunction(Context ctx) {
+        if (ctx.projectCtx.functionExists(Constants.FUNC_JSON_PAYLOAD)) {
+            return;
+        }
+        ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_JSON_PAYLOAD,
+                Function.publicFunction(Constants.FUNC_JSON_PAYLOAD,
+                        List.of(new Parameter(Constants.PAYLOAD_REF, BAL_ANYDATA_TYPE)), typeFrom("json|error"),
+                        List.of(new Statement.Comment(
+                                        "A flow may set its payload as JSON text, such as the value of a set-payload"),
+                                stmtFrom("return payload is string ? payload.fromJsonString() : payload.toJson();"))));
+    }
+
+    /**
+     * @param statements statements answering with the checked response
+     * @param returnType return type of the resource
+     */
+    private record CheckedResponse(List<Statement> statements, String returnType) {
     }
 
     private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
@@ -557,12 +726,14 @@ public class MuleToBalConverter {
             serviceMap.merge(key, service, (existing, current) -> {
                 existing.resources().addAll(current.resources());
                 existing.httpInterceptors().addAll(current.httpInterceptors());
-                if (existing.apiKitRouterRef().isPresent() || current.apiKitRouterRef().isEmpty()) {
+                Optional<String> apiKitRouterRef = existing.apiKitRouterRef().or(current::apiKitRouterRef);
+                Optional<Statement.Comment> comment = existing.comment().or(current::comment);
+                if (apiKitRouterRef.equals(existing.apiKitRouterRef()) && comment.equals(existing.comment())) {
                     return existing;
                 }
                 return new Service(existing.basePath(), existing.listenerRefs(), existing.initFunc(),
                         existing.resources(), existing.functions(), existing.fields(), existing.remoteFunctions(),
-                        current.apiKitRouterRef(), existing.httpInterceptors(), existing.comment());
+                        apiKitRouterRef, existing.httpInterceptors(), comment);
             });
         }
 
@@ -629,7 +800,7 @@ public class MuleToBalConverter {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         HttpFlowSegments segments = splitHttpFlow(flow.flowBlocks());
-        Service service = genBalService(ctx, src, segments.serviceBlocks(), functions);
+        Service service = genBalService(ctx, src, segments.serviceBlocks(), functions, policyTodo(ctx, flow));
         if (!segments.requestInterceptorBlocks().isEmpty()) {
             service.httpInterceptors().add(genRequestInterceptor(ctx, segments.requestInterceptorBlocks()));
         }
@@ -637,12 +808,35 @@ public class MuleToBalConverter {
             service.httpInterceptors().add(genResponseErrorInterceptor(ctx, segments.errorHandler(),
                     src.errorResponse()));
         }
-        if (src.response().isPresent() || !segments.responseInterceptorBlocks().isEmpty()) {
-            service.httpInterceptors().add(genResponseInterceptor(ctx, segments.responseInterceptorBlocks(),
-                    src.response()));
+        if (!segments.responseInterceptorBlocks().isEmpty()) {
+            service.httpInterceptors().add(genResponseInterceptor(ctx, segments.responseInterceptorBlocks()));
         }
+        segments.serviceBlocks().stream()
+                .filter(ApiKitRouter.class::isInstance)
+                .map(router -> ((ApiKitRouter) router).configRef())
+                .forEach(configRef -> src.response()
+                        .ifPresent(response -> ctx.projectCtx.apiKitRouterResponses.put(configRef, response)));
         services.add(service);
         return service;
+    }
+
+    // API Manager enforced these policies in front of the Mule flow, so no migrated code enforces them
+    private static Optional<Statement.Comment> policyTodo(Context ctx, Flow flow) {
+        List<String> policies = new ArrayList<>();
+        ctx.autodiscoveryApiId(flow.name()).ifPresent(apiId -> policies.add(ApiPolicies.autodiscovery(apiId)));
+        flow.flowBlocks().stream()
+                .filter(ApiKitRouter.class::isInstance)
+                .map(router -> ctx.projectCtx.apiSpecs.get(((ApiKitRouter) router).configRef()))
+                .filter(ApiSpecResult.Loaded.class::isInstance)
+                .forEach(loaded -> policies.addAll(ApiPolicies.describe(((ApiSpecResult.Loaded) loaded).spec())));
+        if (policies.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new Statement.Comment("TODO: In Mule, API Manager enforced policies on this API, and this "
+                + "service does not enforce them:\n"
+                + policies.stream().map(policy -> "  - " + policy + "\n").collect(Collectors.joining())
+                + "Put an API gateway in front of this service, or add the checks, for example in an "
+                + "http:RequestInterceptor."));
     }
 
     private static HttpFlowSegments splitHttpFlow(List<MuleRecord> flowBlocks) {
@@ -692,21 +886,14 @@ public class MuleToBalConverter {
         return interceptor;
     }
 
-    private static HTTPInterceptor genResponseInterceptor(Context ctx, List<MuleRecord> flowBlocks,
-                                                          Optional<HttpResponse> httpResponse) {
+    // Runs the blocks after an APIkit router; the listener's http:response is applied by the resources instead
+    private static HTTPInterceptor genResponseInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("Context %s = {%s: {%s: %s}};".formatted(Constants.CONTEXT_REFERENCE,
                 Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_REF)));
         body.addAll(convertTopLevelMuleBlocks(ctx, flowBlocks));
-        httpResponse.flatMap(HttpResponse::body)
-                .ifPresent(bodyScript -> body.addAll(convertHttpResponseBody(ctx, bodyScript)));
-        body.add(stmtFrom("(<%s>%s.%s).setPayload(%s.payload);".formatted(HTTP_RESPONSE_TYPE,
-                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        httpResponse.ifPresent(response -> {
-            body.addAll(convertHttpResponseHeaders(ctx, response.headers(), Constants.HTTP_RESPONSE_REF));
-            body.addAll(convertHttpResponseStatusCode(ctx, response.statusCode(), Constants.HTTP_RESPONSE_REF));
-        });
+        body.add(setPayloadIfSet());
         body.add(stmtFrom("return %s;".formatted(Constants.HTTP_RESPONSE_REF)));
 
         List<Parameter> parameters = List.of(
@@ -722,6 +909,13 @@ public class MuleToBalConverter {
         return interceptor;
     }
 
+    // An interceptor starts from an empty Context, so it replaces the response body only when one of its blocks set
+    // a payload; replacing a body with nil makes the response never complete
+    private static Statement setPayloadIfSet() {
+        return stmtFrom("if %s.payload !is () { %s.setPayload(%s.payload); }".formatted(Constants.CONTEXT_REFERENCE,
+                RESPONSE_REF_EXPR, Constants.CONTEXT_REFERENCE));
+    }
+
     private static HTTPInterceptor genResponseErrorInterceptor(Context ctx, Optional<ErrorHandler> errorHandler,
                                                                Optional<HttpResponse> httpErrorResponse) {
         ctx.inServiceGen = true;
@@ -732,8 +926,7 @@ public class MuleToBalConverter {
         errorHandler.ifPresent(handler -> body.addAll(convertErrorHandler(ctx, handler)));
         httpErrorResponse.flatMap(HttpResponse::body)
                 .ifPresent(bodyScript -> body.addAll(convertHttpResponseBody(ctx, bodyScript)));
-        body.add(stmtFrom("(<%s>%s.%s).setPayload(%s.payload);".formatted(HTTP_RESPONSE_TYPE,
-                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
+        body.add(setPayloadIfSet());
         httpErrorResponse.ifPresent(response -> {
             body.addAll(convertHttpResponseHeaders(ctx, response.headers(), interceptedResponse));
             body.addAll(convertHttpResponseStatusCode(ctx, response.statusCode(), interceptedResponse));
@@ -809,6 +1002,13 @@ public class MuleToBalConverter {
 
         RecordTypeDesc contextRecord = RecordTypeDesc.closedRecord(contextRecFields);
         contextTypeDefns.add(new ModuleTypeDef(Constants.CONTEXT_RECORD_TYPE, contextRecord));
+        // Spec types follow the context types, whose names their generators avoid; a shared generator is written once
+        Set<ApiTypeGenerator> generators = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ApiTypeGenerator generator : ctx.projectCtx.apiTypeGenerators.values()) {
+            if (generators.add(generator)) {
+                contextTypeDefns.addAll(generator.usedTypeDefinitions());
+            }
+        }
         return contextTypeDefns;
     }
 
@@ -854,7 +1054,7 @@ public class MuleToBalConverter {
     }
 
     private static Service genBalService(Context ctx, HttpListener httpListener, List<MuleRecord> flowBlocks,
-                                         Set<Function> functions)
+                                         Set<Function> functions, Optional<Statement.Comment> comment)
             throws ScriptConversionException {
         ctx.inServiceGen = true;
         Optional<String> apiKitRouterRef = flowBlocks.stream()
@@ -863,7 +1063,11 @@ public class MuleToBalConverter {
                 .map(ApiKitRouter::configRef)
                 .findFirst();
         List<String> pathParams = new ArrayList<>();
-        String resourcePath = getBallerinaResourcePath(ctx, httpListener.resourcePath(), pathParams);
+        // Every APIkit resource path starts with the router's listener path, so it is needed as a value here
+        String listenerPath = apiKitRouterRef.isPresent()
+                ? ctx.resolveProjectProperty(httpListener.resourcePath()).orElse(httpListener.resourcePath())
+                : httpListener.resourcePath();
+        String resourcePath = getBallerinaResourcePath(ctx, listenerPath, pathParams);
         String[] resourceMethodNames = httpListener.allowedMethods();
         String listenerRef = convertToBalIdentifier(httpListener.configRef());
         HTTPListenerConfig listenerConfig = ctx.projectCtx.getHttpListenerConfig(httpListener.configRef());
@@ -875,18 +1079,13 @@ public class MuleToBalConverter {
         queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
 
         List<Statement> bodyStmts = new ArrayList<>();
-        String attributesInitValue = getAttributesInitValue(ctx, pathParams);
+        String attributesInitValue = getAttributesInitValue(ctx, uriParamsInit(pathParams));
         bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
                 Constants.ATTRIBUTES_REF, attributesInitValue)));
 
         List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
         bodyStmts.addAll(bodyCoreStmts);
-
-        // Add return statement
-        bodyStmts.add(stmtFrom("\n\n(<%s>%s.%s).setPayload(%s.payload);".formatted(HTTP_RESPONSE_TYPE,
-                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF, Constants.CONTEXT_REFERENCE)));
-        bodyStmts.add(stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE, Constants.ATTRIBUTES_FIELD_ACCESS,
-                Constants.HTTP_RESPONSE_REF)));
+        bodyStmts.addAll(responseStatements(ctx, httpListener.response()));
 
         // Add service resources
         List<Resource> resources = new ArrayList<>();
@@ -896,10 +1095,27 @@ public class MuleToBalConverter {
             // APIKit implementation flows add the concrete resources to this service. Keep the listener
             // resource as a fallback so paths accepted by the listener, but not matched by APIKit, fail
             // through the service's response-error interceptor and Mule error handler.
-            List<Statement> fallbackBody = List.of(stmtFrom("return error(\"APIKIT:NOT_FOUND\");"));
+            Optional<String> resourcePrefix = apiKitResourcePrefix(listenerPath);
+            resourcePrefix.ifPresent(
+                    prefix -> ctx.projectCtx.apiKitResourcePrefixes.put(apiKitRouterRef.get(), prefix));
+            List<Statement> fallbackBody = new ArrayList<>();
+            if (resourcePrefix.isEmpty()) {
+                fallbackBody.add(stmtFrom(("\n// TODO: The APIkit router listener path '%s' is not a fixed path, so "
+                        + "the APIkit resources of this service are generated without it as their path prefix\n")
+                        .formatted(httpListener.resourcePath())));
+            }
+            fallbackBody.add(stmtFrom("return error %s(\"APIKIT:NOT_FOUND\");"
+                    .formatted(ConversionUtils.declareErrorType(ctx, "APIKIT:NOT_FOUND"))));
             for (String resourceMethodName : resourceMethodNames) {
                 resources.add(new Resource(resourceMethodName.toLowerCase(), resourcePath, queryPrams,
                         Optional.of(returnType), fallbackBody));
+            }
+            Map<ApiSpec.Operation, Resource> notImplemented = notImplementedResources(ctx, apiKitRouterRef.get(),
+                    resourcePrefix.orElse(""));
+            resources.addAll(notImplemented.values());
+            if (resourcePrefix.isPresent()) {
+                ctx.projectCtx.apiKitServiceAddresses.put(apiKitRouterRef.get(), new ServiceAddress(listenerRef,
+                        urlPrefix(muleBasePath, listenerPath), List.copyOf(notImplemented.keySet())));
             }
         } else if (resourceMethodNames.length > 1) {
             // same logic is shared, thus extracting it to a function
@@ -931,24 +1147,94 @@ public class MuleToBalConverter {
         Service service =
                 new Service(basePath, List.of(listenerRef), ctx.getServiceInitFunction(), resources, List.of(),
                         new ArrayList<>(ctx.serviceFields),
-                        List.of(), apiKitRouterRef, new ArrayList<>(), Optional.empty());
+                        List.of(), apiKitRouterRef, new ArrayList<>(), comment);
         ctx.resetServiceState();
         return service;
     }
 
-    private static String getAttributesInitValue(Context ctx, List<String> pathParams) {
+    // APIkit raises NOT_IMPLEMENTED for a spec operation without a flow, after it validated the request, and the
+    // flow's error handler answers it; without these resources the catch-all would raise NOT_FOUND instead
+    private static Map<ApiSpec.Operation, Resource> notImplementedResources(Context ctx, String configName,
+                                                                           String resourcePrefix) {
+        if (!(ctx.projectCtx.apiSpecs.get(configName) instanceof ApiSpecResult.Loaded loaded)) {
+            return Map.of();
+        }
+        Map<ApiSpec.Operation, Resource> resources = new LinkedHashMap<>();
+        List<ApiKitFlowName> flows = ctx.projectCtx.apiKitFlows.getOrDefault(configName, List.of());
+        Set<String> flowRouteShapes = flows.stream()
+                .map(flow -> flow.method() + " " + flow.path().replaceAll("\\{[^}]+}", "{}"))
+                .collect(Collectors.toSet());
+        for (ApiSpec.Operation operation : ApiContractChecker.unimplementedOperations(loaded.spec(), flows)) {
+            if (flowRouteShapes.contains(operation.method() + " "
+                    + operation.path().replaceAll("\\{[^}]+}", "{}"))) {
+                continue;
+            }
+            SpecResourceSignature.of(operation, loaded.spec().types(), Optional.empty(),
+                    ctx.projectCtx.apiTypeGenerators.get(configName), Set.of()).ifPresent(signature -> resources.put(
+                    operation, new Resource(operation.method(), withPrefix(resourcePrefix, signature.resourcePath()),
+                            signature.parameters(), Optional.of(Constants.BAL_ERROR_TYPE),
+                            List.of(stmtFrom(("\n// No flow implements this operation of the API spec\n"
+                                    + "return error %s(\"APIKIT:NOT_IMPLEMENTED\");").formatted(
+                                    ConversionUtils.declareErrorType(ctx, "APIKIT:NOT_IMPLEMENTED")))))));
+        }
+        return resources;
+    }
+
+    // The URL path of a listener path such as /api/*, behind the listener's base path
+    private static String urlPrefix(String muleBasePath, String listenerPath) {
+        String path = listenerPath.endsWith("/*") ? listenerPath.substring(0, listenerPath.length() - 2)
+                : listenerPath;
+        return (muleBasePath.equals("/") ? "" : muleBasePath.replaceFirst("/$", ""))
+                + (path.isEmpty() || path.startsWith("/") ? path : "/" + path);
+    }
+
+    // A listener's http:response is applied by the resource, where the variables the flow set are in scope
+    private static List<Statement> responseStatements(Context ctx, Optional<HttpResponse> httpResponse) {
+        List<Statement> stmts = new ArrayList<>();
+        if (httpResponse.isEmpty()) {
+            stmts.add(stmtFrom("\n\n%s.setPayload(%s.payload);".formatted(RESPONSE_REF_EXPR,
+                    Constants.CONTEXT_REFERENCE)));
+            stmts.add(stmtFrom("return %s;".formatted(RESPONSE_EXPR)));
+            return stmts;
+        }
+        HttpResponse response = httpResponse.get();
+        response.body().ifPresent(bodyScript -> stmts.addAll(convertHttpResponseBody(ctx, bodyScript)));
+        stmts.add(stmtFrom("\n\n%s %s = %s;".formatted(HTTP_RESPONSE_TYPE, Constants.HTTP_RESPONSE_REF,
+                RESPONSE_EXPR)));
+        stmts.add(stmtFrom("%s.setPayload(%s.payload);".formatted(Constants.HTTP_RESPONSE_REF,
+                Constants.CONTEXT_REFERENCE)));
+        stmts.addAll(convertHttpResponseHeaders(ctx, response.headers(), Constants.HTTP_RESPONSE_REF));
+        stmts.addAll(convertHttpResponseStatusCode(ctx, response.statusCode(), Constants.HTTP_RESPONSE_REF));
+        stmts.add(stmtFrom("return %s;".formatted(Constants.HTTP_RESPONSE_REF)));
+        return stmts;
+    }
+
+    private static Optional<String> apiKitResourcePrefix(String listenerPath) {
+        List<String> segments = Stream.of(listenerPath.split("/")).filter(segment -> !segment.isEmpty()).toList();
+        if (!segments.isEmpty() && segments.getLast().equals("*")) {
+            segments = segments.subList(0, segments.size() - 1);
+        }
+        if (segments.stream().anyMatch(segment -> segment.contains("*") || segment.contains("{")
+                || segment.contains("$") || segment.contains("#["))) {
+            return Optional.empty();
+        }
+        return Optional.of(segments.stream().map(ConversionUtils::convertToBalIdentifier)
+                .collect(Collectors.joining("/")));
+    }
+
+    private static Optional<String> uriParamsInit(List<String> pathParams) {
+        return pathParams.isEmpty() ? Optional.empty() : Optional.of("{%s}".formatted(String.join(",", pathParams)));
+    }
+
+    private static String getAttributesInitValue(Context ctx, Optional<String> uriParamsInit) {
         Map<String, String> attributesPropMap = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : ctx.projectCtx.attributes.entrySet()) {
             switch (entry.getKey()) {
                 case Constants.HTTP_REQUEST_REF ->
                         attributesPropMap.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_REF);
                 case Constants.HTTP_RESPONSE_REF -> attributesPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
-                case Constants.URI_PARAMS_REF -> {
-                    if (!pathParams.isEmpty()) {
-                        String pathParamValue = String.join(",", pathParams);
-                        attributesPropMap.put(Constants.URI_PARAMS_REF, "{%s}".formatted(pathParamValue));
-                    }
-                }
+                case Constants.URI_PARAMS_REF -> uriParamsInit.ifPresent(
+                        init -> attributesPropMap.put(Constants.URI_PARAMS_REF, init));
                 case JMS_MESSAGE_REF -> attributesPropMap.put(JMS_MESSAGE_REF, JMS_MESSAGE_REF);
                 default -> throw new IllegalStateException();
             }

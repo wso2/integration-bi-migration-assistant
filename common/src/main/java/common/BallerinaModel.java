@@ -91,7 +91,25 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
         }
     }
 
-    public record ModuleTypeDef(String name, TypeDesc typeDesc, List<Comment> comments) {
+    /**
+     * A module-level type definition.
+     *
+     * @param name       type name
+     * @param typeDesc   type descriptor
+     * @param comments   comments written before the definition
+     * @param annotation annotation written before the definition, as Ballerina source, e.g.
+     *                   {@code @constraint:String {maxLength: 10}}
+     */
+    public record ModuleTypeDef(String name, TypeDesc typeDesc, List<Comment> comments, Optional<String> annotation) {
+
+        public ModuleTypeDef {
+            assert annotation != null;
+            assert annotation.isEmpty() || annotation.get().startsWith("@") : "Not an annotation: " + annotation;
+        }
+
+        public ModuleTypeDef(String name, TypeDesc typeDesc, List<Comment> comments) {
+            this(name, typeDesc, comments, Optional.empty());
+        }
 
         public ModuleTypeDef(String name, TypeDesc typeDesc) {
             this(name, typeDesc, List.of());
@@ -103,6 +121,7 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             for (Comment comment : comments) {
                 sb.append(comment);
             }
+            annotation.ifPresent(value -> sb.append(value).append("\n"));
             if (typeDesc instanceof TypeDesc.RecordTypeDesc recordTypeDesc) {
                 recordTypeDesc.namespace().ifPresent(ns -> sb.append(ns.annotation()));
                 recordTypeDesc.xmlName().ifPresent(name -> sb.append("""
@@ -638,7 +657,26 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
                                      Optional<List<String>> paramTypes) implements FunctionBody {
     }
 
-    public record Parameter(String name, TypeDesc type, Optional<BallerinaExpression> defaultExpr) {
+    /**
+     * A function or resource parameter.
+     *
+     * @param name        parameter name
+     * @param type        parameter type
+     * @param defaultExpr default value
+     * @param annotation  annotation written before the type, as Ballerina source, e.g.
+     *                    {@code @http:Header {name: "x-correlation-id"}}
+     */
+    public record Parameter(String name, TypeDesc type, Optional<BallerinaExpression> defaultExpr,
+                            Optional<String> annotation) {
+
+        public Parameter {
+            assert name != null && type != null && defaultExpr != null && annotation != null;
+            assert annotation.isEmpty() || annotation.get().startsWith("@") : "Not an annotation: " + annotation;
+        }
+
+        public Parameter(String name, TypeDesc type, Optional<BallerinaExpression> defaultExpr) {
+            this(name, type, defaultExpr, Optional.empty());
+        }
 
         public Parameter(TypeDesc typeDesc, String name, BallerinaExpression defaultExpr) {
             this(name, typeDesc, Optional.of(defaultExpr));
@@ -648,15 +686,18 @@ public record BallerinaModel(DefaultPackage defaultPackage, List<Module> modules
             this(name, type, Optional.empty());
         }
 
+        public @NotNull Parameter withAnnotation(String annotation) {
+            return new Parameter(name, type, defaultExpr, Optional.of(annotation));
+        }
+
         public VariableReference ref() {
             return new VariableReference(name);
         }
 
         @Override
         public @NotNull String toString() {
-            return defaultExpr
-                    .map(expr -> String.format("%s %s = %s", type, name, expr))
-                    .orElseGet(() -> String.format("%s %s", type, name));
+            return annotation.map(value -> value + " ").orElse("") + type + " " + name
+                    + defaultExpr.map(expr -> " = " + expr.expr()).orElse("");
         }
     }
 

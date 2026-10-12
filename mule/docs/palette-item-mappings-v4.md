@@ -115,8 +115,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Vars record {|
-    string httpStatus?;
     anydata outboundHeaders?;
+    anydata httpStatus?;
 |};
 
 public type Attributes record {|
@@ -131,120 +131,38 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
+public type APIKIT__BAD_REQUEST distinct error;
+
+public type APIKIT__METHOD_NOT_ALLOWED distinct error;
+
+public type APIKIT__NOT_ACCEPTABLE distinct error;
+
+public type APIKIT__UNSUPPORTED_MEDIA_TYPE distinct error;
+
+public type APIKIT__NOT_IMPLEMENTED distinct error;
+
 public listener http:Listener listener\-config = new (8081);
 
 service http:InterceptableService / on listener\-config {
     function init() returns error? {
     }
 
-    public function createInterceptors() returns [MuleResponseErrorInterceptor0, MuleResponseInterceptor0] {
-        return [new MuleResponseErrorInterceptor0(), new MuleResponseInterceptor0()];
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
     }
 
     resource function default [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {id}}};
         log:printInfo("Get order");
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
-    }
-
-    resource function post orders(http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new}};
-        log:printInfo("Create order");
-
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseErrorInterceptor0 {
-    *http:ResponseErrorInterceptor;
-
-    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
-        Context ctx = {attributes: {response: interceptedResponse}};
-        // TODO: if conditions may require some manual adjustments
-        if err is "APIKIT:BAD_REQUEST" {
-
-            // on-error-propagate
-
-            ctx.vars.httpStatus = "400";
-
-            // set payload
-
-            string payload0 = "{\"message\":\"Bad request\"}";
-            ctx.payload = payload0;
-            http:Response response = <http:Response>ctx.attributes.response;
-            response.statusCode = 500;
-        } else if err is "APIKIT:NOT_FOUND" {
-            // on-error-continue
-            ctx.vars.httpStatus = "404";
-
-            // set payload
-            string payload1 = "{\"message\":\"Resource not found\"}";
-            ctx.payload = payload1;
-        } else if err is "APIKIT:METHOD_NOT_ALLOWED" {
-            // on-error-propagate
-            ctx.vars.httpStatus = "405";
-
-            // set payload
-            string payload2 = "{\"message\":\"Method not allowed\"}";
-            ctx.payload = payload2;
-            http:Response response = <http:Response>ctx.attributes.response;
-            response.statusCode = 500;
-        } else if err is "APIKIT:NOT_ACCEPTABLE" {
-            // on-error-propagate
-            ctx.vars.httpStatus = "406";
-
-            // set payload
-            string payload3 = "{\"message\":\"Not acceptable\"}";
-            ctx.payload = payload3;
-            http:Response response = <http:Response>ctx.attributes.response;
-            response.statusCode = 500;
-        } else if err is "APIKIT:UNSUPPORTED_MEDIA_TYPE" {
-            // on-error-propagate
-            ctx.vars.httpStatus = "415";
-
-            // set payload
-            string payload4 = "{\"message\":\"Unsupported media type\"}";
-            ctx.payload = payload4;
-            http:Response response = <http:Response>ctx.attributes.response;
-            response.statusCode = 500;
-        } else if err is "APIKIT:NOT_IMPLEMENTED" {
-            // on-error-propagate
-            ctx.vars.httpStatus = "501";
-
-            // set payload
-            string payload5 = "{\"message\":\"Not implemented\"}";
-            ctx.payload = payload5;
-            http:Response response = <http:Response>ctx.attributes.response;
-            response.statusCode = 500;
-        }
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-
-        // http response headers
-        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
-        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
-        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
-            interceptedResponse.setHeader(headerName, headerValue);
-        }
-
-        // http response status code
-        interceptedResponse.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 500).toString());
-        return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseInterceptor0 {
-    *http:ResponseInterceptor;
-
-    remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
-        Context ctx = {attributes: {response: response}};
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
 
         // http response headers
         anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
@@ -256,6 +174,104 @@ service class MuleResponseInterceptor0 {
         // http response status code
         response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
         return response;
+    }
+
+    resource function post orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo("Create order");
+
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+
+        // http response headers
+        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            response.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
+        return response;
+    }
+}
+
+service class MuleResponseErrorInterceptor0 {
+    *http:ResponseErrorInterceptor;
+
+    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
+        Context ctx = {attributes: {response: interceptedResponse}};
+        // TODO: if conditions may require some manual adjustments
+        if err is APIKIT__BAD_REQUEST|http:HeaderBindingError|http:QueryParameterBindingError|http:PathParameterBindingError|http:PayloadBindingError|http:HeaderValidationError|http:QueryParameterValidationError|http:PayloadValidationError {
+
+            // on-error-propagate
+
+            ctx.vars.httpStatus = "400";
+
+            // set payload
+
+            string payload0 = "{\"message\":\"Bad request\"}";
+            ctx.payload = payload0;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
+        } else if err is APIKIT__NOT_FOUND|http:ResourceNotFoundError {
+            // on-error-continue
+            ctx.vars.httpStatus = "404";
+
+            // set payload
+            string payload1 = "{\"message\":\"Resource not found\"}";
+            ctx.payload = payload1;
+        } else if err is APIKIT__METHOD_NOT_ALLOWED|http:ResourceMethodNotAllowedError {
+            // on-error-propagate
+            ctx.vars.httpStatus = "405";
+
+            // set payload
+            string payload2 = "{\"message\":\"Method not allowed\"}";
+            ctx.payload = payload2;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
+        } else if err is APIKIT__NOT_ACCEPTABLE|http:RequestNotAcceptableError {
+            // on-error-propagate
+            ctx.vars.httpStatus = "406";
+
+            // set payload
+            string payload3 = "{\"message\":\"Not acceptable\"}";
+            ctx.payload = payload3;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
+        } else if err is APIKIT__UNSUPPORTED_MEDIA_TYPE|http:UnsupportedRequestMediaTypeError {
+            // on-error-propagate
+            ctx.vars.httpStatus = "415";
+
+            // set payload
+            string payload4 = "{\"message\":\"Unsupported media type\"}";
+            ctx.payload = payload4;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
+        } else if err is APIKIT__NOT_IMPLEMENTED {
+            // on-error-propagate
+            ctx.vars.httpStatus = "501";
+
+            // set payload
+            string payload5 = "{\"message\":\"Not implemented\"}";
+            ctx.payload = payload5;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
+        }
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
+
+        // http response headers
+        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            interceptedResponse.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        interceptedResponse.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 500).toString());
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -310,6 +326,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 public listener http:Listener listener\-config = new (8080);
 
 service / on listener\-config {
@@ -317,11 +335,11 @@ service / on listener\-config {
     }
 
     resource function get [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function post [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
@@ -335,6 +353,75 @@ service / on listener\-config {
     resource function post orders(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("Create order");
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
+- ### Nested Listener Path
+
+**Input (nested_listener_path.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
+    <http:listener-config name="listener-config" doc:name="HTTP Listener">
+        <http:listener-connection host="0.0.0.0" port="8080"/>
+    </http:listener-config>
+    <apikit:config name="api-config" api="api.raml"/>
+
+    <flow name="api-main">
+        <http:listener config-ref="listener-config" path="/api/v1/*" allowedMethods="GET"/>
+        <apikit:router config-ref="api-config"/>
+    </flow>
+
+    <flow name="get:\orders\(id):api-config">
+        <logger level="INFO" message="Get order"/>
+    </flow>
+</mule>
+
+```
+**Output (nested_listener_path.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type APIKIT__NOT_FOUND distinct error;
+
+public listener http:Listener listener\-config = new (8080);
+
+service / on listener\-config {
+    function init() returns error? {
+    }
+
+    resource function get api/v1/[string... path](http:Request request) returns http:Response|error {
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
+    }
+
+    resource function get api/v1/orders/[string id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+        log:printInfo("Get order");
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
@@ -392,6 +479,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 public listener http:Listener listener\-config = new (8080);
 
 service / on listener\-config {
@@ -399,7 +488,7 @@ service / on listener\-config {
     }
 
     resource function default [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
@@ -476,6 +565,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 public listener http:Listener listener\-config = new (8081);
 
 service http:InterceptableService / on listener\-config {
@@ -487,7 +578,7 @@ service http:InterceptableService / on listener\-config {
     }
 
     resource function default [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
@@ -497,8 +588,13 @@ service http:InterceptableService / on listener\-config {
         string payload3 = "B4";
         ctx.payload = payload3;
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
+        // set payload
+        string payload4 = "B2";
+        ctx.payload = payload4;
+
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+        return response;
     }
 }
 
@@ -511,9 +607,11 @@ service class MuleResponseErrorInterceptor0 {
         log:printInfo("Handle any error");
 
         // set payload
-        string payload0 = "B1";
-        ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        string payload1 = "B1";
+        ctx.payload = payload1;
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
         return <http:Response>ctx.attributes.response;
     }
 }
@@ -525,13 +623,11 @@ service class MuleResponseInterceptor0 {
         Context ctx = {attributes: {response: response}};
 
         // set payload
-        string payload1 = "B2";
-        ctx.payload = payload1;
-
-        // set payload
         string payload2 = "B2";
         ctx.payload = payload2;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
         return response;
     }
 }
@@ -584,6 +680,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 public listener http:Listener listener\-config = new (8080);
 
 service / on listener\-config {
@@ -591,7 +689,77 @@ service / on listener\-config {
     }
 
     resource function get [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
+    }
+
+    resource function get orders/[string id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+        log:printInfo("Get order");
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
+- ### Unresolved Listener Path
+
+**Input (unresolved_listener_path.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
+    <http:listener-config name="listener-config" doc:name="HTTP Listener">
+        <http:listener-connection host="0.0.0.0" port="8080"/>
+    </http:listener-config>
+    <apikit:config name="api-config" api="api.raml"/>
+
+    <flow name="api-main">
+        <http:listener config-ref="listener-config" path="${http.listener.path}" allowedMethods="GET"/>
+        <apikit:router config-ref="api-config"/>
+    </flow>
+
+    <flow name="get:\orders\(id):api-config">
+        <logger level="INFO" message="Get order"/>
+    </flow>
+</mule>
+
+```
+**Output (unresolved_listener_path.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type APIKIT__NOT_FOUND distinct error;
+
+public listener http:Listener listener\-config = new (8080);
+
+service / on listener\-config {
+    function init() returns error? {
+    }
+
+    resource function get \$\{http\.listener\.path\}(http:Request request) returns http:Response|error {
+        // TODO: The APIkit router listener path '${http.listener.path}' is not a fixed path, so the APIkit resources of this service are generated without it as their path prefix
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
@@ -1445,6 +1613,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type EXPRESSION distinct error;
+
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
@@ -1470,7 +1640,7 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error err) {
     // TODO: if conditions may require some manual adjustments
-    if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
+    if err.message() == "#[error.description contains 'timeout']" {
 
         // on-error-propagate
 
@@ -1480,7 +1650,7 @@ public function my_error_handler(Context ctx, error err) {
         log:printInfo("xxx: first error catch");
         http:Response response = <http:Response>ctx.attributes.response;
         response.statusCode = 500;
-    } else if err is "EXPRESSION" {
+    } else if err is EXPRESSION {
         // on-error-continue
         log:printError("Message: " + err.message());
         log:printError("Trace: " + err.stackTrace().toString());
@@ -1946,12 +2116,30 @@ service / on http_listener {
     }
 }
 
+public function route0(Context ctx) returns anydata|error {
+    // Route 0
+
+    // set payload
+    string payload0 = "Route 0 completed";
+    ctx.payload = payload0;
+    return ctx.payload;
+}
+
 public function route1(Context ctx) returns anydata|error {
     // Route 1
 
     // set payload
     string payload1 = "Route 1 completed";
     ctx.payload = payload1;
+    return ctx.payload;
+}
+
+public function route2(Context ctx) returns anydata|error {
+    // Route 2
+
+    // set payload
+    string payload2 = "Route 2 completed";
+    ctx.payload = payload2;
     return ctx.payload;
 }
 
@@ -1969,24 +2157,6 @@ public function firstSuccessful0(Context ctx) returns anydata|error {
         return r2;
     }
     return error("All routes failed", r2);
-}
-
-public function route2(Context ctx) returns anydata|error {
-    // Route 2
-
-    // set payload
-    string payload2 = "Route 2 completed";
-    ctx.payload = payload2;
-    return ctx.payload;
-}
-
-public function route0(Context ctx) returns anydata|error {
-    // Route 0
-
-    // set payload
-    string payload0 = "Route 0 completed";
-    ctx.payload = payload0;
-    return ctx.payload;
 }
 
 ```
@@ -2776,8 +2946,8 @@ service http:InterceptableService /mule4 on config {
     function init() returns error? {
     }
 
-    public function createInterceptors() returns [MuleResponseErrorInterceptor0, MuleResponseInterceptor0] {
-        return [new MuleResponseErrorInterceptor0(), new MuleResponseInterceptor0()];
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
     }
 
     resource function get demo(http:Request request) returns http:Response|error {
@@ -2785,8 +2955,19 @@ service http:InterceptableService /mule4 on config {
         ctx.vars.httpStatus = "202";
         log:printInfo("xxx: logger invoked");
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+
+        // http response headers
+        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            response.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
+        return response;
     }
 }
 
@@ -2799,31 +2980,13 @@ service class MuleResponseErrorInterceptor0 {
         // set payload
         anydata payload0 = ctx.payload;
         ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
 
         // http response status code
         interceptedResponse.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 500).toString());
         return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseInterceptor0 {
-    *http:ResponseInterceptor;
-
-    remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
-        Context ctx = {attributes: {response: response}};
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-
-        // http response headers
-        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
-        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
-        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
-            response.setHeader(headerName, headerValue);
-        }
-
-        // http response status code
-        response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
-        return response;
     }
 }
 
@@ -2892,47 +3055,16 @@ service http:InterceptableService /mule4 on config {
     function init() returns error? {
     }
 
-    public function createInterceptors() returns [MuleResponseErrorInterceptor0, MuleResponseInterceptor0] {
-        return [new MuleResponseErrorInterceptor0(), new MuleResponseInterceptor0()];
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
     }
 
     resource function get demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseErrorInterceptor0 {
-    *http:ResponseErrorInterceptor;
-
-    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
-        Context ctx = {attributes: {response: interceptedResponse}};
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-
-        // http response headers
-        anydata responseHeaderValues = {
-            "foo": "123456"
-        };
-        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
-        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
-            interceptedResponse.setHeader(headerName, headerValue);
-        }
-
-        // http response status code
-        interceptedResponse.statusCode = 500;
-        return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseInterceptor0 {
-    *http:ResponseInterceptor;
-
-    remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
-        Context ctx = {attributes: {response: response}};
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
 
         // http response headers
         anydata responseHeaderValues = {
@@ -2946,6 +3078,30 @@ service class MuleResponseInterceptor0 {
         // http response status code
         response.statusCode = 200;
         return response;
+    }
+}
+
+service class MuleResponseErrorInterceptor0 {
+    *http:ResponseErrorInterceptor;
+
+    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
+        Context ctx = {attributes: {response: interceptedResponse}};
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
+
+        // http response headers
+        anydata responseHeaderValues = {
+            "foo": "123456"
+        };
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            interceptedResponse.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        interceptedResponse.statusCode = 500;
+        return <http:Response>ctx.attributes.response;
     }
 }
 
@@ -3022,7 +3178,9 @@ service class MuleResponseErrorInterceptor0 {
         // set payload
         string payload0 = "internal error";
         ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
 
         // http response headers
         anydata responseHeaderValues = {"Content-Type": "text/plain"};
@@ -3084,33 +3242,20 @@ public type Context record {|
 
 public listener http:Listener config = new (8081);
 
-service http:InterceptableService /mule4 on config {
+service /mule4 on config {
     function init() returns error? {
-    }
-
-    public function createInterceptors() returns [MuleResponseInterceptor0] {
-        return [new MuleResponseInterceptor0()];
     }
 
     resource function get demo(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
-    }
-}
-
-service class MuleResponseInterceptor0 {
-    *http:ResponseInterceptor;
-
-    remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
-        Context ctx = {attributes: {response: response}};
-
         // set payload
         string payload0 = "created";
         ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
 
         // http response headers
         anydata responseHeaderValues = {"Content-Type": "application/json", "x-source": "mule"};
@@ -3817,24 +3962,6 @@ configurable string application_version = ?;
 configurable string tracepoint_beforeRequest = ?;
 configurable string tracepoint_afterRequest = ?;
 
-public function _dwMethod1(Context ctx) returns json|error {
-    string logPayload = "";
-    string status = "ok";
-    string msg = "After Request Send Email";
-    return CustomLogMapper::logger({
-                                      "correlationId": correlationId,
-                                      "app": app,
-                                      "mule": mule,
-                                      "status": status,
-                                      "message": msg,
-                                      "version": application_version,
-                                      "tracepoint": tracepoint_afterRequest,
-                                      "businessProcess": check vars.businessProcess,
-                                      ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
-                                      "env": p("mule.env")
-                                  });
-}
-
 public function send\-email(Context ctx) {
     json logMessage0 = check _dwMethod(ctx);
     log:printInfo(logMessage0.toJsonString());
@@ -3860,6 +3987,24 @@ public function _dwMethod(Context ctx) returns json|error {
                                       "message": msg,
                                       "version": application_version,
                                       "tracepoint": tracepoint_beforeRequest,
+                                      "businessProcess": check vars.businessProcess,
+                                      ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
+                                      "env": p("mule.env")
+                                  });
+}
+
+public function _dwMethod1(Context ctx) returns json|error {
+    string logPayload = "";
+    string status = "ok";
+    string msg = "After Request Send Email";
+    return CustomLogMapper::logger({
+                                      "correlationId": correlationId,
+                                      "app": app,
+                                      "mule": mule,
+                                      "status": status,
+                                      "message": msg,
+                                      "version": application_version,
+                                      "tracepoint": tracepoint_afterRequest,
                                       "businessProcess": check vars.businessProcess,
                                       ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
                                       "env": p("mule.env")
@@ -4478,6 +4623,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 configurable string JMS_PROVIDER_URL = ?;
 jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
 public listener http:Listener http\-listener\-config = new (8081);
@@ -4492,10 +4639,10 @@ service / on http\-listener\-config {
     }
 
     resource function default api(http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
-    resource function post orders(http:Request request) returns http:Response|error {
+    resource function post api/orders(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("Processing new order");
         jms:MapMessage jmsMessage0 = {

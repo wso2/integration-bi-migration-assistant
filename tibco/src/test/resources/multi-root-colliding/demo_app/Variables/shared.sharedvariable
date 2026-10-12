@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource xmlns:pfx2="http://www.nicosommi.com/labs/rest/RESTTypes" xmlns:pfx="http://www.hp.com/labs/rest/RESTTypes">
+    <import namespace="http://www.nicosommi.com/labs/rest/RESTTypes" schemaLocation="/REST/Resources/Schemas/RESTTypes.xsd"/>
+    <name>shared</name>
+    <resourceType>ae.shared.sharedVariable</resourceType>
+    <config xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <persistent>false</persistent>
+        <multi-engine>false</multi-engine>
+        <initialValue>byRef</initialValue>
+        <initialValueRef>/lib/Resources/Data/callData.xml</initialValueRef>
+    </config>
+</BWSharedResource>

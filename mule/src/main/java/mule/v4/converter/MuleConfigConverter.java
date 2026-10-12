@@ -31,11 +31,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.BlockFunctionBody;
 import static common.BallerinaModel.Expression.BallerinaExpression;
@@ -106,6 +109,26 @@ import static mule.v4.model.MuleModel.VMPublish;
 import static mule.v4.model.MuleModel.WhenInChoice;
 
 public class MuleConfigConverter {
+
+    private static final String RESPONSE_HEADER_VALUES_VAR = "responseHeaderValues";
+    private static final String RESPONSE_HEADERS_VAR = "responseHeaders";
+    private static final String HEADER_NAME_VAR = "headerName";
+    private static final String HEADER_VALUE_VAR = "headerValue";
+    /**
+     * Names the statements that write {@code http:headers} to a response declare in the resource body.
+     */
+    public static final Set<String> HTTP_RESPONSE_HEADER_VARS = Set.of(RESPONSE_HEADER_VALUES_VAR,
+            RESPONSE_HEADERS_VAR, HEADER_NAME_VAR, HEADER_VALUE_VAR);
+
+    // Errors Ballerina raises when it rejects a request on its own, which the APIkit router reported as these types
+    private static final Map<String, List<String>> APIKIT_REQUEST_ERRORS = Map.of(
+            "APIKIT:BAD_REQUEST", List.of("http:HeaderBindingError", "http:QueryParameterBindingError",
+                    "http:PathParameterBindingError", "http:PayloadBindingError", "http:HeaderValidationError",
+                    "http:QueryParameterValidationError", "http:PayloadValidationError"),
+            "APIKIT:NOT_FOUND", List.of("http:ResourceNotFoundError"),
+            "APIKIT:METHOD_NOT_ALLOWED", List.of("http:ResourceMethodNotAllowedError"),
+            "APIKIT:NOT_ACCEPTABLE", List.of("http:RequestNotAcceptableError"),
+            "APIKIT:UNSUPPORTED_MEDIA_TYPE", List.of("http:UnsupportedRequestMediaTypeError"));
 
     private static final Pattern VARS_REFERENCE_PATTERN =
             Pattern.compile(Pattern.quote(Constants.VARS_FIELD_ACCESS) + "\\??\\.(\\w+)");
@@ -196,8 +219,7 @@ public class MuleConfigConverter {
     private static BallerinaExpression getErrorHandlerRecCondition(Context ctx, ErrorHandlerRecord errRec) {
         StringBuilder conditionExpr = new StringBuilder();
         if (!errRec.type().isEmpty()) {
-            conditionExpr.append(Constants.ON_FAIL_ERROR_VAR_REF).append(" is ")
-                    .append("\"").append(errRec.type()).append("\"");
+            errorTypeCondition(ctx, errRec.type()).ifPresent(conditionExpr::append);
         }
         if (!errRec.when().isEmpty()) {
             if (!conditionExpr.isEmpty()) {
@@ -207,7 +229,26 @@ public class MuleConfigConverter {
                     .append(parseAsBalString(errRec.when()));
         }
 
-        return exprFrom(conditionExpr.toString());
+        return exprFrom(conditionExpr.isEmpty() ? "true" : conditionExpr.toString());
+    }
+
+    private static Optional<String> errorTypeCondition(Context ctx, String muleErrorTypes) {
+        List<String> types = Stream.of(muleErrorTypes.split(","))
+                .map(String::trim)
+                .filter(type -> !type.isEmpty())
+                .toList();
+        if (types.contains("ANY") || types.contains("MULE:ANY")) {
+            return Optional.empty();
+        }
+        Set<String> balTypes = new LinkedHashSet<>();
+        for (String type : types) {
+            balTypes.add(ConversionUtils.declareErrorType(ctx, type));
+            balTypes.addAll(APIKIT_REQUEST_ERRORS.getOrDefault(type, List.of()));
+        }
+        if (balTypes.stream().anyMatch(type -> type.startsWith("http:"))) {
+            ctx.addImport(Constants.HTTP_MODULE_IMPORT);
+        }
+        return Optional.of("%s is %s".formatted(Constants.ON_FAIL_ERROR_VAR_REF, String.join("|", balTypes)));
     }
 
     private static String parseAsBalString(String input) {
@@ -883,25 +924,57 @@ public class MuleConfigConverter {
         if (headersScript.isEmpty()) {
             return Collections.emptyList();
         }
+        HttpResponseHeaders headers = convertHttpResponseHeaderMap(ctx, headersScript.get());
+        List<Statement> stmts = new ArrayList<>(headers.statements());
+        headers.mapVar().ifPresent(mapVar -> stmts.add(setHttpResponseHeaders(mapVar, responseVarRef)));
+        return stmts;
+    }
 
-        String headerValuesVar = "responseHeaderValues";
-        String headersVar = "responseHeaders";
+    /**
+     * Converts the {@code http:headers} element of an {@code http:response} element to a {@code map<string>}, for a
+     * response that is not built on an {@code http:Response} value.
+     *
+     * @param ctx           conversion context
+     * @param headersScript DataWeave script of the {@code http:headers} element
+     * @return statements declaring the map, and the map's variable unless the script could not be converted
+     */
+    @NotNull
+    public static HttpResponseHeaders convertHttpResponseHeaderMap(Context ctx, String headersScript) {
         List<Statement> stmts = new ArrayList<>();
         stmts.add(stmtFrom("\n\n// http response headers\n"));
         try {
-            String balExpr = convertMuleExprToBal(ctx, headersScript.get());
+            String balExpr = convertMuleExprToBal(ctx, headersScript);
             declareReferencedVars(ctx, balExpr);
-            stmts.add(stmtFrom("anydata %s = %s;".formatted(headerValuesVar, balExpr)));
+            stmts.add(stmtFrom("anydata %s = %s;".formatted(RESPONSE_HEADER_VALUES_VAR, balExpr)));
         } catch (ScriptConversionException e) {
             stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
-            return stmts;
+            return new HttpResponseHeaders(stmts, Optional.empty());
         }
-        stmts.add(stmtFrom("map<string> %s = check %s.cloneWithType();".formatted(headersVar, headerValuesVar)));
-        stmts.add(new ForeachStatement(
-                new TypeBindingPattern(typeFrom("[string, string]"), "[headerName, headerValue]"),
+        stmts.add(stmtFrom("map<string> %s = check %s.cloneWithType();".formatted(RESPONSE_HEADERS_VAR,
+                RESPONSE_HEADER_VALUES_VAR)));
+        return new HttpResponseHeaders(stmts, Optional.of(RESPONSE_HEADERS_VAR));
+    }
+
+    /**
+     * @param statements statements declaring the headers
+     * @param mapVar     variable of the string map holding the headers, empty when it was not declared
+     */
+    public record HttpResponseHeaders(List<Statement> statements, Optional<String> mapVar) {
+    }
+
+    /**
+     * @param headersVar     variable of a {@code map<string>} holding response headers
+     * @param responseVarRef reference to the {@code http:Response} value the response is built on
+     * @return statement setting the headers on the response
+     */
+    @NotNull
+    public static Statement setHttpResponseHeaders(String headersVar, String responseVarRef) {
+        return new ForeachStatement(
+                new TypeBindingPattern(typeFrom("[string, string]"), "[%s, %s]".formatted(HEADER_NAME_VAR,
+                        HEADER_VALUE_VAR)),
                 exprFrom("%s.entries()".formatted(headersVar)),
-                List.of(stmtFrom("%s.setHeader(headerName, headerValue);".formatted(responseVarRef)))));
-        return stmts;
+                List.of(stmtFrom("%s.setHeader(%s, %s);".formatted(responseVarRef, HEADER_NAME_VAR,
+                        HEADER_VALUE_VAR))));
     }
 
     /**
@@ -921,16 +994,31 @@ public class MuleConfigConverter {
 
         String balExpr;
         try {
-            balExpr = ConversionUtils.getAttrValInt(ctx, statusCode.get());
+            balExpr = convertHttpResponseStatusCodeExpr(ctx, statusCode.get());
         } catch (ScriptConversionException e) {
             return List.of(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
         }
+        return List.of(stmtFrom("\n\n// http response status code\n%s.statusCode = %s;".formatted(responseVarRef,
+                balExpr)));
+    }
+
+    /**
+     * Converts the {@code statusCode} attribute of an {@code http:response} element to an {@code int} expression.
+     *
+     * @param ctx        conversion context
+     * @param statusCode value of the {@code statusCode} attribute
+     * @return the {@code int} expression
+     * @throws ScriptConversionException when the value cannot be converted
+     */
+    @NotNull
+    public static String convertHttpResponseStatusCodeExpr(Context ctx, String statusCode)
+            throws ScriptConversionException {
+        String balExpr = ConversionUtils.getAttrValInt(ctx, statusCode);
         declareReferencedVars(ctx, balExpr);
         if (!"int".equals(inferTypeFromBalExpr(balExpr)) && !balExpr.startsWith("check int:")) {
             balExpr = "check int:fromString((%s).toString())".formatted(balExpr);
         }
-        return List.of(stmtFrom("\n\n// http response status code\n"),
-                stmtFrom("%s.statusCode = %s;".formatted(responseVarRef, balExpr)));
+        return balExpr;
     }
 
     /**
@@ -1335,12 +1423,7 @@ public class MuleConfigConverter {
     }
 
     private static WorkerStatementResult convertRaiseError(Context ctx, RaiseError raiseError) {
-        String errorType = raiseError.type().replace(":", "__");
-        if (!ctx.projectCtx.typeDefExists(errorType)) {
-            ctx.currentFileCtx.balConstructs.typeDefs.put(
-                    errorType, new ModuleTypeDef(errorType, typeFrom("distinct error"))
-            );
-        }
+        String errorType = ConversionUtils.declareErrorType(ctx, raiseError.type());
         BallerinaStatement stmt = stmtFrom("fail error %s(\"%s\");".formatted(errorType, raiseError.description()));
         return new WorkerStatementResult(List.of(stmt));
     }

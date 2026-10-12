@@ -1,0 +1,41 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="FetchOrderFile-input"
+                             name="FetchOrderFile"
+                             outputVariable="FetchOrderFile"
+                             tibex:xpdlId="5b1e7c93-0d24-4a6f-b8e2-9c47a1d3f058"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="ListInboundToFetchOrderFile"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="FetchOrderFileToParseOrders"/>
+            <bpws:source linkName="FetchOrderFileToReportError" tibex:faultDetailsVar="FetchOrderFile"
+                         tibex:faultNameVar="FaultName">
+                <tibex:DesignExpression>
+                    <tibex:expression expression="##error##"
+                                      expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+                </tibex:DesignExpression>
+                <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+            </bpws:source>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/getFile&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;InboundDir&quot;/>&lt;xsl:param name=&quot;WorkDir&quot;/>&lt;xsl:param name=&quot;FileName&quot;/>&lt;xsl:template name=&quot;FetchOrderFile-input&quot; match=&quot;/&quot;>&lt;tns1:SFTPGetInputDataFile>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;concat($InboundDir, $FileName)&quot;/>&lt;/RemoteFileName>&lt;LocalFileName>&lt;xsl:value-of select=&quot;concat($WorkDir, $FileName)&quot;/>&lt;/LocalFileName>&lt;/tns1:SFTPGetInputDataFile>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.sftp.get"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/sp#//SFTPGet"/>
+                        <value binary="true" overwriteExistingFile="true" sftpConnection="OrderSftpConnection"
+                               xsi:type="sftpPalette:SFTPGet"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

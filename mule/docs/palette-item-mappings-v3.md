@@ -905,6 +905,33 @@ service / on http_listener {
     }
 }
 
+public function firstSuccessfulRoute0(Context ctx) returns anydata|error {
+    // Route 0
+
+    // set payload
+    string payload0 = "Route 0 completed";
+    ctx.payload = payload0;
+    return ctx.payload;
+}
+
+public function firstSuccessfulRoute1(Context ctx) returns anydata|error {
+    // Route 1
+
+    // set payload
+    string payload1 = "Route 1 completed";
+    ctx.payload = payload1;
+    return ctx.payload;
+}
+
+public function firstSuccessfulRoute2(Context ctx) returns anydata|error {
+    // Route 2
+
+    // set payload
+    string payload2 = "Route 2 completed";
+    ctx.payload = payload2;
+    return ctx.payload;
+}
+
 public function firstSuccessful0(Context ctx) returns anydata|error {
     anydata|error r0 = firstSuccessfulRoute0(ctx);
     if r0 !is error {
@@ -919,33 +946,6 @@ public function firstSuccessful0(Context ctx) returns anydata|error {
         return r2;
     }
     return error("All routes failed", r2);
-}
-
-public function firstSuccessfulRoute2(Context ctx) returns anydata|error {
-    // Route 2
-
-    // set payload
-    string payload2 = "Route 2 completed";
-    ctx.payload = payload2;
-    return ctx.payload;
-}
-
-public function firstSuccessfulRoute1(Context ctx) returns anydata|error {
-    // Route 1
-
-    // set payload
-    string payload1 = "Route 1 completed";
-    ctx.payload = payload1;
-    return ctx.payload;
-}
-
-public function firstSuccessfulRoute0(Context ctx) returns anydata|error {
-    // Route 0
-
-    // set payload
-    string payload0 = "Route 0 completed";
-    ctx.payload = payload0;
-    return ctx.payload;
 }
 
 ```
@@ -2453,14 +2453,14 @@ public function variableEnricherFlow(Context ctx) {
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function enricher0(Context ctx) returns string? {
-    flow1(ctx);
-    return ctx.flowVars.userId;
-}
-
 public function flow1(Context ctx) {
     log:printInfo("xxx: flow1 starting logger invkoed");
     log:printInfo("xxx: end of flow1 reached");
+}
+
+public function enricher0(Context ctx) returns string? {
+    flow1(ctx);
+    return ctx.flowVars.userId;
 }
 
 ```
@@ -3749,10 +3749,6 @@ public type Context record {|
     anydata payload = ();
 |};
 
-function _dwMethod1_(json payload) returns json {
-    // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
-}
-
 public function sampleFlow(Context ctx) {
 
     // TODO: DATAWEAVE PARSING FAILED.
@@ -3775,6 +3771,10 @@ public function sampleFlow(Context ctx) {
 
 function _dwMethod0_(xml payload) returns json {
     // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
+}
+
+function _dwMethod1_(json payload) returns json {
+    // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'groupBy$.language' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
 ```

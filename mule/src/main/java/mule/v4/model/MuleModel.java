@@ -330,6 +330,15 @@ public record MuleModel() {
     public record MuleImport(String file) {
     }
 
+    /**
+     * Registers a flow's API with API Manager, which then enforces the API's policies in front of the flow.
+     *
+     * @param apiId   API Manager id of the API
+     * @param flowRef name of the flow that serves the API
+     */
+    public record ApiAutodiscovery(String apiId, String flowRef) {
+    }
+
     public record ApiKitConfig(Kind kind, String name, String api) implements MuleRecord {
 
         public ApiKitConfig(String name, String api) {

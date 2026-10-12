@@ -41,6 +41,7 @@ public enum MuleXMLTag implements MuleXMLTagBase {
     GLOBAL_PROPERTY("global-property", 1),
     APIKIT_CONFIG("apikit:config", 1),
     APIKIT_ROUTER("apikit:router", 1),
+    API_AUTODISCOVERY("api-gateway:autodiscovery", 1),
 
     // Flow Control
     CHOICE("choice", 3),

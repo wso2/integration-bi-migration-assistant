@@ -140,6 +140,43 @@ public class TestIRCodeGen {
         Assert.assertTrue(source.contains("function init()"));
     }
 
+    @Test
+    public void testAnnotatedResourceParameters() {
+        List<BallerinaModel.Parameter> parameters = List.of(
+                new BallerinaModel.Parameter("clientId", typeFrom("string"))
+                        .withAnnotation("@http:Header {name: \"client-id\"}"),
+                new BallerinaModel.Parameter("payload", typeFrom("json")).withAnnotation("@http:Payload"),
+                new BallerinaModel.Parameter("request", typeFrom("http:Request")),
+                new BallerinaModel.Parameter(typeFrom("int"), "pageSize",
+                        new BallerinaModel.Expression.BallerinaExpression("10"))
+                        .withAnnotation("@http:Query {name: \"page-size\"}"));
+        BallerinaModel.Resource resource = new BallerinaModel.Resource("post", "orders", parameters,
+                Optional.of(typeFrom("http:Response|error")), List.of(stmtFrom("return new;")));
+        BallerinaModel.TextDocument document = new BallerinaModel.TextDocument("orders.bal",
+                List.of(new BallerinaModel.Import("ballerina", "http")), List.of(), List.of(),
+                List.of(new BallerinaModel.Listener.HTTPListener("ordersListener", "9090", "0.0.0.0")),
+                List.of(new BallerinaModel.Service("/", "ordersListener", List.of(resource))), List.of(),
+                List.of(), List.of());
+
+        SyntaxTree syntaxTree = new CodeGenerator(document).generateSyntaxTree();
+        List<String> diagnostics = new ArrayList<>();
+        syntaxTree.diagnostics().forEach(diagnostic -> diagnostics.add(diagnostic.toString()));
+        Assert.assertTrue(diagnostics.isEmpty(), diagnostics + "\n" + syntaxTree.toSourceCode());
+        String source = syntaxTree.toSourceCode().replaceAll("\\s+", " ").replaceAll(" ?, ?", ", ");
+        Assert.assertTrue(source.contains("service / on ordersListener { resource function post orders("
+                + "@http:Header {name: \"client-id\"} string clientId, @http:Payload json payload, "
+                + "http:Request request, @http:Query {name: \"page-size\"} int pageSize = 10) "
+                + "returns http:Response|error"),
+                source);
+    }
+
+    @Test
+    public void testParameterWithoutAnnotationRendersAsBefore() {
+        Assert.assertEquals(new BallerinaModel.Parameter("name", typeFrom("string")).toString(), "string name");
+        Assert.assertEquals(new BallerinaModel.Parameter(typeFrom("int"), "count",
+                new BallerinaModel.Expression.BallerinaExpression("0")).toString(), "int count = 0");
+    }
+
     private static void assertGeneratedCode(String actualCode, String pathToExpectedCode) {
         String expectedCode = getSourceText(Path.of(pathToExpectedCode));
         Assert.assertEquals(actualCode, expectedCode,

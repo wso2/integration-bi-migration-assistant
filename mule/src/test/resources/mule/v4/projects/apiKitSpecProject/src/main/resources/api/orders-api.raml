@@ -1,0 +1,104 @@
+#%RAML 1.0
+title: Orders API
+version: v2
+baseUri: https://api.example.com/orders
+mediaType: application/json
+securitySchemes:
+  basic:
+    type: Basic Authentication
+securedBy: [basic]
+traits:
+  client-id-enforcement:
+    headers:
+      client_id:
+        type: string
+      client_secret:
+        type: string
+types:
+  Status:
+    type: string
+    enum: [NEW, SHIPPED]
+  Address: !include datatypes/address.raml
+  Order:
+    type: object
+    properties:
+      orderId:
+        type: string
+        pattern: ^[0-9]+$
+        maxLength: 10
+      status: Status
+      quantity:
+        type: integer
+        minimum: 1
+        maximum: 99
+      note?: string
+      addresses:
+        type: Address[]
+        minItems: 1
+  PriorityOrder:
+    type: Order
+    properties:
+      priority: boolean
+  PersonName:
+    type: string
+    pattern: ^[A-Za-z ]+$
+  Note:
+    type: object
+    additionalProperties: false
+    properties:
+      text:
+        type: string
+        maxLength: 20
+      author?: PersonName | nil
+
+/orders:
+  get:
+    queryParameters:
+      status?: Status
+    responses:
+      200:
+        body:
+          type: Order[]
+  post:
+    body:
+      type: Order
+      example: {"orderId": "2002", "status": "NEW", "quantity": 3, "addresses": [{"street": "High St"}]}
+    responses:
+      201:
+        body:
+          type: Order
+          example: !include /examples/order.json
+  /{orderId}:
+    get:
+      headers:
+        marketId:
+          type: string
+          pattern: ^[A-Z]{2}$
+        x-correlation-id:
+          required: false
+      queryParameters:
+        expand?: boolean
+      responses:
+        200:
+          body:
+            application/json:
+              type: PriorityOrder
+        404:
+    put:
+      body:
+        type: PriorityOrder
+      responses:
+        200:
+          body:
+            type: PriorityOrder
+        202:
+    /notes:
+      post:
+        is: [client-id-enforcement]
+        body:
+          type: Note
+          example: {"text": "Leave at the door"}
+        responses:
+          201:
+            body:
+              example: {"text": "Leave at the door"}

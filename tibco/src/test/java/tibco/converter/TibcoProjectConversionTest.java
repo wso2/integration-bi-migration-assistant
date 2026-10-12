@@ -186,6 +186,41 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    @Test(groups = {"tibco", "converter"})
+    public void testRestInvokeHttpImport() throws Exception {
+        Path tempDir = Files.createTempDirectory("tibco-keep-structure-test");
+        ProjectConversionContext cx = new ProjectConversionContext(
+                TestUtils.createTestConversionContext("testOrg", false, true), "RestInvokeBW6");
+        try {
+            TibcoConverter.migrateTibcoProject(cx,
+                    Path.of("src", "test", "resources", "tibco.projects", "RestInvokeBW6").toString(),
+                    tempDir.toString());
+            List<Path> balFiles;
+            try (Stream<Path> files = Files.walk(tempDir)) {
+                balFiles = files.filter(file -> file.toString().endsWith(".bal")).toList();
+            }
+            Assert.assertTrue(balFiles.stream().anyMatch(file -> readString(file).contains("http:NoContentError")),
+                    "expected a converted REST Invoke activity");
+            for (Path file : balFiles) {
+                String content = readString(file);
+                if (content.contains("http:")) {
+                    Assert.assertTrue(content.contains("import ballerina/http;"),
+                            file.getFileName() + " uses the http module without importing it");
+                }
+            }
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
+    private static String readString(Path file) {
+        try {
+            return Files.readString(file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversionByAPI(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create parameter map for the API
@@ -414,9 +449,9 @@ public class TibcoProjectConversionTest {
 
         // Validate root Ballerina.toml
         Assert.assertTrue(textEdits.containsKey("Ballerina.toml"), "Should contain root Ballerina.toml");
-        String expectedRootToml = Files.readString(expectedMultiRootOutput.resolve("Ballerina.toml"));
-        Assert.assertEquals(textEdits.get("Ballerina.toml"), expectedRootToml,
-                "Root Ballerina.toml should match expected");
+        Assert.assertEquals(textEdits.get("Ballerina.toml"), "[workspace]\npackages = [\"helloWorld\", \"lib\"]\n",
+                "Root Ballerina.toml should list the project directories in textEdits");
+        assertEveryProjectFileIsUnderAPackage(textEdits, List.of("helloWorld", "lib"));
 
         // Validate each project's files
         // Map from API project prefix to expected directory name
@@ -488,6 +523,59 @@ public class TibcoProjectConversionTest {
         Assert.assertFalse(aggregateReport.isBlank(), "Aggregate report should not be empty");
         Assert.assertTrue(aggregateReport.contains("Combined Migration Assessment"),
                 "Aggregate report should contain title");
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testMultiRootConversionByAPIWithDottedProjectDirectory() {
+        Map<String, String> textEdits = migrateMultiRootByAPI("multi-root-dotted");
+
+        Assert.assertEquals(textEdits.get("Ballerina.toml"), "[workspace]\npackages = [\"demo_app\"]\n",
+                "Root Ballerina.toml should list the escaped project directory");
+        assertEveryProjectFileIsUnderAPackage(textEdits, List.of("demo_app"));
+        Assert.assertTrue(textEdits.get("demo_app/Ballerina.toml").contains("name = \"demo_app\""),
+                "Project directory should match the package name");
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testMultiRootConversionByAPIWithCollidingProjectNames() {
+        Map<String, String> textEdits = migrateMultiRootByAPI("multi-root-colliding");
+
+        Assert.assertEquals(textEdits.get("Ballerina.toml"),
+                "[workspace]\npackages = [\"demo_app\", \"demo_app_2\"]\n",
+                "Projects whose escaped names clash should get distinct packages instead of being dropped");
+        assertEveryProjectFileIsUnderAPackage(textEdits, List.of("demo_app", "demo_app_2"));
+        Assert.assertTrue(textEdits.get("demo_app/Ballerina.toml").contains("name = \"demo_app\""));
+        Assert.assertTrue(textEdits.get("demo_app_2/Ballerina.toml").contains("name = \"demo_app_2\""));
+    }
+
+    private static Map<String, String> migrateMultiRootByAPI(String sourceDirName) {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("orgName", "testOrg");
+        parameters.put("projectName", "testProject");
+        parameters.put("sourcePath", Path.of("src", "test", "resources", sourceDirName).toString());
+        parameters.put("multiRoot", true);
+        parameters.put("stateCallback", (java.util.function.Consumer<String>) s -> {
+        });
+        parameters.put("logCallback", (java.util.function.Consumer<String>) s -> {
+        });
+
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
+        Assert.assertNull(result.get("error"), "Conversion failed with error: " + result.get("error"));
+        @SuppressWarnings("unchecked")
+        var textEdits = (Map<String, String>) result.get("textEdits");
+        return textEdits;
+    }
+
+    private static void assertEveryProjectFileIsUnderAPackage(Map<String, String> textEdits, List<String> packages) {
+        for (String key : textEdits.keySet()) {
+            int slashIndex = key.indexOf('/');
+            if (slashIndex < 0) {
+                continue;
+            }
+            String projectDir = key.substring(0, slashIndex);
+            Assert.assertFalse(projectDir.contains("."), "Project directory must not contain '.': " + key);
+            Assert.assertTrue(packages.contains(projectDir), "File is not under a workspace package: " + key);
+        }
     }
 
     @Test(groups = {"tibco", "converter"})

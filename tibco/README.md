@@ -21,6 +21,10 @@
     - `bw.file.rename`
     - `bw.file.list`
     - `bw.sftp.renameFile`
+    - `bw.sftp.removeFile`
+    - `bw.sftp.dir`
+    - `bw.sftp.get`
+    - `bw.sftp.put`
     - `bw.java.javamethod` (static methods with string, primitive and string array parameters)
     - `bw.generalactivities.log`
     - `bw.psglog.Log`

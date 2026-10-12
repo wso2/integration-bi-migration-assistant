@@ -1,0 +1,40 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ListInbound-input"
+                             name="ListInbound"
+                             outputVariable="ListInbound"
+                             tibex:xpdlId="3f6b2d18-5a0e-4c7d-b9a1-8e24c6f0d753"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToListInbound"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ListInboundToProcessOrders"/>
+            <bpws:source linkName="ListInboundToReportError" tibex:faultDetailsVar="ListInbound"
+                         tibex:faultNameVar="FaultName">
+                <tibex:DesignExpression>
+                    <tibex:expression expression="##error##"
+                                      expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+                </tibex:DesignExpression>
+                <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+            </bpws:source>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/dir&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;InboundDir&quot;/>&lt;xsl:template name=&quot;ListInbound-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;Directory>&lt;xsl:value-of select=&quot;$InboundDir&quot;/>&lt;/Directory>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.sftp.dir"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/sp#//SFTPDir"/>
+                        <value nlst="true" sftpConnection="OrderSftpConnection" xsi:type="sftpPalette:SFTPDir"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

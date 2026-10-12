@@ -1,0 +1,32 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="FetchDailyCsvFiles-input"
+                             name="FetchDailyCsvFiles"
+                             outputVariable="FetchDailyCsvFiles"
+                             tibex:xpdlId="e2a4d6f8-1b3c-4e5d-9f70-8a6b4c2d0e19"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToFetchDailyCsvFiles"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="FetchDailyCsvFilesToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/getFile&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;FetchDailyCsvFiles-input&quot; match=&quot;/&quot;>&lt;tns1:SFTPGetInputDataFile>&lt;RemoteFileName>&lt;xsl:value-of select=&quot;'/inbound/*.csv'&quot;/>&lt;/RemoteFileName>&lt;LocalFileName>&lt;xsl:value-of select=&quot;'/work/'&quot;/>&lt;/LocalFileName>&lt;/tns1:SFTPGetInputDataFile>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.sftp.get"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:sftpPalette="http://ns.tibco.com/bw/palette/sp"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/sp#//SFTPGet"/>
+                        <value sftpConnection="OrderSftpConnection" xsi:type="sftpPalette:SFTPGet"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

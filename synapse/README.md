@@ -14,7 +14,7 @@ are translated into the function body.
 
 ## Building the project
 
-Prerequisite: JDK 21.
+Prerequisite: JDK 25.
 
 Build the runnable migration jar using the Gradle wrapper from the repository root:
 

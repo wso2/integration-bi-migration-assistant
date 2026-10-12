@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
+  <flow name="orders-main">
+    <http:listener config-ref="http-listener-config" path="${secure::http.listener.path}">
+      <http:response statusCode="#[vars.httpStatus default 200]">
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+      </http:response>
+      <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body>#[payload]</http:body>
+      </http:error-response>
+    </http:listener>
+    <apikit:router config-ref="orders-config"/>
+    <logger level="INFO" message="After APIkit router"/>
+    <error-handler>
+      <on-error-continue type="APIKIT:BAD_REQUEST">
+        <set-payload value='{"message": "Bad request"}'/>
+        <set-variable variableName="httpStatus" value="400"/>
+      </on-error-continue>
+      <on-error-continue type="APIKIT:NOT_FOUND">
+        <set-payload value='{"message": "Resource not found"}'/>
+        <set-variable variableName="httpStatus" value="404"/>
+      </on-error-continue>
+      <on-error-continue type="APIKIT:NOT_IMPLEMENTED">
+        <set-payload value='{"message": "Not Implemented"}'/>
+        <set-variable variableName="httpStatus" value="501"/>
+      </on-error-continue>
+    </error-handler>
+  </flow>
+</mule>

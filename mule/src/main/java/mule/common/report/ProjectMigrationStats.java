@@ -19,6 +19,7 @@ package mule.common.report;
 
 import mule.common.DWConstructBase;
 import mule.common.DWConversionStats;
+import mule.common.apispec.ApiContractCheck;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.List;
  * @param worstCaseDays             estimated days for worst case migration
  * @param failedDistinctXMLTagCount count of distinct XML tags that failed migration
  * @param failedDWLineCount         total lines of DataWeave code that require manual conversion
+ * @param apiContractChecks         how the APIkit flows of each apikit:config line up with its spec
  * @since 1.1.1
  */
 public record ProjectMigrationStats(LinkedHashMap<String, Integer> passedXMLTags,
@@ -47,5 +49,6 @@ public record ProjectMigrationStats(LinkedHashMap<String, Integer> passedXMLTags
                                     double averageCaseDays,
                                     double worstCaseDays,
                                     int failedDistinctXMLTagCount,
-                                    int failedDWLineCount) {
+                                    int failedDWLineCount,
+                                    List<ApiContractCheck> apiContractChecks) {
 }

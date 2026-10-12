@@ -57,6 +57,7 @@ import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
+import static mule.v4.model.MuleModel.ApiAutodiscovery;
 import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.DbGenericConnection;
 import static mule.v4.model.MuleModel.Enricher;
@@ -163,6 +164,8 @@ public class MuleConfigReader {
         if (MuleXMLTag.APIKIT_CONFIG.tag().equals(elementTagName)) {
             ApiKitConfig apiKitConfig = readApiKitConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.apiKitConfigs.put(apiKitConfig.name(), apiKitConfig);
+        } else if (MuleXMLTag.API_AUTODISCOVERY.tag().equals(elementTagName)) {
+            ctx.projectCtx.apiAutodiscoveries.add(readApiAutodiscovery(ctx, muleElement));
         } else if (MuleXMLTag.HTTP_LISTENER_CONFIG.tag().equals(elementTagName)) {
             HTTPListenerConfig httpListenerConfig = readHttpListenerConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.httpListenerConfigs.put(httpListenerConfig.name(), httpListenerConfig);
@@ -956,6 +959,11 @@ public class MuleConfigReader {
         String name = element.getAttribute("name");
         String api = element.getAttribute("api");
         return new ApiKitConfig(name, api);
+    }
+
+    private static ApiAutodiscovery readApiAutodiscovery(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        return new ApiAutodiscovery(element.getAttribute("apiId"), element.getAttribute("flowRef"));
     }
 
     private static ApiKitRouter readApiKitRouter(Context ctx, MuleElement muleElement) {

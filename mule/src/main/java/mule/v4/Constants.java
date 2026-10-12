@@ -88,6 +88,7 @@ public class Constants {
     public static final String VAR_FIRST_SUCCESSFUL_RESULT = "firstSuccessfulResult%s";
     public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "route%s";
     public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteErrorIfExists";
+    public static final String FUNC_JSON_PAYLOAD = "jsonPayload";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";

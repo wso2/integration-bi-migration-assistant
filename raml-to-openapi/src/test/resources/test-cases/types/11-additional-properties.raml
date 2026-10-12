@@ -1,0 +1,22 @@
+#%RAML 1.0
+title: Additional Properties
+types:
+  Point:
+    type: object
+    additionalProperties: false
+    properties:
+      x: integer
+  Shape:
+    type: object
+    properties:
+      name: string
+      origin:
+        type: object
+        additionalProperties: false
+        properties:
+          x: integer
+  Square:
+    type: Shape
+    additionalProperties: false
+    properties:
+      side: integer

@@ -16,9 +16,10 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function UTC() returns handle = @java:FieldGet {
-    'class: "java.time.ZoneOffset",
-    name: "UTC"
+public function getDateTimeFormatter(handle format) returns handle = @java:Method {
+    'class: "java.time.format.DateTimeFormatter",
+    name: "ofPattern",
+    paramTypes: ["java.lang.String"]
 } external;
 
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
@@ -27,21 +28,20 @@ public function parseDateTime(handle date, handle formatter) returns handle = @j
     paramTypes: ["java.lang.CharSequence", "java.time.format.DateTimeFormatter"]
 } external;
 
-public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
-    handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
-    return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
-}
-
-public function getDateTimeFormatter(handle format) returns handle = @java:Method {
-    'class: "java.time.format.DateTimeFormatter",
-    name: "ofPattern",
-    paramTypes: ["java.lang.String"]
-} external;
-
 public function toInstant(handle localDateTime, handle zoneOffset) returns handle = @java:Method {
     'class: "java.time.LocalDateTime",
     paramTypes: ["java.time.ZoneOffset"]
 } external;
+
+public function UTC() returns handle = @java:FieldGet {
+    'class: "java.time.ZoneOffset",
+    name: "UTC"
+} external;
+
+public function getDateFromFormattedString(string dateString, string format) returns time:Utc|error {
+    handle localDateTime = parseDateTime(java:fromString(dateString), getDateTimeFormatter(java:fromString(format)));
+    return check time:utcFromString(toInstant(localDateTime, UTC()).toString());
+}
 
 public function _dwMethod(Context ctx) returns json|error => {
     "a": time:utcToString([1436287232, 0]),

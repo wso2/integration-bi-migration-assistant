@@ -28,8 +28,8 @@ import mule.v3.model.MuleModel;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -94,7 +94,7 @@ public class MuleToBalConverter {
     public static TextDocument generateTextDocument(Context ctx, String balFileName,
                                                     List<Flow> flows, List<SubFlow> subFlows) {
         List<Service> services = new ArrayList<>();
-        Set<Function> functions = new HashSet<>();
+        Set<Function> functions = new LinkedHashSet<>();
         List<ClassDef> classDefs = new ArrayList<>();
         List<Flow> privateFlows = new ArrayList<>();
 

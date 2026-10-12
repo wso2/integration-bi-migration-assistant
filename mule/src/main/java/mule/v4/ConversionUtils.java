@@ -36,8 +36,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import static common.BallerinaModel.ModuleTypeDef;
 import static common.BallerinaModel.ModuleVar;
 import static common.ConversionUtils.exprFrom;
+import static common.ConversionUtils.typeFrom;
 import static mule.v4.converter.MELConverter.convertMELToBal;
 import static mule.v4.model.MuleModel.UnsupportedBlock;
 
@@ -239,6 +241,24 @@ public class ConversionUtils {
      */
     public static String convertToBalIdentifier(String varName) {
         return common.ConversionUtils.convertToBalIdentifier(varName);
+    }
+
+    /**
+     * Declares the distinct Ballerina error type that stands for a Mule error type, e.g. {@code APIKIT:BAD_REQUEST}
+     * becomes {@code APIKIT__BAD_REQUEST}, so that the errors flows raise and the error handlers that match them
+     * agree on the type.
+     *
+     * @param ctx           conversion context
+     * @param muleErrorType Mule error type
+     * @return name of the Ballerina error type
+     */
+    public static String declareErrorType(Context ctx, String muleErrorType) {
+        String typeName = convertToBalIdentifier(muleErrorType.trim().replace(":", "__"));
+        if (!ctx.projectCtx.typeDefExists(typeName)) {
+            ctx.currentFileCtx.balConstructs.typeDefs.put(typeName,
+                    new ModuleTypeDef(typeName, typeFrom("distinct error")));
+        }
+        return typeName;
     }
 
     public static String[] getAllowedMethods(String allowedMethods) {

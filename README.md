@@ -18,7 +18,7 @@ Each package contains its own documentation, samples, and migration tools specif
 
 ## Setting Up the Prerequisites
 
-1. Download and install Java SE Development Kit (JDK) version 21 (from one of the following locations).
+1. Download and install Java SE Development Kit (JDK) version 25 (from one of the following locations).
    * [Oracle](https://www.oracle.com/java/technologies/downloads/)
    * [OpenJDK](http://openjdk.java.net/install/index.html)
 

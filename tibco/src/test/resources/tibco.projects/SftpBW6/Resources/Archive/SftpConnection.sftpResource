@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:sftpconnection="http://ns.tibco.com/bw/palette/sftpconnection" xmi:id="_archiveResource" name="Archive.SftpConnection" type="sftpconnection:sftpconnection">
+  <jndi:configuration xsi:type="sftpconnection:SFTPConnection" xmi:id="_archiveConfiguration" host="sftp.archive.example.com" port="${SFTP_PORT}">
+    <substitutionBindings xmi:id="_archiveprivKeyAuth" template="privKeyAuth" propName="/Resources/SFTP/Archive/UsePrivateKey"/>
+    <substitutionBindings xmi:id="_archiveuserName" template="userName" propName="/Resources/SFTP/Username"/>
+    <substitutionBindings xmi:id="_archivepassword" template="password" propName="/Resources/SFTP/Archive/Password"/>
+    <substitutionBindings xmi:id="_archiveprivKey" template="privKey" propName="/Resources/SFTP/Archive/PrivateKey"/>
+    <substitutionBindings xmi:id="_archiveprivKeypassword" template="privKeypassword" propName="/Resources/SFTP/Archive/PrivateKeyPassword"/>
+  </jndi:configuration>
+</jndi:namedResource>

@@ -12,6 +12,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type APIKIT__NOT_FOUND distinct error;
+
 public listener http:Listener listener\-config = new (8081);
 
 service http:InterceptableService / on listener\-config {
@@ -23,7 +25,7 @@ service http:InterceptableService / on listener\-config {
     }
 
     resource function default [string... path](http:Request request) returns http:Response|error {
-        return error("APIKIT:NOT_FOUND");
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
@@ -33,8 +35,13 @@ service http:InterceptableService / on listener\-config {
         string payload3 = "B4";
         ctx.payload = payload3;
 
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
-        return <http:Response>ctx.attributes.response;
+        // set payload
+        string payload4 = "B2";
+        ctx.payload = payload4;
+
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+        return response;
     }
 }
 
@@ -47,9 +54,11 @@ service class MuleResponseErrorInterceptor0 {
         log:printInfo("Handle any error");
 
         // set payload
-        string payload0 = "B1";
-        ctx.payload = payload0;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        string payload1 = "B1";
+        ctx.payload = payload1;
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
         return <http:Response>ctx.attributes.response;
     }
 }
@@ -61,13 +70,11 @@ service class MuleResponseInterceptor0 {
         Context ctx = {attributes: {response: response}};
 
         // set payload
-        string payload1 = "B2";
-        ctx.payload = payload1;
-
-        // set payload
         string payload2 = "B2";
         ctx.payload = payload2;
-        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
         return response;
     }
 }

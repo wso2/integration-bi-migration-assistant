@@ -4,6 +4,9 @@ import org.nipunaml.ramltoopenapi.exception.ConverterException;
 import org.nipunaml.ramltoopenapi.model.raml.RamlDocument;
 import org.raml.v2.api.RamlModelBuilder;
 import org.raml.v2.api.RamlModelResult;
+import org.raml.v2.api.loader.CompositeResourceLoader;
+import org.raml.v2.api.loader.DefaultResourceLoader;
+import org.raml.v2.api.loader.FileResourceLoader;
 import org.raml.v2.api.model.common.ValidationResult;
 import org.raml.v2.api.model.v10.api.Api;
 import org.slf4j.Logger;
@@ -34,7 +37,11 @@ public class RamlParser {
 
         try {
             // Build the RAML model - this resolves all !include and uses
-            RamlModelBuilder builder = new RamlModelBuilder();
+            File apiRoot = ramlFile.getAbsoluteFile().getParentFile();
+            RamlModelBuilder builder = new RamlModelBuilder(new CompositeResourceLoader(
+                new FileResourceLoader(apiRoot),
+                new DefaultResourceLoader(),
+                new ApiRootResourceLoader(apiRoot)));
             RamlModelResult result = builder.buildApi(ramlFile);
             
             // Check for validation errors (including missing includes)
