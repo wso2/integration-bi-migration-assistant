@@ -785,7 +785,8 @@ public class ProjectContext implements LoggingContext {
 
     String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
                                  List<JavaType> parameterTypes, Optional<JavaType> returnType) {
-        String signature = className + "#" + methodName + parameterTypes;
+        String signature = className + "#" + methodName + parameterTypes + "->" + returnType.map(JavaType::name)
+                .orElse("void");
         JavaInvokeFunction function = javaInvokeFunctions.get(signature);
         if (function == null) {
             Set<String> takenNames = javaInvokeFunctions.values().stream()
