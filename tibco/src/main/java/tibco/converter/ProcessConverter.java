@@ -20,7 +20,6 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
-import common.BallerinaModel.Expression.BinaryLogical;
 import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
@@ -408,30 +407,13 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
     private static void addTransitionPredicates(ProcessContext cx, Activity.ActivityWithSources activity,
             List<BallerinaModel.Function> accum) {
+        // "otherwise" and error links need no function: ActivityFlowGenerator derives them from the sibling flags
+        // and the trapped result.
         try {
-            Expression prev = null;
-            VariableReference value = new VariableReference("input");
             for (Activity.Source source : activity.sources()) {
-                var predicate = source.condition();
-                if (predicate.isEmpty()) {
-                    continue;
-                }
-                switch (predicate.get()) {
-                    case XPath xPath -> {
-                        Expression expr = ConversionUtils.xPathBoolean(cx, value, new VariableReference("cx"), xPath);
-                        prev = expr;
-                        if (cx.isFirstPredicateFunctionUse(xPath)) {
-                            accum.add(getTransitionPredicateFn(cx, xPath, expr));
-                        }
-                    }
-                    case Activity.Source.Predicate.Else anElse -> {
-                        // No preceding sibling condition to negate means this "otherwise" link is
-                        // effectively the only/default transition, so it's unconditionally taken.
-                        if (cx.isFirstPredicateFunctionUse(anElse)) {
-                            accum.add(getTransitionPredicateFn(cx, anElse,
-                                    prev != null ? new Expression.Not(prev) : exprFrom("true")));
-                        }
-                    }
+                if (source.condition().orElse(null) instanceof XPath xPath && cx.isFirstPredicateFunctionUse(xPath)) {
+                    accum.add(getTransitionPredicateFn(cx, xPath, ConversionUtils.xPathBoolean(cx,
+                            new VariableReference("input"), new VariableReference("cx"), xPath)));
                 }
             }
         } catch (Exception e) {
@@ -673,9 +655,8 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(
             ProcessContext cx, List<Activity> activities, String functionName, TypeDesc returnType,
             Function<FunctionCall, Expression> callHandler, List<Parameter> parameters) {
-        List<Statement> body = new ArrayList<>();
-        generateActivityFlowFunctionInner(cx, activities, callHandler, body, new VariableReference("input"));
-        return new BallerinaModel.Function(functionName, parameters, returnType, body);
+        return new BallerinaModel.Function(functionName, parameters, returnType,
+                ActivityFlowGenerator.generate(cx, activities, callHandler));
     }
 
     private static BallerinaModel.Function generateErrorFlowFunction(ProcessContext cx, Process6 process) {
@@ -728,49 +709,6 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         return new BallerinaModel.Function(errorHandlerFunction,
                 errorFlowFnType.parameters(), errorFlowFnType.returnType(), body);
-    }
-
-    private static void generateActivityFlowFunctionInner(
-            ProcessContext cx, List<Activity> activities, Function<FunctionCall, Expression> callHandler,
-            List<Statement> body, VariableReference input) {
-        VariableReference context = new VariableReference("cx");
-        for (Activity activity : activities) {
-            generateActivityFunctionCall(cx, activity, callHandler, body, input, context);
-        }
-    }
-
-    private static void generateActivityFunctionCall(
-            ProcessContext cx, Activity activity,
-            Function<FunctionCall, Expression> callHandler, List<Statement> body, VariableReference input,
-            VariableReference context) {
-        AnalysisResult analysisResult = cx.getAnalysisResult();
-        // Transition predicates resolve their `$var` references from the context, so the input document is only
-        // the XPath evaluation root and carries no data.
-        List<FunctionCall> predicates = analysisResult.transitionConditions(activity)
-                .map(data -> new FunctionCall(cx.predicateFunction(data.predicate()),
-                        List.of(new XMLTemplate("<root></root>"), context)))
-                .toList();
-
-        if (predicates.isEmpty()) {
-            body.add(new Statement.CallStatement(callHandler.apply(
-                    activityFunctionCall(activity, context, analysisResult))));
-            return;
-        }
-
-        Expression cond = predicates.getFirst();
-        for (int i = 1; i < predicates.size(); i++) {
-            cond = new BinaryLogical(cond, predicates.get(i), BinaryLogical.Operator.OR);
-        }
-        Statement.IfElseStatement ifElse = new Statement.IfElseStatement(cond,
-                List.of(new Statement.CallStatement(new Check(
-                        activityFunctionCall(activity, context, analysisResult)))),
-                List.of(), List.of());
-        body.add(ifElse);
-    }
-
-    private static @NotNull FunctionCall activityFunctionCall(Activity activity, VariableReference context,
-            AnalysisResult analysisResult) {
-        return new FunctionCall(analysisResult.from(activity).functionName(), List.of(context));
     }
 
     private static ActivityConverter.XsltTransformResult xsltTransform(ProcessContext cx,

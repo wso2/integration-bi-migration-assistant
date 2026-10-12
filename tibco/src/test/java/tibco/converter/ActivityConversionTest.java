@@ -283,17 +283,6 @@ public class ActivityConversionTest {
                 }
 
                 @Override
-                public Stream<TransitionData> transitionConditions(Scope.Flow.Activity activity) {
-                    return Stream.empty();
-                }
-
-                @Override
-                public Stream<Scope.Flow.Activity.Source.Predicate> transitionCondition(
-                        Scope.Flow.Activity activity, Scope.Flow.Link link) {
-                    return Stream.empty();
-                }
-
-                @Override
                 public Stream<Scope.Flow.Activity> sortedActivities(Scope scope) {
                     return Stream.empty();
                 }

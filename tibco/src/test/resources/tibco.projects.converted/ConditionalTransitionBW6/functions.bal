@@ -5,7 +5,8 @@ function Check(Context cx) returns error? {
 
 function HandlerScopeActivityRunner(Context cx) returns error? {
     check Check(cx);
-    if test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
+    boolean CheckToRecoverTaken = test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx);
+    if CheckToRecoverTaken {
         check Recover(cx);
     }
 }
