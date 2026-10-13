@@ -804,6 +804,19 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.SFTP_PUT_FILES.name;
     }
 
+    public @NotNull String getSapRfcParametersFunction() {
+        utilityIntrinsics.add(Intrinsics.SAP_RFC_PARAMETERS);
+        importLibraryIfNeededToUtility(Library.SAP_JCO);
+        return Intrinsics.SAP_RFC_PARAMETERS.name;
+    }
+
+    public @NotNull String getSapRfcToXmlFunction() {
+        utilityIntrinsics.add(Intrinsics.SAP_RFC_TO_XML);
+        importLibraryIfNeededToUtility(Library.SAP_JCO);
+        importLibraryIfNeededToUtility(Library.TIME);
+        return Intrinsics.SAP_RFC_TO_XML.name;
+    }
+
     private void addSftpRemoteFilesFunction() {
         utilityIntrinsics.add(Intrinsics.SFTP_GLOB_TO_REGEX);
         utilityIntrinsics.add(Intrinsics.SFTP_REMOTE_FILES);

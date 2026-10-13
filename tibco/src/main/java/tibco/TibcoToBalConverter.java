@@ -89,11 +89,13 @@ public class TibcoToBalConverter {
         var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
         java.util.Set<Resource.JMSSharedResource> jmsSharedResource = jmsSharedResourceParser.parse(pcx);
         java.util.Set<Resource.SFTPResource> sftpResources = SFTP_RESOURCE_PARSING_UNIT.parse(pcx);
+        java.util.Set<Resource.SAPConnectionResource> sapConnectionResources =
+                SAP_CONNECTION_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.SharedVariable> sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
 
         return new tibco.converter.ProjectConverter.ProjectResources(jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
-                jmsSharedResource, sftpResources, sharedVariables);
+                jmsSharedResource, sftpResources, sapConnectionResources, sharedVariables);
     }
 
 
@@ -138,6 +140,11 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     (String projectPath) -> getFilesWithExtension(projectPath, "sftpResource"),
                     XmlToTibcoModelParser::parseSFTPResource,
+                    TibcoToBalConverter::getResourceContext);
+    private static final ParsingUnit<Resource.SAPConnectionResource> SAP_CONNECTION_RESOURCE_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
+                    (String projectPath) -> getFilesWithExtension(projectPath, "sapconnectionResource"),
+                    XmlToTibcoModelParser::parseSAPConnectionResource,
                     TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.SharedVariable> SHARED_VARIABLE_PARSING_UNIT = new ParsingUnit<>() {
         @Override
@@ -516,34 +523,55 @@ public class TibcoToBalConverter {
 
     public enum JavaDependencies {
         JDBC_H2("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "h2"
                 version = "2.0.206"
                 groupId = "com.h2database"
                 """),
         JDBC_POSTGRESQL("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "postgresql"
                 version = "42.7.2"
                 groupId = "org.postgresql"
                 """),
         JDBC_MYSQL("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "mysql-connector-java"
                 version = "8.0.33"
                 groupId = "mysql"
                 """),
         JDBC_ORACLE("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "ojdbc8"
                 version = "21.9.0.0"
                 groupId = "com.oracle.database.jdbc"
                 """),
         JDBC_MARIADB("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "mariadb-java-client"
                 version = "3.1.4"
                 groupId = "org.mariadb.jdbc"
+                """),
+        // SAP distributes JCo only through the SAP Support Portal, so ballerinax/sap.jco declares it with provided
+        // scope and the project cannot build until these paths point at the downloaded jars.
+        SAP_JCO("""
+                # TODO: Download SAP JCo 3.1 from the SAP Support Portal and set the path to sapjco3.jar. The native
+                # library (sapjco3.dll / libsapjco3.so / libsapjco3.jnilib) must also be on the library path at runtime.
+                [[platform.java21.dependency]]
+                path = "<path-to-sapjco3.jar>"
+                groupId = "com.sap"
+                artifactId = "com.sap.conn.jco"
+                version = "3.1.*"
+                scope = "provided"
+                """),
+        SAP_IDOC("""
+                # TODO: Set the path to sapidoc3.jar from the SAP Java IDoc Class Library.
+                [[platform.java21.dependency]]
+                path = "<path-to-sapidoc3.jar>"
+                groupId = "com.sap"
+                artifactId = "com.sap.conn.idoc"
+                version = "3.1.*"
+                scope = "provided"
                 """);
 
         public final String dependencyParam;

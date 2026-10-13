@@ -39,7 +39,7 @@ public final class BICodeConverter {
 
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONNECTION_PREDICATE = new TypeNamePredicate(
             Set.of("http:Client", "jdbc:Client", "mysql:Client", "oracledb:Client", "jms:Connection",
-                    "ftp:Client"));
+                    "ftp:Client", "jco:Client"));
     public static final Predicate<BallerinaModel.TextDocument> DEFAULT_SKIP_CONVERSION_PREDICATE = ignored -> false;
     private final Map<String, BallerinaModel.Import> toolImports;
 
@@ -204,6 +204,7 @@ public final class BICodeConverter {
             case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
             case "file" -> List.of(new BallerinaModel.Import("ballerina", "file"));
             case "ftp" -> List.of(new BallerinaModel.Import("ballerina", "ftp"));
+            case "jco" -> List.of(new BallerinaModel.Import("ballerinax", "sap.jco"));
             case "regex" -> List.of(new BallerinaModel.Import("ballerina", "regex"));
             case "regexp" -> List.of(new BallerinaModel.Import("ballerina", "lang.regexp"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
