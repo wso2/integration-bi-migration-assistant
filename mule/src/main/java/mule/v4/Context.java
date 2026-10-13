@@ -90,6 +90,7 @@ public class Context extends ContextBase {
     public Map<JMSMessageProducerLookupKey, BallerinaModel.Expression.VariableReference> messageProducers =
             new HashMap<>();
     public boolean inServiceGen = false;
+    public AttributesOrigin attributesOrigin = AttributesOrigin.UNKNOWN;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -145,6 +146,7 @@ public class Context extends ContextBase {
             File munitFile = entry.getKey();
             mule.common.MUnitModel.TestSuite testSuite = entry.getValue();
             currentFileCtx = this.fileContexts.get(munitFile);
+            attributesOrigin = AttributesOrigin.UNKNOWN;
 
             String balFileName = munitFile.getName().replace(".xml", "");
             balFileName = "tests/" + balFileName + ".bal";
@@ -358,6 +360,7 @@ public class Context extends ContextBase {
         this.initFunctionBody.clear();
         this.serviceFields.clear();
         this.inServiceGen = false;
+        this.attributesOrigin = AttributesOrigin.UNKNOWN;
         this.messageProducers.clear();
     }
 
@@ -615,5 +618,22 @@ public class Context extends ContextBase {
 
     public record JMSMessageProducerLookupKey(String connectionConfig, String destination) {
 
+    }
+
+    /**
+     * What Mule's {@code attributes} holds at the point being converted. It depends on the flow source and on
+     * the operations run before that point, e.g. an {@code http:request} replaces it with the downstream response.
+     */
+    public enum AttributesOrigin {
+        HTTP_LISTENER,
+        // Inbound HTTP flow where only the response is in scope (response and error interceptors)
+        HTTP_LISTENER_RESPONSE,
+        HTTP_REQUEST,
+        ANYPOINT_MQ,
+        PUBSUB,
+        FILE,
+        VM,
+        NONE,
+        UNKNOWN
     }
 }

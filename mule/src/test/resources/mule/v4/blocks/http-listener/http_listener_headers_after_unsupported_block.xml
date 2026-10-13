@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP" allowedMethods="GET"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Inbound Header Variable" variableName="inboundOrderType"/>
+        <jms:consume config-ref="jms_config" destination="orders" doc:name="Consume"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Header Variable" variableName="consumedOrderType"/>
+    </flow>
+</mule>

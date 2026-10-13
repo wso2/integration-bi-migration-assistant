@@ -50,6 +50,12 @@ public class HttpRequestTest extends AbstractBlockTest {
                 "http-request/http_request_with_headers.bal");
     }
 
+    @Test
+    public void testHttpRequestWithInboundHeaders() {
+        testMule4ToBal("http-request/http_request_with_inbound_headers.xml",
+                "http-request/http_request_with_inbound_headers.bal");
+    }
+
     // TODO: due to some reason depends on the order, fix it
     @Test(enabled = false)
     public void testHttpRequestWithMelConfig() {

@@ -2833,6 +2833,167 @@ service /mule4 on config {
 
 ```
 
+- ### Http Listener Headers
+
+**Input (http_listener_headers.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener doc:name="Listener" config-ref="config" path="/orders/{country}" allowedMethods="GET"/>
+        <set-variable value="#[attributes.headers.orderType]" doc:name="Set Plain Header Variable" variableName="plainHeader"/>
+        <set-variable value="#[attributes.headers.'order-type']" doc:name="Set Single Quoted Header Variable" variableName="singleQuotedHeader"/>
+        <set-variable value='#[attributes.headers."order-type"]' doc:name="Set Double Quoted Header Variable" variableName="doubleQuotedHeader"/>
+        <set-variable value="#[attributes.headers['order-type']]" doc:name="Set Bracket Header Variable" variableName="bracketHeader"/>
+        <set-variable value='#[attributes.headers["order-type"]]' doc:name="Set Double Quoted Bracket Header Variable" variableName="doubleQuotedBracketHeader"/>
+        <set-variable value="#[attributes.headers.type]" doc:name="Set Keyword Header Variable" variableName="keywordHeader"/>
+        <set-variable value="#[attributes.headers.'x-correlation-id' default 'none']" doc:name="Set Header With Default Variable" variableName="headerWithDefault"/>
+        <set-variable value="#[isEmpty(attributes.headers.'crmId')]" doc:name="Set Is Header Empty Variable" variableName="isCrmIdEmpty"/>
+        <set-variable value="#[attributes.uriParams.'country']" doc:name="Set Quoted Uri Param Variable" variableName="country"/>
+        <set-variable value="#[attributes.headers]" doc:name="Set All Headers Variable" variableName="allHeaders"/>
+        <logger level="INFO" doc:name="Logger" message="Order type: #[attributes.headers.'orderType']"/>
+    </flow>
+</mule>
+
+```
+**Output (http_listener_headers.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Vars record {|
+    anydata plainHeader?;
+    anydata singleQuotedHeader?;
+    anydata doubleQuotedHeader?;
+    anydata bracketHeader?;
+    anydata doubleQuotedBracketHeader?;
+    anydata keywordHeader?;
+    anydata headerWithDefault?;
+    anydata isCrmIdEmpty?;
+    string country?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener config = new (8081);
+
+service /mule4 on config {
+    function init() returns error? {
+    }
+
+    resource function get orders/[string country](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {country}}};
+        ctx.vars.plainHeader = getOptionalHeader(<http:Request>ctx.attributes.request, "orderType");
+        ctx.vars.singleQuotedHeader = getOptionalHeader(<http:Request>ctx.attributes.request, "order-type");
+        ctx.vars.doubleQuotedHeader = getOptionalHeader(<http:Request>ctx.attributes.request, "order-type");
+        ctx.vars.bracketHeader = getOptionalHeader(<http:Request>ctx.attributes.request, "order-type");
+        ctx.vars.doubleQuotedBracketHeader = getOptionalHeader(<http:Request>ctx.attributes.request, "order-type");
+        ctx.vars.keywordHeader = getOptionalHeader(<http:Request>ctx.attributes.request, "type");
+        ctx.vars.headerWithDefault = getOptionalHeader(<http:Request>ctx.attributes.request, "x-correlation-id") ?: "none";
+        ctx.vars.isCrmIdEmpty = getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() == "";
+        ctx.vars.country = ctx.attributes.uriParams.get("country");
+        // TODO: failed to convert #[attributes.headers]
+        log:printInfo(string `Order type: ${getOptionalHeader(<http:Request>ctx.attributes.request, "orderType").toString()}`);
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function getOptionalHeader(http:Request req, string name) returns string? {
+    string|http:HeaderNotFoundError value = req.getHeader(name);
+    return value is string ? value : ();
+}
+
+```
+
+- ### Http Listener Headers After Unsupported Block
+
+**Input (http_listener_headers_after_unsupported_block.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/" doc:name="HTTP" allowedMethods="GET"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Inbound Header Variable" variableName="inboundOrderType"/>
+        <jms:consume config-ref="jms_config" destination="orders" doc:name="Consume"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Header Variable" variableName="consumedOrderType"/>
+    </flow>
+</mule>
+
+```
+**Output (http_listener_headers_after_unsupported_block.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    anydata inboundOrderType?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener config = new (8081);
+
+service /mule4 on config {
+    function init() returns error? {
+    }
+
+    resource function get .(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        ctx.vars.inboundOrderType = getOptionalHeader(<http:Request>ctx.attributes.request, "orderType");
+
+        // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
+        // ------------------------------------------------------------------------
+        // <jms:consume config-ref="jms_config" destination="orders" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="Consume" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"/>
+        // ------------------------------------------------------------------------
+
+        // TODO: failed to convert #[attributes.headers.'orderType']
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function getOptionalHeader(http:Request req, string name) returns string? {
+    string|http:HeaderNotFoundError value = req.getHeader(name);
+    return value is string ? value : ();
+}
+
+```
+
 - ### Http Listener With Localhost
 
 **Input (http_listener_with_localhost.xml):**
@@ -3659,6 +3820,86 @@ service /mule4 on listener_config {
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+```
+
+- ### Http Request With Inbound Headers
+
+**Input (http_request_with_inbound_headers.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders" allowedMethods="GET"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"orderType" : attributes.headers.'orderType',
+	("crmId" : attributes.headers.'crmId') if(!isEmpty(attributes.headers.'crmId')),
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+        </http:request>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Downstream Header Variable" variableName="downstreamOrderType"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_inbound_headers.bal):**
+```ballerina
+import ballerina/http;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+
+        // http client request
+        http:Client http_request_config = check new ("https://orders.example.com:80");
+        map<string?> headers_nilable = {
+            "orderType": getOptionalHeader(<http:Request>ctx.attributes.request, "orderType").toString(),
+            "crmId": getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() != "" ? getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() : (),
+            "Content-Type": "application/json"
+        };
+        map<string> headers = map from string key in headers_nilable.keys()
+            where headers_nilable.get(key) is string
+            select [key, <string>headers_nilable.get(key)];
+        http:Response clientResult0 = check http_request_config->/orders.get(headers);
+        ctx.payload = check clientResult0.getJsonPayload();
+        // TODO: failed to convert #[attributes.headers.'orderType']
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function getOptionalHeader(http:Request req, string name) returns string? {
+    string|http:HeaderNotFoundError value = req.getHeader(name);
+    return value is string ? value : ();
 }
 
 ```
@@ -4754,6 +4995,67 @@ service /api on http_config {
 
 ```
 
+- ### Mq Subscriber With Header Access
+
+**Input (mq_subscriber_with_header_access.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow">
+        <anypoint-mq:subscriber doc:name="MQ Subscriber" config-ref="mq_config" destination="test-queue"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Header Variable" variableName="orderType"/>
+    </flow>
+</mule>
+
+```
+**Output (mq_subscriber_with_header_access.bal):**
+```ballerina
+import ballerinax/java.jms;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+    jms:Message jmsMessage?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string JMS_PROVIDER_URL = ?;
+jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
+public listener jms:Listener mq_config = new jms:Listener(
+    connectionConfig = mq_configConfig,
+    consumerOptions = {
+        destination: {
+            'type: jms:QUEUE,
+            name: "test-queue"
+        }
+    }
+);
+
+// TODO: placeholder jms listener for mq_config
+service "mq_config" on mq_config {
+    function init() returns error? {
+    }
+
+    remote function onMessage(jms:Message message, jms:Caller caller) returns error? {
+        Context ctx = {attributes: {jmsMessage: message}};
+        // TODO: failed to convert #[attributes.headers.'orderType']
+    }
+}
+
+```
+
 ## Munit
 
 - ### Sample Munit Test
@@ -5803,6 +6105,76 @@ public function demoSubFlow(Context ctx) {
     // set payload
     string payload0 = "This is a sub flow set-payload call";
     ctx.payload = payload0;
+}
+
+```
+
+- ### Sub Flow With Header Access
+
+**Input (sub_flow_with_header_access.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow" >
+        <http:listener doc:name="Listener" config-ref="config" path="/sub_flow" allowedMethods="GET"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Header Variable" variableName="orderType"/>
+        <flow-ref doc:name="Flow Reference" name="demoSubFlow"/>
+    </flow>
+    <sub-flow name="demoSubFlow" >
+        <set-variable value="#[attributes.headers.'marketId']" doc:name="Set Header Variable" variableName="marketId"/>
+    </sub-flow>
+</mule>
+
+```
+**Output (sub_flow_with_header_access.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    anydata orderType?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener config = new (8081);
+
+service /mule4 on config {
+    function init() returns error? {
+    }
+
+    resource function get sub_flow(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        ctx.vars.orderType = getOptionalHeader(<http:Request>ctx.attributes.request, "orderType");
+        demoSubFlow(ctx);
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function demoSubFlow(Context ctx) {
+    // TODO: failed to convert #[attributes.headers.'marketId']
+}
+
+function getOptionalHeader(http:Request req, string name) returns string? {
+    string|http:HeaderNotFoundError value = req.getHeader(name);
+    return value is string ? value : ();
 }
 
 ```
