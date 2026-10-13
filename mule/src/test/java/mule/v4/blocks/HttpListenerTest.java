@@ -121,4 +121,10 @@ public class HttpListenerTest extends AbstractBlockTest {
         testMule4ToBal("http-listener/http_listener_headers_after_unsupported_block.xml",
                 "http-listener/http_listener_headers_after_unsupported_block.bal");
     }
+
+    @Test
+    public void testListenerUnbracedResponseHeaders() {
+        testMule4ToBal("http-listener/http_listener_unbraced_response_headers.xml",
+                "http-listener/http_listener_unbraced_response_headers.bal");
+    }
 }

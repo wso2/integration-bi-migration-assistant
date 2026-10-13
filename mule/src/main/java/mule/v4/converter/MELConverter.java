@@ -23,6 +23,7 @@ import mule.v4.ConversionUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static common.BallerinaModel.Function;
 import static common.BallerinaModel.Parameter;
@@ -33,6 +34,9 @@ import static mule.v4.ConversionUtils.isTokenChar;
 
 public class MELConverter {
 
+    private static final Pattern UNBRACED_OBJECT_KEY =
+            Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
+
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
         if (normalizedExpr.startsWith("output")) {
@@ -42,7 +46,12 @@ public class MELConverter {
             }
         }
         normalizedExpr = normalizedExpr.replace("Mule::p(", "p(");
-        return normalizedExpr;
+        return wrapUnbracedSingleFieldObject(normalizedExpr);
+    }
+
+    // DataWeave lets a single-field object omit its braces, e.g. #["key" : value]; Ballerina needs them.
+    private static String wrapUnbracedSingleFieldObject(String expr) {
+        return UNBRACED_OBJECT_KEY.matcher(expr).lookingAt() ? "{" + expr + "}" : expr;
     }
 
     /**
