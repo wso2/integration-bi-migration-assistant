@@ -22,6 +22,8 @@ import common.BallerinaModel.Expression.BallerinaExpression;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.XMLTemplate;
 import common.BallerinaModel.Statement;
+import org.jetbrains.annotations.NotNull;
+import synapse.converter.ConversionContext;
 import synapse.converter.ConversionContext.UnsupportedEntry;
 import synapse.converter.ScopeContext;
 import synapse.converter.bir.BIRConverter;
@@ -86,13 +88,16 @@ public class PayloadFactoryConverter implements BIRConverter<ScopeContext> {
     // properties, in two passes.
     private static String resolvePropertyTemplates(String format, ScopeContext context,
                                                     List<String> unresolvedProperties) {
-        Set<String> availableProperties = context.shared().availableDefaultScopeProperties();
-        String wholeValuesResolved =
-                substituteWholeValuePlaceholders(format, availableProperties, unresolvedProperties);
-        return substituteEmbeddedPlaceholders(wholeValuesResolved, availableProperties, unresolvedProperties);
+        ConversionContext sharedContext = context.shared();
+        Set<String> availableProperties = sharedContext.availableDefaultScopeProperties();
+        return substituteEmbeddedPlaceholders(
+                substituteWholeValuePlaceholders(format, sharedContext, availableProperties, unresolvedProperties),
+                sharedContext, availableProperties, unresolvedProperties);
     }
 
-    private static String substituteWholeValuePlaceholders(String format, Set<String> availableProperties,
+    @NotNull
+    private static String substituteWholeValuePlaceholders(String format, ConversionContext sharedContext,
+                                                            Set<String> availableProperties,
                                                             List<String> unresolvedProperties) {
         Matcher matcher = WHOLE_VALUE_PLACEHOLDER_PATTERN.matcher(format);
         StringBuilder result = new StringBuilder();
@@ -100,6 +105,9 @@ public class PayloadFactoryConverter implements BIRConverter<ScopeContext> {
             String name = matcher.group(1);
             String replacement;
             if (availableProperties.contains(name)) {
+                // Declares the property if it's well-known but nothing has actually declared it yet.
+                // see ConversionContext#ensureWellKnownPropertyDeclared.
+                sharedContext.ensureWellKnownPropertyDeclared(name);
                 replacement = "ctx.variables." + name;
             } else {
                 replacement = matcher.group();
@@ -112,14 +120,16 @@ public class PayloadFactoryConverter implements BIRConverter<ScopeContext> {
     }
 
     // Reached only for a quoted string that WHOLE_VALUE_PLACEHOLDER_PATTERN did not already consume.
-    private static String substituteEmbeddedPlaceholders(String format, Set<String> availableProperties,
+    @NotNull
+    private static String substituteEmbeddedPlaceholders(String format, ConversionContext sharedContext,
+                                                          Set<String> availableProperties,
                                                           List<String> unresolvedProperties) {
         Matcher stringMatcher = EMBEDDED_PLACEHOLDER_STRING_PATTERN.matcher(format);
         StringBuilder result = new StringBuilder();
         while (stringMatcher.find()) {
             List<String> unresolvedInString = new ArrayList<>();
-            String rewrittenBody = substitutePlaceholdersInBody(stringMatcher.group(1), availableProperties,
-                    unresolvedInString);
+            String rewrittenBody = substitutePlaceholdersInBody(stringMatcher.group(1), sharedContext,
+                    availableProperties, unresolvedInString);
             String replacement = unresolvedInString.isEmpty()
                     ? "`" + rewrittenBody + "`"
                     : stringMatcher.group();
@@ -130,16 +140,20 @@ public class PayloadFactoryConverter implements BIRConverter<ScopeContext> {
         return result.toString();
     }
 
-    private static String substitutePlaceholdersInBody(String body, Set<String> availableProperties,
+    @NotNull
+    private static String substitutePlaceholdersInBody(String body, ConversionContext sharedContext,
+                                                        Set<String> availableProperties,
                                                         List<String> unresolvedInString) {
         Matcher matcher = PLACEHOLDER_PATTERN.matcher(body);
         StringBuilder result = new StringBuilder();
         while (matcher.find()) {
             String name = matcher.group(1);
-            String replacement = availableProperties.contains(name)
-                    ? "${ctx.variables." + name + "}"
-                    : matcher.group();
-            if (!availableProperties.contains(name)) {
+            String replacement;
+            if (availableProperties.contains(name)) {
+                sharedContext.ensureWellKnownPropertyDeclared(name);
+                replacement = "${ctx.variables." + name + "}";
+            } else {
+                replacement = matcher.group();
                 unresolvedInString.add(name);
             }
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));

@@ -27,6 +27,10 @@ public record Synapse() {
     // back to implicitly, if one exists.
     public static final String DEFAULT_FAULT_SEQUENCE_KEY = "fault";
 
+    // An http/https inbound endpoint parameter: a regex selecting which deployed <api> artifacts are
+    // additionally exposed on the endpoint's own listener.
+    public static final String DISPATCH_FILTER_PATTERN_PARAM = "dispatch.filter.pattern";
+
     // The default-scope property Synapse itself populates with the caught error's message on entry to
     // fault handling. Unlike a property set by a <property> mediator, it is always treated as an
     // available default-scope property (see ConversionContext#availableDefaultScopeProperties) rather
