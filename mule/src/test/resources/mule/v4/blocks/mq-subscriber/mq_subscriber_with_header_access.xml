@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd">
+    <anypoint-mq:config name="mq_config" doc:name="Anypoint MQ Config">
+        <anypoint-mq:connection clientId="mq-client" clientSecret="mq-secret" />
+    </anypoint-mq:config>
+    <flow name="mqSubscriberFlow">
+        <anypoint-mq:subscriber doc:name="MQ Subscriber" config-ref="mq_config" destination="test-queue"/>
+        <set-variable value="#[attributes.headers.'orderType']" doc:name="Set Header Variable" variableName="orderType"/>
+    </flow>
+</mule>
