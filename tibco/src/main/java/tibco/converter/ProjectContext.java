@@ -759,6 +759,11 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.SET_SHARED_VARIABLE.name;
     }
 
+    String getXsltParamsFn() {
+        utilityIntrinsics.add(Intrinsics.XSLT_PARAMS);
+        return Intrinsics.XSLT_PARAMS.name;
+    }
+
     public String getPsgLogFn() {
         importLibraryIfNeededToUtility(Library.LOG);
         utilityIntrinsics.add(Intrinsics.PSG_LOG);

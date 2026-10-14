@@ -561,6 +561,20 @@ public enum Intrinsics {
                     }
                     """
     ),
+    XSLT_PARAMS(
+            "xsltParams",
+            """
+                    // A mapping constructor can't add keys next to a spread map, so the extra stylesheet parameters
+                    // are merged into a copy of the context variables.
+                    function xsltParams(map<xml> variables, map<string> extra) returns map<string|decimal|xml> {
+                        map<string|decimal|xml> params = {...variables};
+                        foreach [string, string] [name, value] in extra.entries() {
+                            params[name] = value;
+                        }
+                        return params;
+                    }
+                    """
+    ),
     PSG_EXCEPTION_LOG(
             "psgExceptionLog",
             """
