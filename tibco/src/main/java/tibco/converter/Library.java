@@ -33,6 +33,7 @@ enum Library {
     FTP("ballerina", "ftp"),
     SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql"),
+    TASK("ballerina", "task"),
     UUID("ballerina", "uuid"),
     TIME("ballerina", "time");
 

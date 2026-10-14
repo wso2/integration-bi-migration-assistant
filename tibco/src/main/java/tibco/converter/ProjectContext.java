@@ -759,6 +759,13 @@ public class ProjectContext implements LoggingContext {
         return Intrinsics.SET_SHARED_VARIABLE.name;
     }
 
+    String getTimerListenerClass() {
+        importLibraryIfNeededToUtility(Library.TASK);
+        importLibraryIfNeededToUtility(Library.TIME);
+        utilityIntrinsics.add(Intrinsics.TIMER_LISTENER);
+        return Intrinsics.TIMER_LISTENER.name;
+    }
+
     public String getPsgLogFn() {
         importLibraryIfNeededToUtility(Library.LOG);
         utilityIntrinsics.add(Intrinsics.PSG_LOG);

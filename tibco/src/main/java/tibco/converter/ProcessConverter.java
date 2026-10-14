@@ -331,6 +331,11 @@ public class ProcessConverter {
                 .flatMap(activity -> ActivityConverter.convertActivity(cx, activity).stream())
                 .collect(Collectors.toCollection(ArrayList::new));
         functions.addAll(generateControlFlowFunctions(cx, process));
+        cx.getAnalysisResult().activities().stream()
+                .filter(activity -> activity instanceof Activity.ReceiveEvent)
+                .flatMap(activity -> ((Activity.ReceiveEvent) activity).timer().stream())
+                .findFirst()
+                .ifPresent(timer -> functions.add(convertTimerStarter(cx, process, timer)));
         cx.handledScopes.add(process.scope());
         AnalysisResult analysisResult = cx.getAnalysisResult();
         analysisResult.scopes(process).stream().map(scope -> generateControlFlowFunctionsForScope(cx, scope))
@@ -339,6 +344,72 @@ public class ProcessConverter {
         functions.sort(Comparator.comparing(BallerinaModel.Function::functionName));
         process.nameSpaces().forEach(cx::addNameSpace);
         return cx.serialize(result.service(), functions);
+    }
+
+    private static BallerinaModel.Function convertTimerStarter(ProcessContext cx, Process6 process,
+                                                               Activity.ReceiveEvent.TimerEventSource timer) {
+        String processName = ConversionUtils.sanitizes(process.name());
+        String triggerFn = "trigger_" + processName;
+        cx.addModuleDeclaration("listener %s %s_timer = new (%s, %s);".formatted(
+                cx.projectContext.getTimerListenerClass(), processName,
+                "{timeInterval: %s, intervalUnit: \"%s\", startTime: %s, runOnce: %s}".formatted(
+                        timerValueExpr(cx, process, timer.timeInterval(), true),
+                        ConversionUtils.escapeString(timerIntervalUnit(cx, process, timer)),
+                        timerValueExpr(cx, process, timer.startTime(), false), timer.runOnce()),
+                triggerFn));
+        Parameter timerOutput = new Parameter("timerOutput", XML);
+        return new BallerinaModel.Function(triggerFn, List.of(timerOutput), NIL,
+                startProcess(cx, "{\"%s\": %s}".formatted(ConversionUtils.Constants.CONTEXT_INPUT_NAME,
+                        timerOutput.name())));
+    }
+
+    // TIBCO reads a bound Time Interval as milliseconds and hides Interval Unit, so a unit still stored in the
+    // process is stale. An empty unit makes the generated listener use milliseconds.
+    private static String timerIntervalUnit(ProcessContext cx, Process6 process,
+                                            Activity.ReceiveEvent.TimerEventSource timer) {
+        if (!(timer.timeInterval().orElse(null) instanceof Activity.ReceiveEvent.TimerValue.ProcessProperty)) {
+            return timer.intervalUnit();
+        }
+        if (!timer.intervalUnit().isEmpty()) {
+            cx.log(LoggingUtils.Level.WARN, ("Timer %s in process %s: Interval Unit %s is ignored because Time "
+                    + "Interval is property-bound, which TIBCO reads as milliseconds")
+                    .formatted(timer.name(), process.name(), timer.intervalUnit()));
+        }
+        return "";
+    }
+
+    // An unresolved value is emitted as a descriptive string so the listener fails at startup with that text
+    // instead of silently scheduling with a zero interval.
+    private static String timerValueExpr(ProcessContext cx, Process6 process,
+                                         Optional<Activity.ReceiveEvent.TimerValue> value, boolean isInterval) {
+        if (value.isEmpty()) {
+            return isInterval ? "0" : "\"\"";
+        }
+        return switch (value.get()) {
+            case Activity.ReceiveEvent.TimerValue.Literal literal -> timerLiteralExpr(literal.value(), isInterval);
+            case Activity.ReceiveEvent.TimerValue.ProcessProperty property -> process.variables().stream()
+                    .filter(variable -> variable instanceof Variable.PropertyVariable variableProperty
+                            && variableProperty.name().equals(property.propertyName()))
+                    .map(variable -> switch ((Variable.PropertyVariable) variable) {
+                        case Variable.PropertyVariable.SimpleProperty simple ->
+                                cx.projectContext.getOrAddConfigurableVariable(simple.source(), STRING);
+                        case Variable.PropertyVariable.PropertyReference reference ->
+                                timerLiteralExpr(reference.literal(), isInterval);
+                    })
+                    .findFirst()
+                    .orElseGet(() -> {
+                        cx.log(LoggingUtils.Level.WARN, "Timer property %s is not a property of process %s"
+                                .formatted(property.propertyName(), process.name()));
+                        return "\"unresolved process property %s\"".formatted(
+                                ConversionUtils.escapeString(property.propertyName()));
+                    });
+        };
+    }
+
+    private static String timerLiteralExpr(String value, boolean isInterval) {
+        return isInterval && value.trim().matches("\\d+")
+                ? value.trim()
+                : "\"" + ConversionUtils.escapeString(value) + "\"";
     }
 
     private static List<BallerinaModel.Function> generateControlFlowFunctions(ProcessContext cx, Process6 process) {
@@ -460,6 +531,11 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
     @NotNull
     static BallerinaModel.Function createMainFunction(ProcessContext cx, Process5 process) {
+        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(), Optional.empty(),
+                new BallerinaModel.BlockFunctionBody(startProcess(cx, "{}")));
+    }
+
+    private static List<Statement> startProcess(ProcessContext cx, String initVariables) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
                 new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
@@ -467,18 +543,17 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         body.add(jobSharedVariables);
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
-                exprFrom("{}"));
+                exprFrom(initVariables));
         body.add(paramXmlDecl);
 
-        BallerinaModel.TypeDesc.FunctionTypeDesc processFnType = ConversionUtils.processFunctionType(cx);
-        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), processFnType.parameters().get(0).name(),
+        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(),
+                ConversionUtils.processFunctionType(cx).parameters().get(0).name(),
                 new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref(), jobSharedVariables.ref())));
         body.add(contextDecl);
 
         body.add(new Statement.CallStatement(
                 new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
-        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(), Optional.empty(),
-                new BallerinaModel.BlockFunctionBody(body));
+        return body;
     }
 
     record TypeConversionResult(Collection<BallerinaModel.Service> service, Optional<BallerinaModel.Function> mainFn) {

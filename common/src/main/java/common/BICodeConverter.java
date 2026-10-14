@@ -208,6 +208,7 @@ public final class BICodeConverter {
             case "regexp" -> List.of(new BallerinaModel.Import("ballerina", "lang.regexp"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "time" -> List.of(new BallerinaModel.Import("ballerina", "time"));
+            case "task" -> List.of(new BallerinaModel.Import("ballerina", "task"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
             case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));
             case "mysql" -> List.of(
