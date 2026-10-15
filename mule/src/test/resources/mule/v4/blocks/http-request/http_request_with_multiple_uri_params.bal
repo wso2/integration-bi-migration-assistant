@@ -15,6 +15,7 @@ public function demoFlow(Context ctx) {
     ctx.vars.customerId = "C100";
     ctx.vars.orderId = "1001";
     ctx.vars.language = "en";
+
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80");
     map<string?> headers_nilable = {
