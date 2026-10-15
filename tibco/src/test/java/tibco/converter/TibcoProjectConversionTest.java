@@ -721,7 +721,7 @@ public class TibcoProjectConversionTest {
         var textEdits = (Map<String, String>) result.get("textEdits");
 
         String ballerinaToml = textEdits.get("Ballerina.toml");
-        Assert.assertEquals(ballerinaToml.split("\\[\\[platform\\.java17\\.dependency]]", -1).length - 1, 5,
+        Assert.assertEquals(ballerinaToml.split("\\[\\[platform\\.java21\\.dependency]]", -1).length - 1, 5,
                 "Each resolvable driver should be declared once: " + ballerinaToml);
         Assert.assertTrue(ballerinaToml.contains("artifactId = \"mariadb-java-client\""),
                 "A property unset in the default profile should resolve when the other profiles agree: "
