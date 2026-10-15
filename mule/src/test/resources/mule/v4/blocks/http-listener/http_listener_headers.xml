@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener doc:name="Listener" config-ref="config" path="/orders/{country}" allowedMethods="GET"/>
+        <set-variable value="#[attributes.headers.orderType]" doc:name="Set Plain Header Variable" variableName="plainHeader"/>
+        <set-variable value="#[attributes.headers.'order-type']" doc:name="Set Single Quoted Header Variable" variableName="singleQuotedHeader"/>
+        <set-variable value='#[attributes.headers."order-type"]' doc:name="Set Double Quoted Header Variable" variableName="doubleQuotedHeader"/>
+        <set-variable value="#[attributes.headers['order-type']]" doc:name="Set Bracket Header Variable" variableName="bracketHeader"/>
+        <set-variable value='#[attributes.headers["order-type"]]' doc:name="Set Double Quoted Bracket Header Variable" variableName="doubleQuotedBracketHeader"/>
+        <set-variable value="#[attributes.headers.type]" doc:name="Set Keyword Header Variable" variableName="keywordHeader"/>
+        <set-variable value="#[attributes.headers.'x-correlation-id' default 'none']" doc:name="Set Header With Default Variable" variableName="headerWithDefault"/>
+        <set-variable value="#[isEmpty(attributes.headers.'crmId')]" doc:name="Set Is Header Empty Variable" variableName="isCrmIdEmpty"/>
+        <set-variable value="#[attributes.uriParams.'country']" doc:name="Set Quoted Uri Param Variable" variableName="country"/>
+        <set-variable value="#[attributes.headers]" doc:name="Set All Headers Variable" variableName="allHeaders"/>
+        <logger level="INFO" doc:name="Logger" message="Order type: #[attributes.headers.'orderType']"/>
+    </flow>
+</mule>

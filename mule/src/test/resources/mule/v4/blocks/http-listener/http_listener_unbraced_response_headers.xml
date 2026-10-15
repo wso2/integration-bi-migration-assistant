@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" basePath="/mule4">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener doc:name="Listener" config-ref="config" allowedMethods="GET" path="/demo">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#["x-correlation-id" : attributes.headers.'x-correlation-id' default "none"]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:headers><![CDATA[#["x-correlation-id" : attributes.headers.'x-correlation-id' default "none"]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" doc:name="Logger" message="xxx: logger invoked"/>
+    </flow>
+</mule>

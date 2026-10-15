@@ -248,6 +248,10 @@ public class ProjectContext implements LoggingContext {
         conversionContext.addJavaDependency(dependencies);
     }
 
+    @NotNull Optional<String> modulePropertyDefault(String propName) {
+        return conversionContext.modulePropertyDefault(propName);
+    }
+
     String getTryDataBindToTypeFunction(BallerinaModel.TypeDesc targetType) {
         return dataBindingFunctions.computeIfAbsent(targetType, this::createTryDataBindToTypeFunction);
     }

@@ -332,10 +332,14 @@ public class MuleConfigConverter {
                 return convertEnricher(ctx, enricher);
             }
             case HttpRequest httpRequest -> {
-                return convertHttpRequest(ctx, httpRequest);
+                WorkerStatementResult result = convertHttpRequest(ctx, httpRequest);
+                ctx.attributesOrigin = Context.AttributesOrigin.HTTP_REQUEST;
+                return result;
             }
             case Database database -> {
-                return convertDatabase(ctx, database);
+                WorkerStatementResult result = convertDatabase(ctx, database);
+                ctx.attributesOrigin = Context.AttributesOrigin.NONE;
+                return result;
             }
             case Async async -> {
                 return convertAsync(ctx, async);
@@ -368,6 +372,7 @@ public class MuleConfigConverter {
                 return convertAnypointMqPublish(ctx, publish);
             }
             case UnsupportedBlock unsupportedBlock -> {
+                ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
                 return convertUnsupportedBlock(ctx, unsupportedBlock);
             }
             case null -> throw new IllegalStateException();

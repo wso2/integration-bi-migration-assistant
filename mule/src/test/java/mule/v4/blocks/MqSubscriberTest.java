@@ -58,4 +58,10 @@ public class MqSubscriberTest extends AbstractBlockTest {
         testMule4ToBal("mq-subscriber/mq_publish_in_apikit_service.xml",
                 "mq-subscriber/mq_publish_in_apikit_service.bal");
     }
+
+    @Test
+    public void testMqSubscriberWithHeaderAccess() {
+        testMule4ToBal("mq-subscriber/mq_subscriber_with_header_access.xml",
+                "mq-subscriber/mq_subscriber_with_header_access.bal");
+    }
 }
