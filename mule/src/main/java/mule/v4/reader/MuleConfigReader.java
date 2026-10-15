@@ -28,6 +28,7 @@ import mule.v4.model.MuleXMLTag;
 import mule.v4.model.ParseResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -41,6 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -116,6 +118,9 @@ import static mule.v4.model.MuleXMLTag.HTTP_LISTENER_CONNECTION;
 import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
+
+    private static final String DOC_NAMESPACE = "http://www.mulesoft.org/schema/mule/documentation";
+    private static final String DEFAULT_RESPONSE_TIMEOUT = "defaultResponseTimeout";
 
     public static ParseResult readMuleConfigFromRoot(Context ctx, MuleXMLNavigator muleXMLNavigator,
                                                      String xmlFilePath) {
@@ -202,10 +207,34 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.IMPORT.tag().equals(elementTagName)) {
             MuleImport muleImport = readImport(ctx, muleElement);
             ctx.currentFileCtx.configs.imports.add(muleImport);
+        } else if (MuleXMLTag.CONFIGURATION.tag().equals(elementTagName)) {
+            readConfiguration(ctx, muleElement);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
         }
+    }
+
+    private static void readConfiguration(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        ctx.projectCtx.defaultResponseTimeout = readValue(element.getAttribute(DEFAULT_RESPONSE_TIMEOUT));
+        // Only defaultResponseTimeout is converted, so any other setting still needs a manual conversion
+        if (muleElement.peekChild() != null || hasOtherConfigurationAttributes(element)) {
+            ctx.currentFileCtx.configs.unsupportedBlocks.add(readUnsupportedBlock(ctx, muleElement));
+        }
+    }
+
+    private static boolean hasOtherConfigurationAttributes(Element element) {
+        NamedNodeMap attributes = element.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Node attribute = attributes.item(i);
+            if (!DEFAULT_RESPONSE_TIMEOUT.equals(attribute.getNodeName())
+                    && !DOC_NAMESPACE.equals(attribute.getNamespaceURI())
+                    && !XMLConstants.XMLNS_ATTRIBUTE_NS_URI.equals(attribute.getNamespaceURI())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static MuleRecord readBlock(Context ctx, MuleElement muleElement) {
@@ -820,7 +849,7 @@ public class MuleConfigReader {
                 if (!protocol.isEmpty()) {
                     url = protocol.toLowerCase() + "://" + url;
                 }
-                return url;
+                return url + clientBasePath(httpRequestConfig.basePath());
             };
         }
 
@@ -867,7 +896,13 @@ public class MuleConfigReader {
         }
 
         return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
-                queryParamsScript, unsupportedBlocks);
+                queryParamsScript, readValue(element.getAttribute("responseTimeout")), unsupportedBlocks);
+    }
+
+    private static String clientBasePath(String basePath) {
+        String path = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
+        // A property placeholder is assumed to hold its own leading slash
+        return path.isEmpty() || path.startsWith("/") || path.startsWith("${") ? path : "/" + path;
     }
 
     private static String directTextContent(Element element) {
@@ -1028,7 +1063,8 @@ public class MuleConfigReader {
                 protocol = childElement.getAttribute("protocol");
             }
         }
-        return new HTTPRequestConfig(configName, host, port, protocol);
+        return new HTTPRequestConfig(configName, host, port, protocol, element.getAttribute("basePath"),
+                readValue(element.getAttribute("responseTimeout")));
     }
 
     private static VMConfig readVmConfig(Context ctx, MuleElement muleElement) {

@@ -92,6 +92,42 @@ public class HttpRequestTest extends AbstractBlockTest {
                 "http-request/http_request_with_uri_param_in_segment.bal");
     }
 
+    @Test
+    public void testHttpRequestWithBasePathAndTimeouts() {
+        testMule4ToBal("http-request/http_request_with_base_path_and_timeouts.xml",
+                "http-request/http_request_with_base_path_and_timeouts.bal");
+    }
+
+    @Test
+    public void testHttpRequestConfigBasePathFormats() {
+        testMule4ToBal("http-request/http_request_config_base_path_formats.xml",
+                "http-request/http_request_config_base_path_formats.bal");
+    }
+
+    @Test
+    public void testHttpRequestConfigBasePathProperty() {
+        testMule4ToBal("http-request/http_request_config_base_path_property.xml",
+                "http-request/http_request_config_base_path_property.bal");
+    }
+
+    @Test
+    public void testHttpRequestTimeoutPrecedence() {
+        testMule4ToBal("http-request/http_request_timeout_precedence.xml",
+                "http-request/http_request_timeout_precedence.bal");
+    }
+
+    @Test
+    public void testHttpRequestConfigurationWithOtherAttributes() {
+        testMule4ToBal("http-request/http_request_configuration_with_other_attributes.xml",
+                "http-request/http_request_configuration_with_other_attributes.bal");
+    }
+
+    @Test
+    public void testHttpRequestTimeoutNotANumber() {
+        testMule4ToBal("http-request/http_request_timeout_not_a_number.xml",
+                "http-request/http_request_timeout_not_a_number.bal");
+    }
+
     // TODO: due to some reason depends on the order, fix it
     @Test(enabled = false)
     public void testHttpRequestWithMelConfig() {

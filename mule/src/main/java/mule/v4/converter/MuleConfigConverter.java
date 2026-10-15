@@ -29,6 +29,7 @@ import mule.v4.dataweave.converter.DWReader;
 import mule.v4.dataweave.converter.DWUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -89,6 +90,7 @@ import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
 import static mule.v4.model.MuleModel.FlowReference;
+import static mule.v4.model.MuleModel.HTTPRequestConfig;
 import static mule.v4.model.MuleModel.HttpRequest;
 import static mule.v4.model.MuleModel.Kind;
 import static mule.v4.model.MuleModel.LogLevel;
@@ -785,7 +787,8 @@ public class MuleConfigConverter {
 
         stmts.add(stmtFrom("\n\n// http client request\n"));
         String escapedConfigRef = ConversionUtils.convertToBalIdentifier(httpRequest.configRef());
-        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s);", escapedConfigRef, url)));
+        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s%s);", escapedConfigRef, url,
+                clientTimeoutArg(ctx, httpRequest, stmts))));
 
         String headersVar = httpRequest.headersScript()
                 .map(script -> processMapScript(ctx, script, stmts, "headers"))
@@ -854,6 +857,23 @@ public class MuleConfigConverter {
         }
 
         return new WorkerStatementResult(stmts);
+    }
+
+    private static String clientTimeoutArg(Context ctx, HttpRequest httpRequest, List<Statement> stmts) {
+        // Mule uses the first timeout set, in this order
+        Optional<String> responseTimeout = httpRequest.responseTimeout()
+                .or(() -> Optional.ofNullable(ctx.projectCtx.getHttpRequestConfig(httpRequest.configRef()))
+                        .flatMap(HTTPRequestConfig::responseTimeout))
+                .or(() -> ctx.projectCtx.defaultResponseTimeout);
+        if (responseTimeout.isEmpty()) {
+            return "";
+        }
+        if (!responseTimeout.get().matches("\\d+")) {
+            stmts.add(new Statement.Comment("TODO: failed to convert responseTimeout " + responseTimeout.get()));
+            return "";
+        }
+        return ", timeout = " + new BigDecimal(responseTimeout.get()).movePointLeft(3).stripTrailingZeros()
+                .toPlainString();
     }
 
     private static String generateRequestPathBuilder(Context ctx, String todoComment) {

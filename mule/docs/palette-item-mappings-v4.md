@@ -3754,6 +3754,135 @@ public function demoFlow(Context ctx) {
 
 ```
 
+- ### Http Request Config Base Path Formats
+
+**Input (http_request_config_base_path_formats.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="api_request_config" doc:name="HTTP Request configuration" basePath="api/v1/">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <http:request-config name="root_request_config" doc:name="HTTP Request configuration" basePath="/">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="apiFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="api_request_config" path="/orders"/>
+    </flow>
+    <flow name="rootFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="root_request_config" path="/orders"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_config_base_path_formats.bal):**
+```ballerina
+import ballerina/http;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function apiFlow(Context ctx) {
+
+    // http client request
+    http:Client api_request_config = check new ("https://orders.example.com:80/api/v1");
+    http:Response clientResult0 = check api_request_config->/orders.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+public function rootFlow(Context ctx) {
+
+    // http client request
+    http:Client root_request_config = check new ("https://orders.example.com:80");
+    http:Response clientResult1 = check root_request_config->/orders.get();
+    ctx.payload = check clientResult1.getJsonPayload();
+}
+
+```
+
+- ### Http Request Config Base Path Property
+
+**Input (http_request_config_base_path_property.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <global-property doc:name="Global Property" name="api.basePath" value="/api/v1" />
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" basePath="${api.basePath}">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_config_base_path_property.bal):**
+```ballerina
+import ballerina/http;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+configurable string api_basePath = "/api/v1";
+
+public function demoFlow(Context ctx) {
+
+    // http client request
+    http:Client http_request_config = check new (string `https://orders.example.com:80${api_basePath}`);
+    http:Response clientResult0 = check http_request_config->/orders.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request Configuration With Other Attributes
+
+**Input (http_request_configuration_with_other_attributes.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <configuration defaultResponseTimeout="10000" shutdownTimeout="5000" />
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_configuration_with_other_attributes.bal):**
+```ballerina
+import ballerina/http;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function demoFlow(Context ctx) {
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80", timeout = 10);
+    http:Response clientResult0 = check http_request_config->/orders.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+// TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
+// ------------------------------------------------------------------------
+// <configuration defaultResponseTimeout="10000" shutdownTimeout="5000" xmlns="http://www.mulesoft.org/schema/mule/core"/>
+// ------------------------------------------------------------------------
+
+
+```
+
 - ### Http Request Path With Special Characters
 
 **Input (http_request_path_with_special_characters.xml):**
@@ -3794,6 +3923,182 @@ public function demoFlow(Context ctx) {
     http:Response clientResult0 = check http_request_config->/car\-posts/'12/honda\-civic/'991/'1\.1/latest.get();
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+}
+
+```
+
+- ### Http Request Timeout Not A Number
+
+**Input (http_request_timeout_not_a_number.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <global-property doc:name="Global Property" name="http.timeout" value="10000" />
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="propertyTimeoutFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders" responseTimeout="${http.timeout}"/>
+    </flow>
+    <flow name="expressionTimeoutFlow" >
+        <set-variable value="#[5000]" doc:name="Set Timeout" variableName="timeout"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders" responseTimeout="#[vars.timeout]"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_timeout_not_a_number.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    int timeout?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+configurable string http_timeout = "10000";
+
+public function propertyTimeoutFlow(Context ctx) {
+
+    // http client request
+
+    // TODO: failed to convert responseTimeout ${http.timeout}
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    http:Response clientResult0 = check http_request_config->/orders.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+public function expressionTimeoutFlow(Context ctx) {
+    ctx.vars.timeout = 5000;
+
+    // http client request
+
+    // TODO: failed to convert responseTimeout #[vars.timeout]
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    http:Response clientResult1 = check http_request_config->/orders.get();
+    ctx.payload = check clientResult1.getJsonPayload();
+}
+
+```
+
+- ### Http Request Timeout Precedence
+
+**Input (http_request_timeout_precedence.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <configuration defaultResponseTimeout="20000" />
+    <http:request-config name="timeout_request_config" doc:name="HTTP Request configuration" responseTimeout="5000">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <http:request-config name="default_request_config" doc:name="HTTP Request configuration">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="configTimeoutFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="timeout_request_config" path="/orders"/>
+    </flow>
+    <flow name="requestTimeoutFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="timeout_request_config" path="/orders" responseTimeout="2500"/>
+    </flow>
+    <flow name="defaultTimeoutFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="default_request_config" path="/orders"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_timeout_precedence.bal):**
+```ballerina
+import ballerina/http;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function configTimeoutFlow(Context ctx) {
+
+    // http client request
+    http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 5);
+    http:Response clientResult0 = check timeout_request_config->/orders.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+public function requestTimeoutFlow(Context ctx) {
+
+    // http client request
+    http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 2.5);
+    http:Response clientResult1 = check timeout_request_config->/orders.get();
+    ctx.payload = check clientResult1.getJsonPayload();
+}
+
+public function defaultTimeoutFlow(Context ctx) {
+
+    // http client request
+    http:Client default_request_config = check new ("https://orders.example.com:80", timeout = 20);
+    http:Response clientResult2 = check default_request_config->/orders.get();
+    ctx.payload = check clientResult2.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Base Path And Timeouts
+
+**Input (http_request_with_base_path_and_timeouts.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="order-hybris-sapi-http-request-configuration" doc:name="HTTP Request configuration" basePath="/order-hybris-sapi-v1">
+        <http:request-connection host="localhost" port="8084" protocol="HTTP" />
+    </http:request-config>
+    <configuration defaultResponseTimeout="10000" />
+    <flow name="demoFlow" >
+        <set-variable value="#['1640006670']" doc:name="Set Order Id" variableName="orderId"/>
+        <http:request method="GET" doc:name="Request" config-ref="order-hybris-sapi-http-request-configuration" path="orders/{id}" responseTimeout="10000">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : vars.orderId
+}]]]></http:uri-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_base_path_and_timeouts.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    string orderId?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.orderId = "1640006670";
+
+    // http client request
+    http:Client order\-hybris\-sapi\-http\-request\-configuration = check new ("http://localhost:8084/order-hybris-sapi-v1", timeout = 10);
+    map<string?> uriParams_nilable = {
+        "id": ctx.vars?.orderId.toString()
+    };
+    map<string> uriParams = map from string key in uriParams_nilable.keys()
+        where uriParams_nilable.get(key) is string
+        select [key, <string>uriParams_nilable.get(key)];
+    http:Response clientResult0 = check order\-hybris\-sapi\-http\-request\-configuration->/orders/[uriParams.get("id")].get();
+    ctx.payload = check clientResult0.getJsonPayload();
 }
 
 ```
