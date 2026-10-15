@@ -1524,6 +1524,9 @@ public final class XmlToTibcoModelParser {
                     + "Request/Reply invocations");
         }
         String functionName = value.getAttribute("operation");
+        if (functionName.isEmpty()) {
+            throw new IllegalArgumentException("SAP Invoke RFC BAPI without an RFC/BAPI operation is not supported");
+        }
         String schemaPath = value.getAttribute("schemaPath");
         Optional<Element> schema = sapRfcSchema(cx, schemaPath);
         if (schema.isEmpty()) {
