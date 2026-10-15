@@ -55,8 +55,11 @@ import tibco.model.Variable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -400,36 +403,52 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     }
 
     private static void addTransitionPredicates(ProcessContext cx, List<BallerinaModel.Function> accum) {
-        cx.getAnalysisResult().activities().stream()
+        Collection<Activity> activities = cx.getAnalysisResult().activities();
+        Set<String> linksOnlyIntoEmpty = linksOnlyIntoEmpty(activities);
+        activities.stream()
                 .filter(each -> each instanceof Activity.ActivityWithSources)
                 .forEach(activity -> addTransitionPredicates(cx,
-                        (Activity.ActivityWithSources) activity, accum));
+                        (Activity.ActivityWithSources) activity, linksOnlyIntoEmpty, accum));
+    }
+
+    // Calls to Empty activities aren't generated, so a predicate guarding only such calls would be unused. Link
+    // names can repeat across groups, hence a link is skipped only if every activity it targets is Empty.
+    private static Set<String> linksOnlyIntoEmpty(Collection<Activity> activities) {
+        Map<String, Boolean> onlyIntoEmptyByLink = new HashMap<>();
+        activities.stream()
+                .filter(each -> each instanceof Activity.ActivityWithTargets)
+                .forEach(activity -> ((Activity.ActivityWithTargets) activity).targets().forEach(target ->
+                        onlyIntoEmptyByLink.merge(target.linkName(), activity instanceof Activity.Empty,
+                                Boolean::logicalAnd)));
+        return onlyIntoEmptyByLink.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     private static void addTransitionPredicates(ProcessContext cx, Activity.ActivityWithSources activity,
-            List<BallerinaModel.Function> accum) {
+            Set<String> linksOnlyIntoEmpty, List<BallerinaModel.Function> accum) {
         try {
-            Expression prev = null;
-            VariableReference value = new VariableReference("input");
+            XPath prev = null;
             for (Activity.Source source : activity.sources()) {
                 var predicate = source.condition();
                 if (predicate.isEmpty()) {
                     continue;
                 }
+                boolean skip = linksOnlyIntoEmpty.contains(source.linkName());
                 switch (predicate.get()) {
                     case XPath xPath -> {
-                        Expression expr = ConversionUtils.xPathBoolean(cx, value, new VariableReference("cx"), xPath);
-                        prev = expr;
-                        if (cx.isFirstPredicateFunctionUse(xPath)) {
-                            accum.add(getTransitionPredicateFn(cx, xPath, expr));
+                        prev = xPath;
+                        if (!skip && cx.isFirstPredicateFunctionUse(xPath)) {
+                            accum.add(getTransitionPredicateFn(cx, xPath, transitionPredicateExpr(cx, xPath)));
                         }
                     }
                     case Activity.Source.Predicate.Else anElse -> {
                         // No preceding sibling condition to negate means this "otherwise" link is
                         // effectively the only/default transition, so it's unconditionally taken.
-                        if (cx.isFirstPredicateFunctionUse(anElse)) {
-                            accum.add(getTransitionPredicateFn(cx, anElse,
-                                    prev != null ? new Expression.Not(prev) : exprFrom("true")));
+                        if (!skip && cx.isFirstPredicateFunctionUse(anElse)) {
+                            accum.add(getTransitionPredicateFn(cx, anElse, prev != null
+                                    ? new Expression.Not(transitionPredicateExpr(cx, prev)) : exprFrom("true")));
                         }
                     }
                 }
@@ -437,6 +456,11 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         } catch (Exception e) {
             cx.registerTransitionPredicateError(activity, e);
         }
+    }
+
+    // Converting the XPath registers library imports, so it must only happen for predicates that are emitted.
+    private static Expression transitionPredicateExpr(ProcessContext cx, XPath xPath) {
+        return ConversionUtils.xPathBoolean(cx, new VariableReference("input"), new VariableReference("cx"), xPath);
     }
 
     private static BallerinaModel.Function getTransitionPredicateFn(ProcessContext cx,
@@ -743,6 +767,9 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             ProcessContext cx, Activity activity,
             Function<FunctionCall, Expression> callHandler, List<Statement> body, VariableReference input,
             VariableReference context) {
+        if (activity instanceof Activity.Empty) {
+            return;
+        }
         AnalysisResult analysisResult = cx.getAnalysisResult();
         // Transition predicates resolve their `$var` references from the context, so the input document is only
         // the XPath evaluation root and carries no data.

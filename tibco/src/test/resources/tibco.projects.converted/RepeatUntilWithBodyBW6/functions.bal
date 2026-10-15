@@ -4,15 +4,6 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/xslt;
 
-function GroupEnd(Context cx) returns error? {
-}
-
-function GroupInit(Context cx) returns error? {
-}
-
-function GroupStart(Context cx) returns error? {
-}
-
 function LogIteration(Context cx) returns error? {
     xml var0 = getFromContext(cx, "LogIteration-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
@@ -56,7 +47,6 @@ function Repeat(Context cx) returns error? {
 }
 
 function RepeatActivityRunner(Context cx) returns error? {
-    check GroupInit(cx);
     check repeatUntil(cx);
 }
 
@@ -124,9 +114,7 @@ function repeatUntil(Context cx) returns error? {
 }
 
 function repeatUntilActivityRunner(Context cx) returns error? {
-    check GroupStart(cx);
     check LogIteration(cx);
-    check GroupEnd(cx);
 }
 
 function repeatUntilFaultHandler(error err, Context cx) returns () {

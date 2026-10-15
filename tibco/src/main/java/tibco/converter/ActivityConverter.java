@@ -116,6 +116,10 @@ final class ActivityConverter {
     }
 
     public static @NotNull Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
+        // Empty activities only anchor links (group start/end, joins); calls to them are skipped too.
+        if (activity instanceof Empty) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {
@@ -156,7 +160,7 @@ final class ActivityConverter {
     private static @NotNull List<Statement> tryConvertActivityBody(ActivityContext cx, Activity activity) {
         return switch (activity) {
             case ActivityExtension activityExtension -> convertActivityExtension(cx, activityExtension);
-            case Empty ignored -> convertEmptyAction(cx);
+            case Empty ignored -> throw new IllegalStateException("Empty activities have no function body");
             case ExtActivity extActivity -> convertExtActivity(cx, extActivity);
             case Invoke invoke -> convertInvoke(cx, invoke);
             case Pick pick -> convertPickAction(cx, pick);
@@ -1588,10 +1592,6 @@ final class ActivityConverter {
 
     private static List<Statement> convertPickAction(ActivityContext cx, Pick pick) {
         return convertActivityWithScope(cx, pick);
-    }
-
-    private static List<Statement> convertEmptyAction(ActivityContext cx) {
-        return List.of();
     }
 
     private static List<Statement> convertActivityExtension(ActivityContext cx,
