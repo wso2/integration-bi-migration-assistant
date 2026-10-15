@@ -37,7 +37,7 @@ function RenderOutput(Context cx) returns error? {
 }
 
 function Repeat(Context cx) returns error? {
-    RepeatScopeFn(cx);
+    check RepeatScopeFn(cx);
 }
 
 function RepeatActivityRunner(Context cx) returns error? {
@@ -45,14 +45,14 @@ function RepeatActivityRunner(Context cx) returns error? {
     check repeatUntil(cx);
 }
 
-function RepeatFaultHandler(error err, Context cx) returns () {
-    panic err;
+function RepeatFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function RepeatScopeFn(Context cx) returns () {
+function RepeatScopeFn(Context cx) returns error? {
     error? result = RepeatActivityRunner(cx);
     if result is error {
-        RepeatFaultHandler(result, cx);
+        check RepeatFaultHandler(result, cx);
     }
 }
 
@@ -95,13 +95,13 @@ function SendHTTPResponse(Context cx) returns error? {
 }
 
 function pick(Context cx) returns error? {
-    scope1ScopeFn(cx);
+    check scope1ScopeFn(cx);
 }
 
 function repeatUntil(Context cx) returns error? {
     while true {
-        repeatUntilScopeFn(cx);
-        boolean var0 = checkpanic xmldata:transform(xml `<root></root>`, `${getFromContext(cx, "post")}/lastSubset = true()`, boolean);
+        check repeatUntilScopeFn(cx);
+        boolean var0 = check xmldata:transform(xml `<root></root>`, `${getFromContext(cx, "post")}/lastSubset = true()`, boolean);
         if var0 {
             break;
         }
@@ -114,14 +114,14 @@ function repeatUntilActivityRunner(Context cx) returns error? {
     check GroupEnd(cx);
 }
 
-function repeatUntilFaultHandler(error err, Context cx) returns () {
-    panic err;
+function repeatUntilFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function repeatUntilScopeFn(Context cx) returns () {
+function repeatUntilScopeFn(Context cx) returns error? {
     error? result = repeatUntilActivityRunner(cx);
     if result is error {
-        repeatUntilFaultHandler(result, cx);
+        check repeatUntilFaultHandler(result, cx);
     }
 }
 
@@ -131,14 +131,14 @@ function scope1ActivityRunner(Context cx) returns error? {
     check SendHTTPResponse(cx);
 }
 
-function scope1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope1ScopeFn(Context cx) returns () {
+function scope1ScopeFn(Context cx) returns error? {
     error? result = scope1ActivityRunner(cx);
     if result is error {
-        scope1FaultHandler(result, cx);
+        check scope1FaultHandler(result, cx);
     }
 }
 
@@ -146,19 +146,19 @@ function scopeActivityRunner(Context cx) returns error? {
     check pick(cx);
 }
 
-function scopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function scopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scopeScopeFn(Context cx) returns () {
+function scopeScopeFn(Context cx) returns error? {
     error? result = scopeActivityRunner(cx);
     if result is error {
-        scopeFaultHandler(result, cx);
+        check scopeFaultHandler(result, cx);
     }
 }
 
-function start_test_api_MainProcess(Context params) returns () {
-    scopeScopeFn(params);
+function start_test_api_MainProcess(Context params) returns error? {
+    return scopeScopeFn(params);
 }
 
 function toXML(map<anydata> data) returns error|xml {

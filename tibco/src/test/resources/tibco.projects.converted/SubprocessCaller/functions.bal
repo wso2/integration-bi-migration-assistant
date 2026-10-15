@@ -19,7 +19,7 @@ function Call_Worker(Context cx) returns error? {
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     addToContext(cx, "Start", var2);
-    start_Processes_Worker_process(cx);
+    check start_Processes_Worker_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "Call-Worker", var3);
 }
@@ -57,18 +57,18 @@ function scope0ActivityRunner(Context cx) returns error? {
     check CallerLog(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Caller_process(Context cx) returns () {
+function start_Processes_Caller_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 
@@ -115,18 +115,18 @@ function scope0_1ActivityRunner(Context cx) returns error? {
     check WorkerResult(cx);
 }
 
-function scope0_1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0_1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0_1ScopeFn(Context cx) returns () {
+function scope0_1ScopeFn(Context cx) returns error? {
     error? result = scope0_1ActivityRunner(cx);
     if result is error {
-        scope0_1FaultHandler(result, cx);
+        check scope0_1FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Worker_process(Context cx) returns () {
+function start_Processes_Worker_process(Context cx) returns error? {
     return scope0_1ScopeFn(cx);
 }
 

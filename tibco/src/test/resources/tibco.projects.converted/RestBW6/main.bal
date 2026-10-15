@@ -8,7 +8,7 @@ service /TestAPI on test_api_MainProcess_listener {
         if input is error {
             return input;
         }
-        xml inputValXml = checkpanic toXML(input);
+        xml inputValXml = check toXML(input);
         xml extractedBody = inputValXml/*;
         xml inputXml = xml `<item>
     ${extractedBody}
@@ -16,7 +16,7 @@ service /TestAPI on test_api_MainProcess_listener {
         xml inputXmlMap = xml `<root>${inputXml}</root>`;
         map<xml> paramXML = {post: inputXmlMap};
         Context context = initContext(paramXML);
-        start_test_api_MainProcess(context);
+        check start_test_api_MainProcess(context);
         return responseFromContext(context);
     }
 }

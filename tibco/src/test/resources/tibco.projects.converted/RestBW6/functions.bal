@@ -63,7 +63,7 @@ function SendHTTPResponse(Context cx) returns error? {
 }
 
 function pick(Context cx) returns error? {
-    scope1ScopeFn(cx);
+    check scope1ScopeFn(cx);
 }
 
 function scope1ActivityRunner(Context cx) returns error? {
@@ -71,14 +71,14 @@ function scope1ActivityRunner(Context cx) returns error? {
     check SendHTTPResponse(cx);
 }
 
-function scope1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope1ScopeFn(Context cx) returns () {
+function scope1ScopeFn(Context cx) returns error? {
     error? result = scope1ActivityRunner(cx);
     if result is error {
-        scope1FaultHandler(result, cx);
+        check scope1FaultHandler(result, cx);
     }
 }
 
@@ -86,19 +86,19 @@ function scopeActivityRunner(Context cx) returns error? {
     check pick(cx);
 }
 
-function scopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function scopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scopeScopeFn(Context cx) returns () {
+function scopeScopeFn(Context cx) returns error? {
     error? result = scopeActivityRunner(cx);
     if result is error {
-        scopeFaultHandler(result, cx);
+        check scopeFaultHandler(result, cx);
     }
 }
 
-function start_test_api_MainProcess(Context params) returns () {
-    scopeScopeFn(params);
+function start_test_api_MainProcess(Context params) returns error? {
+    return scopeScopeFn(params);
 }
 
 function toXML(map<anydata> data) returns error|xml {

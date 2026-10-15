@@ -1,3 +1,3 @@
 function pick(Context cx) returns error? {
-    scopeFn(cx);
+    check scopeFn(cx);
 }

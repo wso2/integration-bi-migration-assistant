@@ -435,7 +435,7 @@ public enum Intrinsics {
                             return result;
                         }
                         if (result !is xml:Element) {
-                            panic error("Expected XML element");
+                            return error("Expected XML element");
                         }
                         map<string> attributes = result.getAttributes();
                         attributes["xmlns"] = namespace;

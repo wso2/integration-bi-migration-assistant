@@ -19,7 +19,7 @@
 package tibco.converter;
 
 import common.BallerinaModel;
-import common.BallerinaModel.Expression.CheckPanic;
+import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.TypeCheckExpression;
 import common.BallerinaModel.Expression.VariableReference;
@@ -174,7 +174,7 @@ class TypeConverter {
         body.add(contextDecl);
         ProjectContext.FunctionData startFuncData = cx.getProcessStartFunction();
         body.add(new BallerinaModel.Statement.CallStatement(
-                new FunctionCall(startFuncData.name(), List.of(contextDecl.ref()))));
+                new Check(new FunctionCall(startFuncData.name(), List.of(contextDecl.ref())))));
 
         body.add(new Return<>(new FunctionCall(cx.getResponseFromContextFn(), List.of(contextDecl.ref()))));
 
@@ -242,7 +242,7 @@ class TypeConverter {
         String toXmlFunction = cx.getToXmlFunction();
         List<BallerinaModel.Statement> body = new ArrayList<>();
         VarDeclStatment inputValXml = new VarDeclStatment(XML, "inputValXml",
-                new CheckPanic(new FunctionCall(toXmlFunction, new String[]{inputParamName})));
+                new Check(new FunctionCall(toXmlFunction, new String[]{inputParamName})));
         body.add(inputValXml);
         VarDeclStatment extractedBody = new VarDeclStatment(XML, "extractedBody",
                 exprFrom("%s/*".formatted(inputValXml.varName())));

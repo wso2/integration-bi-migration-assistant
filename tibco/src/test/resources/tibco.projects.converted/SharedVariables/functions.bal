@@ -139,18 +139,18 @@ function scope0ActivityRunner(Context cx) returns error? {
     check MapperXMLPayload(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Main_process(Context cx) returns () {
+function start_Processes_Main_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 
@@ -226,7 +226,7 @@ function initContext(map<xml> initVariables = {},
         setter: function(xml value) {
             sharedVariable = value;
         }
-    };
+};
 
     sharedVariables["sharedVariable"] = sharedVarContext1;
 

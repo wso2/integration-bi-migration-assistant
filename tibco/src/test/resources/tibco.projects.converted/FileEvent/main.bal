@@ -6,7 +6,7 @@ public listener file:Listener File_PollerListener = new (
 );
 
 service "File_Poller" on File_PollerListener {
-    remote function onCreate(file:FileEvent event) {
+    remote function onCreate(file:FileEvent event) returns error? {
         map<SharedVariableContext> jobSharedVariables = {};
         // TODO: add any addition data to this XML
         xml data = xml `<fileInfo>
@@ -16,10 +16,10 @@ service "File_Poller" on File_PollerListener {
 </fileInfo>`;
         map<xml> paramXML = {file: data};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_main_process(cx);
+        check start_main_process(cx);
     }
 
-    remote function onModify(file:FileEvent event) {
+    remote function onModify(file:FileEvent event) returns error? {
         map<SharedVariableContext> jobSharedVariables = {};
         // TODO: add any addition data to this XML
         xml data = xml `<fileInfo>
@@ -29,10 +29,10 @@ service "File_Poller" on File_PollerListener {
 </fileInfo>`;
         map<xml> paramXML = {file: data};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_main_process(cx);
+        check start_main_process(cx);
     }
 
-    remote function onDelete(file:FileEvent event) {
+    remote function onDelete(file:FileEvent event) returns error? {
         map<SharedVariableContext> jobSharedVariables = {};
         // TODO: add any addition data to this XML
         xml data = xml `<fileInfo>
@@ -42,7 +42,7 @@ service "File_Poller" on File_PollerListener {
 </fileInfo>`;
         map<xml> paramXML = {file: data};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_main_process(cx);
+        check start_main_process(cx);
     }
 }
 

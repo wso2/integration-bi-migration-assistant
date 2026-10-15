@@ -11,7 +11,7 @@ function JMG_Get(Context cx) returns error? {
     jms:MessageConsumer var3 = check var2.createConsumer(destination = {
         'type: jms:QUEUE,
         name: "Default queue"
-    }
+}
 );
     jms:Message? var4 = check var3->receive();
     if var4 !is jms:TextMessage {
@@ -160,7 +160,7 @@ function Topic_Send(Context cx) returns error? {
     jms:MessageProducer var5 = check var4.createProducer(destination = {
         'type: jms:TOPIC,
         name: "TOPIC"
-    }
+}
 );
     string var6 = (var2/**/<Body>/*).toString().trim();
     jms:TextMessage var7 = {content: var6};
@@ -176,18 +176,18 @@ function scope0ActivityRunner(Context cx) returns error? {
     check Sleep(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_Main_process(Context cx) returns () {
+function start_Main_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 

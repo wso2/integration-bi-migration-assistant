@@ -4,7 +4,7 @@ public listener http:Listener GeneralConnection = new (9090, {host: "localhost"}
 public listener http:Listener placeholder_listener = new (8080);
 
 service on placeholder_listener {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
@@ -13,14 +13,14 @@ service on placeholder_listener {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_MainProcessStarter_process(cx);
+        check start_Processes_MainProcessStarter_process(cx);
         xml response = cx.result;
         return response;
     }
 }
 
 service on placeholder_listener {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
@@ -29,7 +29,7 @@ service on placeholder_listener {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_Other_process(cx);
+        check start_Processes_Other_process(cx);
         xml response = cx.result;
         return response;
     }
