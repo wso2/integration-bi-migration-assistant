@@ -8,6 +8,6 @@ distribution = "2201.12.0"
 observabilityIncluded = true
 
 [[platform.java21.dependency]]
-artifactId = "h2"
-version = "2.0.206"
-groupId = "com.h2database"
+artifactId = "postgresql"
+version = "42.7.2"
+groupId = "org.postgresql"

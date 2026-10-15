@@ -631,13 +631,13 @@ public class TibcoToBalConverter {
                 groupId = "org.mariadb.jdbc"
                 """),
         JDBC_MSSQL("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "mssql-jdbc"
                 version = "12.8.1.jre11"
                 groupId = "com.microsoft.sqlserver"
                 """),
         JDBC_DB2("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "jcc"
                 version = "11.5.9.0"
                 groupId = "com.ibm.db2"
@@ -661,7 +661,8 @@ public class TibcoToBalConverter {
                 groupId = "com.sap"
                 artifactId = "com.sap.conn.idoc"
                 version = "3.1.*"
-                scope = "provided");
+                scope = "provided"
+                """);
 
         public final String dependencyParam;
 
