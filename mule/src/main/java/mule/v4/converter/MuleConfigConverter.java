@@ -114,6 +114,7 @@ public class MuleConfigConverter {
     private static final String RESPONSE_HEADERS_VAR = "responseHeaders";
     private static final String HEADER_NAME_VAR = "headerName";
     private static final String HEADER_VALUE_VAR = "headerValue";
+    private static final String REQUEST_URI_PARAMS_VAR = "uriParams";
     /**
      * Names the statements that write {@code http:headers} to a response declare in the resource body.
      */
@@ -771,7 +772,8 @@ public class MuleConfigConverter {
             path = extractVariables(ctx, httpRequest.path());
         } else {
             try {
-                path = getBallerinaClientResourcePath(ctx, httpRequest.path());
+                path = getBallerinaClientResourcePath(ctx, httpRequest.path(),
+                        httpRequest.uriParamsScript().map(script -> REQUEST_URI_PARAMS_VAR));
             } catch (ScriptConversionException e) {
                 stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
                 return new WorkerStatementResult(stmts);
@@ -790,7 +792,7 @@ public class MuleConfigConverter {
                 .orElse(null);
 
         String uriParamsVar = httpRequest.uriParamsScript()
-                .map(script -> processMapScript(ctx, script, stmts, "uriParams"))
+                .map(script -> processMapScript(ctx, script, stmts, REQUEST_URI_PARAMS_VAR))
                 .orElse(null);
 
         String queryParamsVar = httpRequest.queryParamsScript()
@@ -824,6 +826,9 @@ public class MuleConfigConverter {
         } else {
             // Build HTTP request parameters
             List<String> params = new ArrayList<>();
+            if (headersVar != null) {
+                params.add(headersVar);
+            }
             String queryParamsStr;
             try {
                 queryParamsStr = genQueryParam(ctx, queryParams);
@@ -834,14 +839,8 @@ public class MuleConfigConverter {
             if (!queryParamsStr.isEmpty()) {
                 params.add(queryParamsStr);
             }
-            if (headersVar != null) {
-                params.add(headersVar);
-            }
-            if (uriParamsVar != null) {
-                params.add(uriParamsVar);
-            }
             if (queryParamsVar != null) {
-                params.add(queryParamsVar);
+                params.add("params = check %s.cloneWithType()".formatted(queryParamsVar));
             }
 
             stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,

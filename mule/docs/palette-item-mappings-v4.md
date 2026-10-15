@@ -4115,6 +4115,369 @@ function pathBuilder0(string path, map<string> uriParams, map<string> queryParam
 
 ```
 
+- ### Http Request With Multiple Uri Params
+
+**Input (http_request_with_multiple_uri_params.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable value="#['C100']" doc:name="Set Customer Id" variableName="customerId"/>
+        <set-variable value="#['1001']" doc:name="Set Order Id" variableName="orderId"/>
+        <set-variable value="#['en']" doc:name="Set Language" variableName="language"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/customers/{customerId}/orders/{order-id}">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"customerId" : vars.customerId,
+	"order-id" : vars.orderId
+}]]]></http:uri-params>
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"language" : vars.language
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_multiple_uri_params.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    string customerId?;
+    string orderId?;
+    string language?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.customerId = "C100";
+    ctx.vars.orderId = "1001";
+    ctx.vars.language = "en";
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    map<string?> headers_nilable = {
+        "Content-Type": "application/json"
+    };
+    map<string> headers = map from string key in headers_nilable.keys()
+        where headers_nilable.get(key) is string
+        select [key, <string>headers_nilable.get(key)];
+    map<string?> uriParams_nilable = {
+        "customerId": ctx.vars?.customerId.toString(),
+        "order-id": ctx.vars?.orderId.toString()
+    };
+    map<string> uriParams = map from string key in uriParams_nilable.keys()
+        where uriParams_nilable.get(key) is string
+        select [key, <string>uriParams_nilable.get(key)];
+    map<string?> queryParams_nilable = {
+        "language": ctx.vars?.language.toString()
+    };
+    map<string> queryParams = map from string key in queryParams_nilable.keys()
+        where queryParams_nilable.get(key) is string
+        select [key, <string>queryParams_nilable.get(key)];
+    http:Response clientResult0 = check http_request_config->/customers/[uriParams.get("customerId")]/orders/[uriParams.get("order-id")].get(headers, params = check queryParams.cloneWithType());
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Query Params Only
+
+**Input (http_request_with_query_params_only.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable value="#['OPEN']" doc:name="Set Status" variableName="status"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders">
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"status" : vars.status,
+	"limit" : "10"
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_query_params_only.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    string status?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.status = "OPEN";
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    map<string?> queryParams_nilable = {
+        "status": ctx.vars?.status.toString(),
+        "limit": "10"
+    };
+    map<string> queryParams = map from string key in queryParams_nilable.keys()
+        where queryParams_nilable.get(key) is string
+        select [key, <string>queryParams_nilable.get(key)];
+    http:Response clientResult0 = check http_request_config->/orders.get(params = check queryParams.cloneWithType());
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Unbound Uri Param
+
+**Input (http_request_with_unbound_uri_param.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders/{id}"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_unbound_uri_param.bal):**
+```ballerina
+import ballerina/http;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function demoFlow(Context ctx) {
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    http:Response clientResult0 = check http_request_config->/orders/\{id\}.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Uri And Query Params
+
+**Input (http_request_with_uri_and_query_params.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <http:request-config name="order-hybris-sapi-http-request-configuration" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders/{id}" allowedMethods="GET"/>
+        <http:request method="GET" config-ref="order-hybris-sapi-http-request-configuration" path="orders/{id}">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : attributes.uriParams.'id'
+}]]]></http:uri-params>
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"language" : attributes.queryParams.language
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_uri_and_query_params.bal):**
+```ballerina
+import ballerina/http;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders/[string id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+
+        // http client request
+        http:Client order\-hybris\-sapi\-http\-request\-configuration = check new ("https://orders.example.com:80");
+        map<string?> uriParams_nilable = {
+            "id": ctx.attributes.uriParams.get("id").toString()
+        };
+        map<string> uriParams = map from string key in uriParams_nilable.keys()
+            where uriParams_nilable.get(key) is string
+            select [key, <string>uriParams_nilable.get(key)];
+        map<string?> queryParams_nilable = {
+            "language": ctx.attributes.request.getQueryParamValue("language").toString()
+        };
+        map<string> queryParams = map from string key in queryParams_nilable.keys()
+            where queryParams_nilable.get(key) is string
+            select [key, <string>queryParams_nilable.get(key)];
+        http:Response clientResult0 = check order\-hybris\-sapi\-http\-request\-configuration->/orders/[uriParams.get("id")].get(params = check queryParams.cloneWithType());
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
+- ### Http Request With Uri Param In Segment
+
+**Input (http_request_with_uri_param_in_segment.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable value="#['1001']" doc:name="Set Order Id" variableName="orderId"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders/order-{id}">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : vars.orderId
+}]]]></http:uri-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_uri_param_in_segment.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    string orderId?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.orderId = "1001";
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    map<string?> uriParams_nilable = {
+        "id": ctx.vars?.orderId.toString()
+    };
+    map<string> uriParams = map from string key in uriParams_nilable.keys()
+        where uriParams_nilable.get(key) is string
+        select [key, <string>uriParams_nilable.get(key)];
+    http:Response clientResult0 = check http_request_config->/orders/[string `order-${uriParams.get("id")}`].get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Uri Params Only
+
+**Input (http_request_with_uri_params_only.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable value="#['1001']" doc:name="Set Order Id" variableName="orderId"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders/{id}/items">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : vars.orderId
+}]]]></http:uri-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_uri_params_only.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    string orderId?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.orderId = "1001";
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    map<string?> uriParams_nilable = {
+        "id": ctx.vars?.orderId.toString()
+    };
+    map<string> uriParams = map from string key in uriParams_nilable.keys()
+        where uriParams_nilable.get(key) is string
+        select [key, <string>uriParams_nilable.get(key)];
+    http:Response clientResult0 = check http_request_config->/orders/[uriParams.get("id")]/items.get();
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
 - ### Http Request With Url Property
 
 **Input (http_request_with_url_property.xml):**

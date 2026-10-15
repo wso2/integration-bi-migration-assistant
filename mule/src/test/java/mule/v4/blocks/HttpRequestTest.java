@@ -56,6 +56,42 @@ public class HttpRequestTest extends AbstractBlockTest {
                 "http-request/http_request_with_inbound_headers.bal");
     }
 
+    @Test
+    public void testHttpRequestWithUriAndQueryParams() {
+        testMule4ToBal("http-request/http_request_with_uri_and_query_params.xml",
+                "http-request/http_request_with_uri_and_query_params.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithMultipleUriParams() {
+        testMule4ToBal("http-request/http_request_with_multiple_uri_params.xml",
+                "http-request/http_request_with_multiple_uri_params.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUriParamsOnly() {
+        testMule4ToBal("http-request/http_request_with_uri_params_only.xml",
+                "http-request/http_request_with_uri_params_only.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithQueryParamsOnly() {
+        testMule4ToBal("http-request/http_request_with_query_params_only.xml",
+                "http-request/http_request_with_query_params_only.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUnboundUriParam() {
+        testMule4ToBal("http-request/http_request_with_unbound_uri_param.xml",
+                "http-request/http_request_with_unbound_uri_param.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUriParamInSegment() {
+        testMule4ToBal("http-request/http_request_with_uri_param_in_segment.xml",
+                "http-request/http_request_with_uri_param_in_segment.bal");
+    }
+
     // TODO: due to some reason depends on the order, fix it
     @Test(enabled = false)
     public void testHttpRequestWithMelConfig() {

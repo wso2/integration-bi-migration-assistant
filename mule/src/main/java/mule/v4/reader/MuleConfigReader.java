@@ -28,6 +28,8 @@ import mule.v4.model.MuleXMLTag;
 import mule.v4.model.ParseResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -831,9 +833,10 @@ public class MuleConfigReader {
         Optional<String> queryParamsScript = Optional.empty();
         List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 
-        // Check for inline DataWeave script (CDATA) in http:request element
-        String textContent = element.getTextContent();
-        if (textContent != null && !textContent.trim().isEmpty() && textContent.trim().startsWith("#[")) {
+        // Check for inline DataWeave script (CDATA) in http:request element. The text of child elements, such as
+        // http:uri-params, is not part of it.
+        String textContent = directTextContent(element);
+        if (!textContent.isBlank() && textContent.trim().startsWith("#[")) {
             headersScript = Optional.of(textContent.trim());
         }
 
@@ -865,6 +868,18 @@ public class MuleConfigReader {
 
         return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
                 queryParamsScript, unsupportedBlocks);
+    }
+
+    private static String directTextContent(Element element) {
+        StringBuilder text = new StringBuilder();
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.TEXT_NODE || child.getNodeType() == Node.CDATA_SECTION_NODE) {
+                text.append(child.getNodeValue());
+            }
+        }
+        return text.toString();
     }
 
     private static void processQueryParams(Map<String, String> queryParams, MuleElement muleElement) {
