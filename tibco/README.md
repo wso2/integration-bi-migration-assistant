@@ -13,10 +13,10 @@
   - `activityExtension`
     - `bw.internal.end`
     - `bw.http.sendHTTPRequest`
+    - `bw.http.sendHTTPResponse`
     - `bw.restjson.Rest`
     - `bw.restjson.JsonRender`
     - `bw.restjson.JsonParser`
-    - `bw.http.sendHTTPResponse`
     - `bw.file.write`
     - `bw.file.rename`
     - `bw.file.list`

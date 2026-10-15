@@ -189,8 +189,10 @@ public final class XmlToTibcoModelParser {
             Element connectionConfig = getFirstChildWithTag(configuration, "connectionConfig");
             String jdbcDriver = parseOptionalAttribute(connectionConfig, "jdbcDriver").orElse("jdbcDriver");
             String dbUrl = parseOptionalAttribute(connectionConfig, "dbURL").orElse("dbURL");
-            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(connectionConfig,
-                    "substitutionBindings")
+            // username and password are bound on the configuration, the connection settings on connectionConfig.
+            Collection<Resource.SubstitutionBinding> substitutionBindings = Stream.concat(
+                            getChildrenWithTag(configuration, "substitutionBindings"),
+                            getChildrenWithTag(connectionConfig, "substitutionBindings"))
                     .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
             cx.log(INFO, "Done parsing JDBCResource: " + name);
             cx.logState("Parsed JDBCResource: " + name);
