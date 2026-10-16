@@ -46,6 +46,21 @@ import static tibco.converter.TibcoConverter.createVerboseLogger;
 public class ConversionUtilsTest {
 
     @Test
+    public void testEscapeStringLiteral() {
+        Assert.assertEquals(ConversionUtils.escapeStringLiteral("C:\\dir \"a\"\r\n\tb\fc\u0000d\u2028"),
+                "C:\\\\dir \\\"a\\\"\\r\\n\\tb\\u{C}c\\u{0}d\\u{2028}");
+    }
+
+    @Test
+    public void testIntLiteralAcceptsBallerinaIntRange() {
+        Assert.assertEquals(ConversionUtils.intLiteral(" 3000000000 ").map(Object::toString),
+                Optional.of("3000000000"));
+        Assert.assertEquals(ConversionUtils.intLiteral("-42").map(Object::toString), Optional.of("-42"));
+        Assert.assertTrue(ConversionUtils.intLiteral("12ms").isEmpty());
+        Assert.assertTrue(ConversionUtils.intLiteral("").isEmpty());
+    }
+
+    @Test
     public void testLineCountPureBallerina() {
         String source = """
                 import ballerina/http;

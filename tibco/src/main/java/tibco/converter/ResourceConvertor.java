@@ -86,14 +86,15 @@ final class ResourceConvertor {
 
     public static void convertJDBCResource(ProjectContext cx, JDBCResource resource) {
         try {
+            String clientName = cx.getUtilityVarName(ConversionUtils.resourceNameFromPath(resource.path()));
+            Map<String, ModuleVar> configurables = new LinkedHashMap<>();
             NewExpression constructorCall = new NewExpression(List.of(
                     jdbcFieldValue(cx, resource, "dbURL", resource.dbUrl()),
                     jdbcFieldValue(cx, resource, "username", resource.userName()),
-                    jdbcFieldValue(cx, resource, "password", resource.password())));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
-                    ConversionUtils.resourceNameFromPath(resource.path())), "jdbc:Client",
+                    jdbcPasswordValue(cx, resource, clientName, configurables)));
+            ModuleVar resourceVar = new ModuleVar(clientName, "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.JDBC));
+            cx.addResourceDeclaration(resource.path(), resourceVar, configurables.values(), List.of(Library.JDBC));
             addJavaSQLConnector(cx, resource.path(), Stream.of(
                     jdbcResolvedValue(cx, resource, "jdbcDriver", resource.jdbcDriver()),
                     jdbcResolvedValue(cx, resource, "dbURL", resource.dbUrl()))
@@ -109,7 +110,18 @@ final class ResourceConvertor {
         return jdbcBindingName(resource, field)
                 .<Expression>map(propName -> new Expression.VariableReference(
                         cx.getOrAddConfigurableVariable(propName, STRING)))
-                .orElseGet(() -> new StringConstant(literal));
+                .orElseGet(() -> new StringConstant(ConversionUtils.escapeStringLiteral(literal)));
+    }
+
+    // Like SFTP secrets, a password the resource file carries as a literal still becomes a configurable, to keep it
+    // out of the generated source.
+    @NotNull
+    private static Expression jdbcPasswordValue(ProjectContext cx, JDBCResource resource, String clientName,
+                                                Map<String, ModuleVar> configurables) {
+        return jdbcBindingName(resource, "password")
+                .<Expression>map(propName -> new Expression.VariableReference(
+                        cx.getOrAddSecretConfigurableVariable(propName, STRING)))
+                .orElseGet(() -> requiredConfigurable(cx, clientName + "_password", STRING, configurables));
     }
 
     // A bound field's value is only known through the module property's default in META-INF/default.substvar; an
@@ -270,8 +282,9 @@ final class ResourceConvertor {
     private static Expression sftpSecretValue(ProjectContext cx, SFTPResource resource, String clientName,
                                               String field, Map<String, ModuleVar> configurables) {
         return sftpBindingName(resource, field)
-                .map(bindingName -> sftpModuleProperty(cx, bindingName, STRING))
-                .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, STRING, configurables));
+                .<Expression>map(bindingName -> new Expression.VariableReference(
+                        cx.getOrAddSecretConfigurableVariable(bindingName, STRING)))
+                .orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, STRING, configurables));
     }
 
     @NotNull
@@ -286,25 +299,14 @@ final class ResourceConvertor {
         Optional<String> literal = Optional.ofNullable(resource.configuration().get(field));
         if (literal.isPresent()) {
             if (type != INT) {
-                return new StringConstant(ConversionUtils.escapeString(literal.get()));
+                return new StringConstant(ConversionUtils.escapeStringLiteral(literal.get()));
             }
-            String trimmed = literal.get().trim();
-            if (!trimmed.isEmpty()) {
-                return parseIntLiteral(trimmed)
-                        .<Expression>map(Expression.IntConstant::new)
-                        .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+            if (!literal.get().isBlank()) {
+                return ConversionUtils.intLiteral(literal.get())
+                        .orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, type, configurables));
             }
         }
-        return defaultValue.orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
-    }
-
-    @NotNull
-    private static Optional<Integer> parseIntLiteral(String literal) {
-        try {
-            return Optional.of(Integer.parseInt(literal));
-        } catch (NumberFormatException e) {
-            return Optional.empty();
-        }
+        return defaultValue.orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, type, configurables));
     }
 
     @NotNull
@@ -321,8 +323,8 @@ final class ResourceConvertor {
     }
 
     @NotNull
-    private static Expression sftpConfigurable(ProjectContext cx, String name, BallerinaModel.TypeDesc type,
-                                               Map<String, ModuleVar> configurables) {
+    private static Expression requiredConfigurable(ProjectContext cx, String name, BallerinaModel.TypeDesc type,
+                                                   Map<String, ModuleVar> configurables) {
         ModuleVar configurable = ModuleVar.configurable(cx.getUtilityVarName(name), type);
         configurables.put(configurable.name(), configurable);
         return new Expression.VariableReference(configurable.name());

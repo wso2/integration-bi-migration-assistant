@@ -58,6 +58,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,6 +67,7 @@ import static common.BallerinaModel.Expression.VariableReference;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ANYDATA;
 import static common.BallerinaModel.TypeDesc.BuiltinType.BOOLEAN;
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
+import static common.BallerinaModel.TypeDesc.BuiltinType.INT;
 import static common.BallerinaModel.TypeDesc.BuiltinType.JSON;
 import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
@@ -76,6 +78,14 @@ import static tibco.converter.Library.JSON_DATA;
 import static tibco.converter.Library.XML_DATA;
 
 public class ProjectContext implements LoggingContext {
+
+    private static final Pattern SECRET_PROPERTY_NAME = Pattern.compile(
+            "passw(or)?d|passphrase|pwd|secret|api_?key|token|credential", Pattern.CASE_INSENSITIVE);
+    // user:pass@host URLs, password= query or connection-string parameters, and Oracle's thin user/pass@host form.
+    private static final Pattern CREDENTIAL_IN_VALUE = Pattern.compile(
+            "://[^/@\\s]*:[^/@\\s]*@|[;?&]\\s*(passw(or)?d|pwd)\\s*=|^jdbc:oracle:\\w+:[^/@:]+/[^@]+@",
+            Pattern.CASE_INSENSITIVE);
+    private static final String REQUIRED_CONFIGURABLE_VALUE = "?";
 
     private final Map<Process, ProcessContext> processContextMap = new HashMap<>();
 
@@ -507,29 +517,106 @@ public class ProjectContext implements LoggingContext {
     }
 
     public @NotNull String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type) {
+        return addConfigurableVariable(name, source, type, Optional.empty());
+    }
+
+    private @NotNull String addConfigurableVariable(String name, String source, BallerinaModel.TypeDesc type,
+                                                    Optional<BallerinaModel.Expression> defaultValue) {
         String uniqueName = ConversionUtils.getSanitizedUniqueIdentifier(ConversionUtils.sanitizePath(source),
                 unavailableModuleVarNames());
-        utilityVars.put(uniqueName, BallerinaModel.ModuleVar.configurable(uniqueName, type));
+        utilityVars.put(uniqueName, defaultValue
+                .map(value -> BallerinaModel.ModuleVar.configurable(uniqueName, type, value))
+                .orElseGet(() -> BallerinaModel.ModuleVar.configurable(uniqueName, type)));
         configurableVarNamesByLogicalName.put(name, uniqueName);
         return uniqueName;
+    }
+
+    @NotNull
+    String getOrAddConfigurableVariable(String propName, BallerinaModel.TypeDesc type) {
+        return getOrAddConfigurableVariable(propName, type, false);
+    }
+
+    // Secrets stay required even when a profile carries a value, to keep them out of the generated source.
+    @NotNull
+    String getOrAddSecretConfigurableVariable(String propName, BallerinaModel.TypeDesc type) {
+        return getOrAddConfigurableVariable(propName, type, true);
     }
 
     // A TIBCO module property bound by several resources must map to a single configurable, so the user sets it once.
     // A binding of the same property with a different type gets its own configurable so every reference type-checks.
     @NotNull
-    String getOrAddConfigurableVariable(String propName, BallerinaModel.TypeDesc type) {
+    private String getOrAddConfigurableVariable(String propName, BallerinaModel.TypeDesc type, boolean isSecret) {
         String existing = configurableVarNamesByLogicalName.get(propName);
         if (existing == null) {
-            return addConfigurableVariable(propName, propName, type);
+            return addConfigurableVariable(propName, propName, type,
+                    modulePropertyDefaultValue(propName, type, isSecret));
         }
         if (utilityVars.get(existing).type().equals(type.toString())) {
-            return existing;
+            return isSecret ? withholdDefault(existing, propName) : existing;
         }
         log(LoggingUtils.Level.WARN, "Module property " + propName + " is bound with conflicting types; declaring a "
                 + "separate " + type + " configurable for it.");
         String typedLogicalName = propName + ":" + type;
-        return Optional.ofNullable(configurableVarNamesByLogicalName.get(typedLogicalName))
-                .orElseGet(() -> addConfigurableVariable(typedLogicalName, propName, type));
+        String typedExisting = configurableVarNamesByLogicalName.get(typedLogicalName);
+        if (typedExisting != null) {
+            return isSecret ? withholdDefault(typedExisting, propName) : typedExisting;
+        }
+        return addConfigurableVariable(typedLogicalName, propName, type,
+                modulePropertyDefaultValue(propName, type, isSecret));
+    }
+
+    // A property first bound to a plain field may already carry its profile value; once a secret field binds it too,
+    // that value must not stay in the generated source.
+    private @NotNull String withholdDefault(String configurableName, String propName) {
+        BallerinaModel.ModuleVar configurable = utilityVars.get(configurableName);
+        if (configurable.expr().map(Object::toString).filter(REQUIRED_CONFIGURABLE_VALUE::equals).isEmpty()) {
+            utilityVars.put(configurableName, new BallerinaModel.ModuleVar(configurableName, configurable.type(),
+                    Optional.of(new BallerinaModel.Expression.BallerinaExpression(REQUIRED_CONFIGURABLE_VALUE)),
+                    true, true));
+            logWithheldSecret(propName);
+        }
+        return configurableName;
+    }
+
+    // Only default.substvar values are used, so the converted project runs as the default profile deploys it, with
+    // Config.toml left to override it per environment.
+    private @NotNull Optional<BallerinaModel.Expression> modulePropertyDefaultValue(
+            String propName, BallerinaModel.TypeDesc type, boolean isSecret) {
+        Optional<String> value = conversionContext.defaultProfileValue(propName);
+        if (value.isEmpty()) {
+            return Optional.empty();
+        }
+        if (isSecret || SECRET_PROPERTY_NAME.matcher(propName).find()
+                || CREDENTIAL_IN_VALUE.matcher(value.get()).find()) {
+            logWithheldSecret(propName);
+            return Optional.empty();
+        }
+        Optional<BallerinaModel.Expression> literal = typedLiteral(value.get(), type);
+        if (literal.isEmpty()) {
+            log(LoggingUtils.Level.WARN, "Module property " + propName + " in default.substvar is not a valid "
+                    + type + "; set it in Config.toml.");
+        }
+        return literal;
+    }
+
+    private void logWithheldSecret(String propName) {
+        log(LoggingUtils.Level.INFO, "Module property " + propName + " looks like a secret; its profile value is not "
+                + "copied into the generated source, so set it in Config.toml.");
+    }
+
+    private static @NotNull Optional<BallerinaModel.Expression> typedLiteral(String value,
+                                                                            BallerinaModel.TypeDesc type) {
+        if (type == STRING) {
+            return Optional.of(new BallerinaModel.Expression.StringConstant(
+                    ConversionUtils.escapeStringLiteral(value)));
+        }
+        if (type == BOOLEAN) {
+            String trimmed = value.trim();
+            return trimmed.equalsIgnoreCase("true") || trimmed.equalsIgnoreCase("false")
+                    ? Optional.of(new BallerinaModel.Expression.BooleanConstant(Boolean.parseBoolean(trimmed)))
+                    : Optional.empty();
+        }
+        return type == INT ? ConversionUtils.intLiteral(value) : Optional.empty();
     }
 
     // Process properties bound to the same module property share its configurable; XPath lookups still go by the
