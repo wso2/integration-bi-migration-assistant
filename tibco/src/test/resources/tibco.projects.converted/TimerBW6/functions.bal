@@ -200,8 +200,9 @@ function timerStartTime(string value) returns time:Utc?|error {
             : timerZoneToUtc(systemZone, check timerLocalCivil(trimmed));
     }
     string[] parts = re ` +`.split(trimmed);
-    string[] months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov",
-        "Dec"];
+    // Each list stays on one line: on Linux the formatter expands a list that spans lines.
+    string[] months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+    months.push("Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
     int? month = parts.length() == 5 ? months.indexOf(parts[1]) : ();
     if month is () {
         return error("Unsupported timer start time: " + value);
@@ -226,11 +227,11 @@ function timerStartTime(string value) returns time:Utc?|error {
 // A zone converts only a civil time that carries an offset, so the zone's offset at that moment
 // (which accounts for daylight saving) is looked up first.
 function timerZoneToUtc(time:Zone zone, time:Civil local) returns time:Utc|error {
-    time:Utc asUtc = check time:utcFromCivil({year: local.year, month: local.month, day: local.day,
-        hour: local.hour, minute: local.minute, second: local.second, utcOffset: {hours: 0}});
-    return time:utcFromCivil({year: local.year, month: local.month, day: local.day,
-        hour: local.hour, minute: local.minute, second: local.second,
-        utcOffset: zone.utcToCivil(asUtc).utcOffset ?: {hours: 0}});
+    time:Civil civil = local.clone();
+    civil.utcOffset = {hours: 0};
+    time:Utc asUtc = check time:utcFromCivil(civil);
+    civil.utcOffset = zone.utcToCivil(asUtc).utcOffset ?: {hours: 0};
+    return time:utcFromCivil(civil);
 }
 
 function timerLocalCivil(string localTime) returns time:Civil|error {
