@@ -643,6 +643,38 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    @Test
+    public void testRestInvokeKeepsJsonQuotes() throws Exception {
+        Path tibcoProject = Path.of("src", "test", "resources", "tibco.projects", "RestInvokeBW6");
+        Path tempDir = Files.createTempDirectory("tibco-rest-invoke-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", "RestInvokeBW6"),
+                    tibcoProject.toString(), tempDir.toString());
+
+            String generated;
+            try (Stream<Path> balFiles = Files.walk(tempDir)) {
+                List<Path> paths = balFiles.filter(p -> p.toString().endsWith(".bal")).sorted().toList();
+                StringBuilder sb = new StringBuilder();
+                for (Path p : paths) {
+                    sb.append(Files.readString(p));
+                }
+                generated = sb.toString();
+            }
+
+            Assert.assertTrue(generated.contains(
+                    "select=\"'{&quot;reason&quot;: &quot;archive-complete&quot;}'\""),
+                    "EndSession-input must keep the JSON double quotes inside the XPath string literal");
+            Assert.assertTrue(generated.contains(
+                    "select=\"'{&quot;event&quot;: &quot;orders-archived&quot;}'\""),
+                    "SendNotification-input must keep the JSON double quotes inside the XPath string literal");
+            Assert.assertFalse(generated.contains("'{'"),
+                    "A single quote must not terminate an XPath string literal early");
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
     private void assertActivityRunnerCalls(String generated, String runner, List<String> expectedActivities) {
         String body = activityRunnerBody(generated, runner);
         Assert.assertFalse(body.strip().isEmpty(), runner + " must not be empty");
