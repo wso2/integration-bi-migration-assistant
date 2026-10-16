@@ -6,7 +6,7 @@ import ballerina/xslt;
 function LogTick(Context cx) returns error? {
     xml var0 = getFromContext(cx, "LogTick-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:param name="Timer"/><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="$Timer/root/Hour"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'scheduled tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = var2/**/<message>/*;
     log:printInfo(var3.toString());
@@ -32,21 +32,21 @@ function scopeScopeFn(Context cx) returns () {
     }
 }
 
-function start_test_timer_ReadsOutput(Context params) returns () {
+function start_test_timer_Scheduled(Context params) returns () {
     scopeScopeFn(params);
 }
 
-function trigger_test_timer_ReadsOutput() returns () {
+function trigger_test_timer_Scheduled() returns () {
     map<SharedVariableContext> jobSharedVariables = {};
-    map<xml> paramXML = {"$input": timerOutput()};
+    map<xml> paramXML = {};
     Context cx = initContext(paramXML, jobSharedVariables);
-    start_test_timer_ReadsOutput(cx);
+    start_test_timer_Scheduled(cx);
 }
 
 function LogTick_1(Context cx) returns error? {
     xml var0 = getFromContext(cx, "LogTick-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'scheduled tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'bound tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = var2/**/<message>/*;
     log:printInfo(var3.toString());
@@ -72,48 +72,8 @@ function scope_1ScopeFn(Context cx) returns () {
     }
 }
 
-function start_test_timer_Scheduled(Context params) returns () {
-    scope_1ScopeFn(params);
-}
-
-function trigger_test_timer_Scheduled() returns () {
-    map<SharedVariableContext> jobSharedVariables = {};
-    map<xml> paramXML = {};
-    Context cx = initContext(paramXML, jobSharedVariables);
-    start_test_timer_Scheduled(cx);
-}
-
-function LogTick_2(Context cx) returns error? {
-    xml var0 = getFromContext(cx, "LogTick-input");
-    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'bound tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
-    xml var2 = check xslt:transform(var0, var1, cx.variables);
-    xml var3 = var2/**/<message>/*;
-    log:printInfo(var3.toString());
-}
-
-function Timer_2(Context cx) returns error? {
-    addToContext(cx, "Timer", getFromContext(cx, "$input"));
-}
-
-function scope_2ActivityRunner(Context cx) returns error? {
-    check Timer_2(cx);
-    check LogTick_2(cx);
-}
-
-function scope_2FaultHandler(error err, Context cx) returns () {
-    panic err;
-}
-
-function scope_2ScopeFn(Context cx) returns () {
-    error? result = scope_2ActivityRunner(cx);
-    if result is error {
-        scope_2FaultHandler(result, cx);
-    }
-}
-
 function start_test_timer_Configured(Context params) returns () {
-    scope_2ScopeFn(params);
+    scope_1ScopeFn(params);
 }
 
 function trigger_test_timer_Configured() returns () {
@@ -123,7 +83,6 @@ function trigger_test_timer_Configured() returns () {
     start_test_timer_Configured(cx);
 }
 
-listener TimerListener test_timer_ReadsOutput_timer = new ({interval: 3600, startTime: check timerStartTime("2024-01-01T08:00:00"), runOnce: true}, trigger_test_timer_ReadsOutput);
 listener TimerListener test_timer_Scheduled_timer = new ({interval: 5, startTime: check time:utcFromString("2024-01-01T00:00:02Z"), runOnce: false}, trigger_test_timer_Scheduled);
 listener TimerListener test_timer_Configured_timer = new ({interval: <decimal>check int:fromString(Configured_TimeInterval.trim()) / 1000, startTime: check timerStartTime(Configured_StartTime), runOnce: false}, trigger_test_timer_Configured);
 
@@ -212,29 +171,6 @@ function firstTimerFireTime(time:Utc startTime, decimal? interval) returns time:
         ? startTime
         : time:utcAddSeconds(startTime, ((elapsed / interval).floor() + 1) * interval);
     return time:utcDiffSeconds(fireTime, time:utcNow()) < 1d ? () : fireTime;
-}
-
-// The fields of TIBCO's TimerOutputSchema in the machine's time zone, wrapped in the `root` that
-// stands for the output element, so mappings such as $Timer/Hour resolve. Week is the week of
-// the year counted from 1 January, and Time is assumed to be formatted as HH:mm:ss.
-function timerOutput() returns xml {
-    time:Utc now = time:utcNow();
-    time:Zone? zone = timerSystemZone();
-    time:Civil civil = zone is () ? time:utcToCivil(now) : zone.utcToCivil(now);
-    int second = <int>(civil.second ?: 0d).floor();
-    int[] daysBeforeMonth = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    boolean leapYear = civil.year % 4 == 0 && (civil.year % 100 != 0 || civil.year % 400 == 0);
-    int dayOfYear = daysBeforeMonth[civil.month - 1] + civil.day - 1
-        + (leapYear && civil.month > 2 ? 1 : 0);
-    int nowMillis = now[0] * 1000 + <int>(now[1] * 1000).floor();
-    string date = string `${civil.year}-${timerPad(civil.month)}-${timerPad(civil.day)}`;
-    string clock = string `${timerPad(civil.hour)}:${timerPad(civil.minute)}:${timerPad(second)}`;
-    xml fields = xml `<Now>${nowMillis}</Now><Hour>${civil.hour}</Hour>`
-        + xml `<Minute>${civil.minute}</Minute><Second>${second}</Second>`
-        + xml `<Week>${dayOfYear / 7 + 1}</Week><Month>${civil.month}</Month>`
-        + xml `<Year>${civil.year}</Year><Date>${date}</Date><Time>${clock}</Time>`
-        + xml `<DayOfMonth>${civil.day}</DayOfMonth>`;
-    return xml `<root>${fields}</root>`;
 }
 
 // Accepts epoch milliseconds, an ISO-8601 timestamp, or TIBCO's "yyyy MMM dd HH:mm:ss z"
