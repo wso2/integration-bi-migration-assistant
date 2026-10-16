@@ -24,6 +24,7 @@ import common.ProjectSummary;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import tibco.analyzer.CombinedSummaryReport;
 import tibco.analyzer.DefaultAnalysisPass;
@@ -53,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -62,6 +64,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class TibcoToBalConverter {
+
+    private static final String DEFAULT_PROFILE = "default.substvar";
 
     private TibcoToBalConverter() {
     }
@@ -296,6 +300,80 @@ public class TibcoToBalConverter {
                     .filter(string -> string.endsWith(extensionWithDot))
                     .toList();
         }
+    }
+
+    // Each BW6 profile is a META-INF/<profile>.substvar file. The default profile decides; a property it leaves unset
+    // is taken from the other profiles only when they all agree, so no single deployment environment is guessed.
+    public static @NotNull Map<String, String> parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
+        Path metaInf = Paths.get(projectPath, "META-INF");
+        if (!Files.isDirectory(metaInf)) {
+            return Map.of();
+        }
+        List<Path> profiles;
+        try (Stream<Path> files = Files.list(metaInf)) {
+            profiles = files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".substvar"))
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            cx.log(LoggingUtils.Level.WARN, "Unable to list module property profiles in " + metaInf + ": "
+                    + e.getMessage());
+            return Map.of();
+        }
+        Map<String, String> defaults = new HashMap<>();
+        Map<String, Map<String, String>> otherProfileValuesByProperty = new TreeMap<>();
+        for (Path profile : profiles) {
+            String profileName = profile.getFileName().toString();
+            Map<String, String> values = parseModuleProperties(cx, profile);
+            if (profileName.equals(DEFAULT_PROFILE)) {
+                defaults.putAll(values);
+            } else {
+                values.forEach((name, value) -> otherProfileValuesByProperty
+                        .computeIfAbsent(name, key -> new TreeMap<>())
+                        .put(profileName, value));
+            }
+        }
+        otherProfileValuesByProperty.forEach((name, valuesByProfile) -> {
+            if (defaults.containsKey(name)) {
+                return;
+            }
+            String profileNames = String.join(", ", valuesByProfile.keySet());
+            if (new HashSet<>(valuesByProfile.values()).size() == 1) {
+                defaults.put(name, valuesByProfile.values().iterator().next());
+                cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
+                        + "; using its value from " + profileNames);
+            } else {
+                cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
+                        + " and its value differs across " + profileNames + "; leaving it unresolved");
+            }
+        });
+        return defaults;
+    }
+
+    private static @NotNull Map<String, String> parseModuleProperties(LoggingContext cx, Path profile) {
+        try {
+            Map<String, String> values = new HashMap<>();
+            NodeList globalVariables = parseXmlFile(profile.toString())
+                    .getElementsByTagNameNS("*", "globalVariable");
+            for (int i = 0; i < globalVariables.getLength(); i++) {
+                Element globalVariable = (Element) globalVariables.item(i);
+                Optional<String> name = childText(globalVariable, "name");
+                Optional<String> value = childText(globalVariable, "value").filter(text -> !text.isBlank());
+                if (name.isPresent() && value.isPresent()) {
+                    values.put(name.get(), value.get());
+                }
+            }
+            return values;
+        } catch (IOException | SAXException | ParserConfigurationException e) {
+            cx.log(LoggingUtils.Level.WARN, "Unable to read module properties from " + profile + ": "
+                    + e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private static @NotNull Optional<String> childText(Element parent, String tagName) {
+        NodeList children = parent.getElementsByTagNameNS("*", tagName);
+        return children.getLength() == 0 ? Optional.empty() : Optional.of(children.item(0).getTextContent().trim());
     }
 
     public static Element parseXmlFile(String xmlFilePath)
@@ -544,6 +622,18 @@ public class TibcoToBalConverter {
                 artifactId = "mariadb-java-client"
                 version = "3.1.4"
                 groupId = "org.mariadb.jdbc"
+                """),
+        JDBC_MSSQL("""
+                [[platform.java17.dependency]]
+                artifactId = "mssql-jdbc"
+                version = "12.8.1.jre11"
+                groupId = "com.microsoft.sqlserver"
+                """),
+        JDBC_DB2("""
+                [[platform.java17.dependency]]
+                artifactId = "jcc"
+                version = "11.5.9.0"
+                groupId = "com.ibm.db2"
                 """);
 
         public final String dependencyParam;
