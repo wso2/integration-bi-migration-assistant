@@ -1628,6 +1628,8 @@ final class ActivityConverter {
             case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
             case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
             case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
+            case ActivityExtension.Config.ParseData parseData -> createParseDataOperation(cx, result, parseData);
+            case ActivityExtension.Config.RenderData renderData -> createRenderDataOperation(cx, result, renderData);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -2026,6 +2028,98 @@ final class ActivityConverter {
         body.add(new Comment("WARNING: Missing SFTP connection resource '" + sftpConnection
                 + "'. Using placeholder client."));
         return declarePlaceholderClient(cx, body, "ftp:Client", Library.FTP, "sftp", sftpConnection);
+    }
+
+    private static @NotNull ActivityConversionResult createParseDataOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.ParseData parseData) {
+        Resource.DataFormatResource dataFormat = dataFormatResource(cx, parseData.dataFormat());
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment content = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                parseData.inputType() == ActivityExtension.Config.ParseData.InputType.FILE
+                        ? parseDataFileContent(cx, body, result, parseData.encoding())
+                        : exprFrom("(%s/**/<text>/*).toString()".formatted(result.varName())));
+        body.add(content);
+        String startRecord = "1";
+        if (parseData.manuallySpecifiedStartRecord()) {
+            VarDeclStatment startRecordDecl = new VarDeclStatment(INT, cx.getAnnonVarName(),
+                    exprFrom("check int:fromString((%s/**/<startRecord>/*).toString().trim())"
+                            .formatted(result.varName())));
+            body.add(startRecordDecl);
+            startRecord = startRecordDecl.ref().varName();
+        } else {
+            cx.log(WARN, "ParseData: parsing without a manually specified start record always starts from the "
+                    + "first record.");
+            body.add(new Comment("WARNING: Start record is not manually specified; every run parses from the "
+                    + "first record instead of continuing from where the previous iteration stopped."));
+        }
+        if (parseData.continueOnError()) {
+            cx.log(WARN, "ParseData: Continue On Error is not supported; parsing stops on the first bad record.");
+            body.add(new Comment("WARNING: Continue On Error is not supported; ErrorRows is not produced and "
+                    + "parsing stops on the first bad record."));
+        }
+        VarDeclStatment noOfRecords = new VarDeclStatment(INT, cx.getAnnonVarName(),
+                exprFrom("check int:fromString((%s/**/<noOfRecords>/*).toString().trim())"
+                        .formatted(result.varName())));
+        body.add(noOfRecords);
+        VarDeclStatment skipHeaderText = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<SkipHeaderCharacters>/*).toString().trim()".formatted(result.varName())));
+        body.add(skipHeaderText);
+        VarDeclStatment skipHeaderCharacters = new VarDeclStatment(INT, cx.getAnnonVarName(),
+                exprFrom("%1$s == \"\" ? 0 : check int:fromString(%1$s)".formatted(skipHeaderText.ref())));
+        body.add(skipHeaderCharacters);
+        VarDeclStatment parsed = new VarDeclStatment(XML, cx.getAnnonVarName(), exprFrom(
+                "check %s(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)".formatted(
+                        cx.getParseDelimitedDataFunction(), content.ref(),
+                        dataFormatLiteral(dataFormat.columnSeparator()), dataFormatLiteral(dataFormat.lineSeparator()),
+                        dataFormatLiteral(dataFormat.rowNamespace()), dataFormatLiteral(dataFormat.rowName()),
+                        dataFormatFieldNames(dataFormat), cx.hasQualifiedDataFormatFields(dataFormat), startRecord,
+                        noOfRecords.ref(), skipHeaderCharacters.ref(), parseData.skipBlankLines())));
+        body.add(parsed);
+        return new ActivityConversionResult(parsed.ref(), body);
+    }
+
+    // The file is decoded as UTF-8, which is exact for UTF-8 and ASCII input only.
+    private static @NotNull BallerinaModel.Expression parseDataFileContent(ActivityContext cx, List<Statement> body,
+                                                                         VariableReference result, String encoding) {
+        if (!Set.of("UTF-8", "UTF8", "ASCII", "US-ASCII").contains(encoding.toUpperCase(Locale.ROOT))) {
+            cx.log(WARN, "ParseData: input encoding " + encoding + " is decoded as UTF-8.");
+            body.add(new Comment("WARNING: Input encoding " + encoding + " is decoded as UTF-8."));
+        }
+        cx.addLibraryImport(Library.IO);
+        return exprFrom("check string:fromBytes(check io:fileReadBytes((%s/**/<fileName>/*).toString().trim()))"
+                .formatted(result.varName()));
+    }
+
+    private static @NotNull ActivityConversionResult createRenderDataOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.RenderData renderData) {
+        Resource.DataFormatResource dataFormat = dataFormatResource(cx, renderData.dataFormat());
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment text = new VarDeclStatment(STRING, cx.getAnnonVarName(), exprFrom(
+                "%s(%s, %s, %s, %s, %s)".formatted(cx.getRenderDelimitedDataFunction(), result.varName(),
+                        dataFormatLiteral(dataFormat.rowName()), dataFormatLiteral(dataFormat.columnSeparator()),
+                        dataFormatLiteral(dataFormat.lineSeparator()), dataFormatFieldNames(dataFormat))));
+        body.add(text);
+        VarDeclStatment rendered = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(text.ref())));
+        body.add(rendered);
+        return new ActivityConversionResult(rendered.ref(), body);
+    }
+
+    private static @NotNull Resource.DataFormatResource dataFormatResource(ActivityContext cx,
+                                                                           String dataFormatProperty) {
+        return cx.dataFormat(dataFormatProperty).orElseThrow(() -> new IllegalStateException(
+                "Data Format shared resource not found for property " + dataFormatProperty));
+    }
+
+    private static @NotNull String dataFormatFieldNames(Resource.DataFormatResource dataFormat) {
+        return dataFormat.fieldNames().stream()
+                .map(ActivityConverter::dataFormatLiteral)
+                .collect(Collectors.joining(", ", "[", "]"));
+    }
+
+    private static @NotNull String dataFormatLiteral(String value) {
+        return "\"" + ConversionUtils.escapeString(value)
+                .replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") + "\"";
     }
 
     private static ActivityConversionResult createSQLOperation(
