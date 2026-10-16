@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="order-hybris-sapi-http-request-configuration" doc:name="HTTP Request configuration" basePath="/order-hybris-sapi-v1">
+        <http:request-connection host="localhost" port="8084" protocol="HTTP" />
+    </http:request-config>
+    <configuration defaultResponseTimeout="10000" />
+    <flow name="demoFlow" >
+        <set-variable value="#['1640006670']" doc:name="Set Order Id" variableName="orderId"/>
+        <http:request method="GET" doc:name="Request" config-ref="order-hybris-sapi-http-request-configuration" path="orders/{id}" responseTimeout="10000">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : vars.orderId
+}]]]></http:uri-params>
+        </http:request>
+    </flow>
+</mule>
