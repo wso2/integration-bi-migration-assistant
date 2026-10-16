@@ -3834,7 +3834,7 @@ configurable string api_basePath = "/api/v1";
 public function demoFlow(Context ctx) {
 
     // http client request
-    http:Client http_request_config = check new (string `https://orders.example.com:80${api_basePath}`);
+    http:Client http_request_config = check new (string `https://orders.example.com:80/${api_basePath}`);
     http:Response clientResult0 = check http_request_config->/orders.get();
     ctx.payload = check clientResult0.getJsonPayload();
 }
@@ -4499,6 +4499,63 @@ public function demoFlow(Context ctx) {
         where queryParams_nilable.get(key) is string
         select [key, <string>queryParams_nilable.get(key)];
     http:Response clientResult0 = check http_request_config->/customers/[uriParams.get("customerId")]/orders/[uriParams.get("order-id")].get(headers, params = check queryParams.cloneWithType());
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Property And Uri Param In Segment
+
+**Input (http_request_with_property_and_uri_param_in_segment.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <global-property doc:name="Global Property" name="api.region" value="eu" />
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable value="#['1001']" doc:name="Set Order Id" variableName="orderId"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders/${api.region}-{id}">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : vars.orderId
+}]]]></http:uri-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_property_and_uri_param_in_segment.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    string orderId?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+configurable string api_region = "eu";
+
+public function demoFlow(Context ctx) {
+    ctx.vars.orderId = "1001";
+
+    // http client request
+    http:Client http_request_config = check new ("https://orders.example.com:80");
+    map<string?> uriParams_nilable = {
+        "id": ctx.vars?.orderId.toString()
+    };
+    map<string> uriParams = map from string key in uriParams_nilable.keys()
+        where uriParams_nilable.get(key) is string
+        select [key, <string>uriParams_nilable.get(key)];
+    http:Response clientResult0 = check http_request_config->/orders/[string `${api_region}-${uriParams.get("id")}`].get();
     ctx.payload = check clientResult0.getJsonPayload();
 }
 

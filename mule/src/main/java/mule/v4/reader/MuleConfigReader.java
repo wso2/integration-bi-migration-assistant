@@ -901,8 +901,8 @@ public class MuleConfigReader {
 
     private static String clientBasePath(String basePath) {
         String path = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
-        // A property placeholder is assumed to hold its own leading slash
-        return path.isEmpty() || path.startsWith("/") || path.startsWith("${") ? path : "/" + path;
+        // A property value that already starts with "/" gives "//", which the Ballerina client collapses
+        return path.isEmpty() || path.startsWith("/") ? path : "/" + path;
     }
 
     private static String directTextContent(Element element) {
