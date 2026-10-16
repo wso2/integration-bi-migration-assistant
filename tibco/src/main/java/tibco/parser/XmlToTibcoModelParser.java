@@ -1638,7 +1638,7 @@ public final class XmlToTibcoModelParser {
                 parseTimerEventSource(activity), activity, cx.fileName());
     }
 
-    private static Optional<Flow.Activity.ReceiveEvent.TimerEventSource> parseTimerEventSource(
+    private static @NotNull Optional<Flow.Activity.ReceiveEvent.TimerEventSource> parseTimerEventSource(
             Element receiveEvent) {
         Optional<Element> timerActivity = tryGetFirstChildWithTag(receiveEvent, "eventSource")
                 .flatMap(eventSource -> tryGetFirstChildWithTag(eventSource, "BWActivity"))
@@ -1663,7 +1663,7 @@ public final class XmlToTibcoModelParser {
                 config.map(value -> value.getAttribute("runOnce").equals("true")).orElse(false)));
     }
 
-    private static Optional<Flow.Activity.ReceiveEvent.TimerValue> timerValue(Optional<Element> config,
+    private static @NotNull Optional<Flow.Activity.ReceiveEvent.TimerValue> timerValue(Optional<Element> config,
             Map<String, String> propertyBindings, String attribute) {
         if (propertyBindings.containsKey(attribute)) {
             return Optional.of(new Flow.Activity.ReceiveEvent.TimerValue.ProcessProperty(

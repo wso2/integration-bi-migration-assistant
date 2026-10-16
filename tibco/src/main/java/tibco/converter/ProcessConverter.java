@@ -359,8 +359,8 @@ public class ProcessConverter {
         return cx.serialize(result.service(), functions);
     }
 
-    private static BallerinaModel.Function convertTimerStarter(ProcessContext cx, Process6 process,
-                                                               Activity.ReceiveEvent receiveEvent) {
+    private static BallerinaModel.@NotNull Function convertTimerStarter(ProcessContext cx, Process6 process,
+                                                                        Activity.ReceiveEvent receiveEvent) {
         String processName = ConversionUtils.sanitizes(process.name());
         String triggerFn = "trigger_" + processName;
         cx.addModuleDeclaration("listener %s %s_timer = new (%s, %s);".formatted(
@@ -374,8 +374,8 @@ public class ProcessConverter {
 
     // A Timer that can't be resolved becomes an error config, so the program fails at startup with the reason
     // instead of silently scheduling with a default.
-    private static String timerConfigExpr(ProcessContext cx, Process6 process,
-                                          Activity.ReceiveEvent.TimerEventSource timer) {
+    private static @NotNull String timerConfigExpr(ProcessContext cx, Process6 process,
+                                                   Activity.ReceiveEvent.TimerEventSource timer) {
         try {
             return "{interval: %s, startTime: %s, runOnce: %s}".formatted(timerIntervalExpr(cx, process, timer),
                     timerStartTimeExpr(cx, process, timer), timer.runOnce());
@@ -400,8 +400,8 @@ public class ProcessConverter {
 
     // TIBCO reads a bound Time Interval as milliseconds and hides Interval Unit, so a unit still stored in the
     // process is stale.
-    private static String timerIntervalExpr(ProcessContext cx, Process6 process,
-                                            Activity.ReceiveEvent.TimerEventSource timer) {
+    private static @NotNull String timerIntervalExpr(ProcessContext cx, Process6 process,
+                                                     Activity.ReceiveEvent.TimerEventSource timer) {
         boolean bound = timer.timeInterval().orElse(null) instanceof Activity.ReceiveEvent.TimerValue.ProcessProperty;
         if (bound && !timer.intervalUnit().isEmpty()) {
             cx.log(LoggingUtils.Level.WARN, ("Timer %s in process %s: Interval Unit %s is ignored because Time "
@@ -427,8 +427,8 @@ public class ProcessConverter {
         };
     }
 
-    private static String timerStartTimeExpr(ProcessContext cx, Process6 process,
-                                             Activity.ReceiveEvent.TimerEventSource timer) {
+    private static @NotNull String timerStartTimeExpr(ProcessContext cx, Process6 process,
+                                                      Activity.ReceiveEvent.TimerEventSource timer) {
         if (timer.startTime().isEmpty()) {
             return "()";
         }
@@ -452,7 +452,7 @@ public class ProcessConverter {
 
     // Only a start time with an explicit offset is resolved here. A zoneless one uses the machine's zone and a named
     // zone the runtime's zone rules, so both are left to the generated code.
-    private static Optional<Instant> timerStartInstant(String value) {
+    private static @NotNull Optional<Instant> timerStartInstant(String value) {
         String trimmed = value.trim();
         String[] parts = trimmed.split(" +");
         try {
@@ -473,8 +473,8 @@ public class ProcessConverter {
         return Optional.empty();
     }
 
-    private static TimerSetting resolveTimerSetting(ProcessContext cx, Process6 process,
-                                                    Activity.ReceiveEvent.TimerValue value) {
+    private static @NotNull TimerSetting resolveTimerSetting(ProcessContext cx, Process6 process,
+                                                             Activity.ReceiveEvent.TimerValue value) {
         return switch (value) {
             case Activity.ReceiveEvent.TimerValue.Literal literal -> new TimerSetting.Literal(literal.value());
             case Activity.ReceiveEvent.TimerValue.ProcessProperty property -> process.variables().stream()
@@ -643,7 +643,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 new BallerinaModel.BlockFunctionBody(startProcess(cx, "{}")));
     }
 
-    private static List<Statement> startProcess(ProcessContext cx, String initVariables) {
+    private static @NotNull List<Statement> startProcess(ProcessContext cx, String initVariables) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
                 new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
