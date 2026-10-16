@@ -18,6 +18,7 @@
 
 package tibco.xslt;
 
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
 import java.util.List;
@@ -28,6 +29,7 @@ import static org.testng.Assert.assertTrue;
 
 public class TibcoFunctionsTest {
 
+    @NotNull
     private static String stylesheet(String prefix, String select) {
         return """
                 <?xml version="1.0" encoding="UTF-8"?>
@@ -41,8 +43,8 @@ public class TibcoFunctionsTest {
     public void testUuidParameters() {
         String rewritten = TibcoFunctions.rewrite(stylesheet("tib", "concat(tib:uuid(), '-', tib:uuid ( ))"));
         assertTrue(rewritten.contains("concat($tibcoUuid1, '-', $tibcoUuid2)"), rewritten);
-        assertTrue(rewritten.contains("version=\"2.0\"><xsl:param name=\"tibcoUuid1\"/>"
-                + "<xsl:param name=\"tibcoUuid2\"/>"), rewritten);
+        assertTrue(rewritten.contains("version=\"2.0\">" + uuidParameter("tibcoUuid1")
+                + uuidParameter("tibcoUuid2") + "<xsl:template"), rewritten);
         assertEquals(TibcoFunctions.uuidParameters(rewritten), List.of("tibcoUuid1", "tibcoUuid2"));
         assertFalse(rewritten.contains("<xsl:function"), rewritten);
     }
@@ -92,7 +94,8 @@ public class TibcoFunctionsTest {
                 <xsl:template match="/"><out><xsl:value-of select="tib:trim(tib:uuid())"/></out></xsl:template>\
                 </xsl:transform>""";
         String rewritten = TibcoFunctions.rewrite(transform);
-        assertTrue(rewritten.contains("version=\"2.0\"><xsl:param name=\"tibcoUuid1\"/><xsl:template"), rewritten);
+        assertTrue(rewritten.contains("version=\"2.0\">" + uuidParameter("tibcoUuid1") + "<xsl:template"),
+                rewritten);
         assertTrue(rewritten.contains("tib:trim($tibcoUuid1)"), rewritten);
         assertTrue(rewritten.endsWith("</xsl:function></xsl:transform>"), rewritten);
     }
@@ -107,7 +110,67 @@ public class TibcoFunctionsTest {
                     <xsl:template match="/"><out><xsl:value-of select="tib:uuid()"/></out></xsl:template>
                 </xsl:stylesheet>""";
         String rewritten = TibcoFunctions.rewrite(withImports);
-        assertTrue(rewritten.contains("</xsl:import><xsl:param name=\"tibcoUuid1\"/>"), rewritten);
+        assertTrue(rewritten.contains("</xsl:import>" + uuidParameter("tibcoUuid1")), rewritten);
+    }
+
+    @Test
+    public void testCommentsBetweenImports() {
+        String withImports = """
+                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" \
+                xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0">
+                    <xsl:import href="a.xsl"/>
+                    <!-- shared helpers -->
+                    <?editor fold?>
+                    <xsl:import href="b.xsl"/>
+                    <xsl:template match="/"><out><xsl:value-of select="tib:uuid()"/></out></xsl:template>
+                </xsl:stylesheet>""";
+        String rewritten = TibcoFunctions.rewrite(withImports);
+        assertTrue(rewritten.contains("<xsl:import href=\"b.xsl\"/>" + uuidParameter("tibcoUuid1")), rewritten);
+    }
+
+    @Test
+    public void testSkipsDeclaredDefinitions() {
+        String declaring = """
+                <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" \
+                xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0">\
+                <xsl:function name="tib:trim"><xsl:param name="v"/><xsl:sequence select="string($v)"/></xsl:function>\
+                <xsl:function name="tib:render-xml"><xsl:param name="n"/><xsl:sequence select="'x'"/></xsl:function>\
+                <xsl:template match="/"><out><xsl:value-of select="tib:trim(tib:render-xml(., true()))"/></out>\
+                </xsl:template></xsl:stylesheet>""";
+        String rewritten = TibcoFunctions.rewrite(declaring);
+        assertFalse(rewritten.contains("name=\"tibfn:trim\""), rewritten);
+        assertFalse(rewritten.contains("<xsl:param name=\"node\"/><xsl:sequence"), rewritten);
+        assertTrue(rewritten.contains("<xsl:param name=\"node\"/><xsl:param name=\"includeDeclaration\"/>"
+                + "<xsl:sequence"), rewritten);
+        assertTrue(rewritten.contains("<xsl:param name=\"pretty\"/>"), rewritten);
+        assertTrue(TibcoFunctions.isDefined(declaring, "trim"));
+        assertEquals(TibcoFunctions.rewrite(rewritten), rewritten);
+    }
+
+    @Test
+    public void testUuidInStringLiteral() {
+        String rewritten = TibcoFunctions.rewrite(stylesheet("tib", "concat('tib:uuid()', tib:uuid())"));
+        assertTrue(rewritten.contains("concat('tib:uuid()', $tibcoUuid1)"), rewritten);
+        assertEquals(TibcoFunctions.uuidParameters(rewritten), List.of("tibcoUuid1"));
+    }
+
+    @Test
+    public void testUuidParameterNameCollision() {
+        String declaring = stylesheet("tib", "concat($tibcoUuid1, tib:uuid())")
+                .replace("version=\"2.0\">", "version=\"2.0\"><xsl:param name=\"tibcoUuid1\"/>");
+        String rewritten = TibcoFunctions.rewrite(declaring);
+        assertTrue(rewritten.contains("concat($tibcoUuid1, $tibcoUuid2)"), rewritten);
+        assertEquals(TibcoFunctions.uuidParameters(rewritten), List.of("tibcoUuid2"));
+
+        String withoutCalls = stylesheet("tib", "$tibcoUuid1")
+                .replace("version=\"2.0\">", "version=\"2.0\"><xsl:param name=\"tibcoUuid1\"/>");
+        assertEquals(TibcoFunctions.uuidParameters(TibcoFunctions.rewrite(withoutCalls)), List.of());
+    }
+
+    @NotNull
+    private static String uuidParameter(String name) {
+        return ("<xsl:param name=\"%s\" xmlns:tibfn=\"http://www.tibco.com/bw/xslt/custom-functions\""
+                + " tibfn:generated=\"uuid\"/>").formatted(name);
     }
 
     @Test

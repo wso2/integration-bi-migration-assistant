@@ -2502,6 +2502,7 @@ final class ActivityConverter {
         return new XsltTransformResult(List.of(styleSheetDecl), expression, nonStandardFunctions);
     }
 
+    @NotNull
     static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
                                                     BallerinaModel.Expression variables) {
         List<String> uuidParameters = TibcoFunctions.uuidParameters(styleSheet);
