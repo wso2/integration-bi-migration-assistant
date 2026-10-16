@@ -50,6 +50,8 @@ public class ConversionUtils {
 
     // A URI parameter placeholder of an http:request path, e.g. {id}. ${id} is a property placeholder instead.
     private static final Pattern URI_PARAM_PATTERN = Pattern.compile("(?<!\\$)\\{([^{}]+)}");
+    // A URI parameter or a property placeholder of an http:request path segment, e.g. {id} or ${region}
+    private static final Pattern PATH_PLACEHOLDER_PATTERN = Pattern.compile("(\\$?)\\{([^{}]+)}");
 
     /**
      * Converts mule path to a Ballerina resource path.
@@ -133,18 +135,20 @@ public class ConversionUtils {
             return "[" + balExpr + "]";
         }
         if (uriParamsVar.isPresent() && URI_PARAM_PATTERN.matcher(segment).find()) {
-            return "[" + uriParamsSegmentExpr(segment, uriParamsVar.get()) + "]";
+            return "[" + uriParamsSegmentExpr(ctx, segment, uriParamsVar.get()) + "]";
         }
         return ConversionUtils.convertToBalIdentifier(segment);
     }
 
-    private static String uriParamsSegmentExpr(String segment, String uriParamsVar) {
+    private static String uriParamsSegmentExpr(Context ctx, String segment, String uriParamsVar) {
         Matcher uriParam = URI_PARAM_PATTERN.matcher(segment);
         if (uriParam.matches()) {
             return uriParamValue(uriParamsVar, uriParam.group(1));
         }
-        return "string `%s`".formatted(uriParam.replaceAll(param -> Matcher.quoteReplacement(
-                "${%s}".formatted(uriParamValue(uriParamsVar, param.group(1))))));
+        return "string `%s`".formatted(PATH_PLACEHOLDER_PATTERN.matcher(segment).replaceAll(placeholder ->
+                Matcher.quoteReplacement("${%s}".formatted(placeholder.group(1).isEmpty()
+                        ? uriParamValue(uriParamsVar, placeholder.group(2))
+                        : processPropertyName(ctx, placeholder.group(2))))));
     }
 
     private static String uriParamValue(String uriParamsVar, String uriParamName) {

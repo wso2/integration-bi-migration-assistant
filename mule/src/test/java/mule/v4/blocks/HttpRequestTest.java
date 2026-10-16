@@ -93,6 +93,12 @@ public class HttpRequestTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testHttpRequestWithPropertyAndUriParamInSegment() {
+        testMule4ToBal("http-request/http_request_with_property_and_uri_param_in_segment.xml",
+                "http-request/http_request_with_property_and_uri_param_in_segment.bal");
+    }
+
+    @Test
     public void testHttpRequestWithBasePathAndTimeouts() {
         testMule4ToBal("http-request/http_request_with_base_path_and_timeouts.xml",
                 "http-request/http_request_with_base_path_and_timeouts.bal");
