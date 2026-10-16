@@ -568,34 +568,31 @@ public enum Intrinsics {
                     // it requires an `isolated` execute method and the generated process functions aren't isolated,
                     // so this listener schedules a `task:Job` instead; being a listener keeps the program alive.
                     type TimerConfig record {|
-                        int|string timeInterval = 0;
-                        string intervalUnit = "";
-                        string startTime = "";
+                        decimal interval = 1;
+                        time:Utc? startTime = ();
                         boolean runOnce = false;
                     |};
 
                     class ProcessTimerJob {
                         *task:Job;
-                        private final function (xml) returns () run;
-                        private final time:Zone? zone;
+                        private final function () returns () run;
 
-                        function init(function (xml) returns () run, time:Zone? zone) {
+                        function init(function () returns () run) {
                             self.run = run;
-                            self.zone = zone;
                         }
 
                         public function execute() {
-                            xml|error output = timerOutput(self.zone);
-                            self.run(output is xml ? output : xml `<root/>`);
+                            self.run();
                         }
                     }
 
                     class TimerListener {
-                        private final TimerConfig config;
-                        private final function (xml) returns () run;
+                        private final TimerConfig|error config;
+                        private final function () returns () run;
                         private task:JobId? jobId = ();
 
-                        function init(TimerConfig config, function (xml) returns () run) {
+                        // An error is a Timer the converter could not resolve; it fails the program at startup.
+                        function init(TimerConfig|error config, function () returns () run) {
                             self.config = config;
                             self.run = run;
                         }
@@ -607,24 +604,27 @@ public enum Intrinsics {
                         }
 
                         public function 'start() returns error? {
-                            time:Utc? startTime = check timerStartTime(self.config.startTime);
-                            ProcessTimerJob job = new (self.run, timerSystemZone());
+                            TimerConfig config = check self.config;
+                            ProcessTimerJob job = new (self.run);
                             // TIBCO keeps firing after a failed process instance.
                             task:TaskPolicy taskPolicy = {errorPolicy: task:LOG_AND_CONTINUE};
-                            if self.config.runOnce {
-                                time:Utc? fireTime = startTime is () ? () : futureTimerFireTime(startTime);
+                            // TIBCO fires every second when the interval is shorter than one second.
+                            decimal interval = decimal:max(config.interval, 1);
+                            time:Utc? startTime = config.startTime;
+                            time:Utc? fireTime = startTime is ()
+                                ? ()
+                                : firstTimerFireTime(startTime, config.runOnce ? () : interval);
+                            if config.runOnce {
                                 self.jobId = fireTime is ()
                                     ? check task:scheduleJobRecurByFrequency(job, 1, maxCount = 1,
                                             taskPolicy = taskPolicy)
                                     : check task:scheduleOneTimeJob(job, time:utcToCivil(fireTime));
                                 return;
                             }
-                            decimal interval = check timerIntervalSeconds(self.config);
-                            time:Utc? firstFireTime = startTime is () ? () : nextTimerFireTime(startTime, interval);
-                            self.jobId = firstFireTime is ()
+                            self.jobId = fireTime is ()
                                 ? check task:scheduleJobRecurByFrequency(job, interval, taskPolicy = taskPolicy)
                                 : check task:scheduleJobRecurByFrequency(job, interval,
-                                        startTime = time:utcToCivil(firstFireTime), taskPolicy = taskPolicy);
+                                        startTime = time:utcToCivil(fireTime), taskPolicy = taskPolicy);
                         }
 
                         public function gracefulStop() returns error? {
@@ -639,31 +639,22 @@ public enum Intrinsics {
                         }
                     }
 
-                    // An empty unit means a bound Time Interval, which TIBCO reads as milliseconds. Month and Year
-                    // are approximated as 30 and 365 days.
-                    final readonly & map<decimal> timerUnitSeconds = {
-                        "": 0.001,
-                        "Millisecond": 0.001,
-                        "Second": 1,
-                        "Minute": 60,
-                        "Hour": 3600,
-                        "Day": 86400,
-                        "Week": 604800,
-                        "Month": 2592000,
-                        "Year": 31536000
-                    };
-
-                    function timerIntervalSeconds(TimerConfig config) returns decimal|error {
-                        int|string rawInterval = config.timeInterval;
-                        int amount = rawInterval is int ? rawInterval : check int:fromString(rawInterval.trim());
-                        decimal? unitSeconds = timerUnitSeconds[config.intervalUnit];
-                        if unitSeconds is () {
-                            return error("Unsupported timer interval unit: " + config.intervalUnit);
-                        }
-                        // TIBCO fires every second when the interval is shorter than one second.
-                        return decimal:max(<decimal>amount * unitSeconds, 1);
+                    // A start time in the past anchors a recurring schedule: TIBCO projects set an old date to mean
+                    // "at this time of day", so the first run is the next start + n * interval after now. The
+                    // scheduler rejects a start time that has passed by the time the job is registered, so a fire
+                    // time less than a second away runs immediately instead (returned as nil).
+                    function firstTimerFireTime(time:Utc startTime, decimal? interval) returns time:Utc? {
+                        decimal elapsed = time:utcDiffSeconds(time:utcNow(), startTime);
+                        time:Utc fireTime = interval is () || elapsed < 0d
+                            ? startTime
+                            : time:utcAddSeconds(startTime, ((elapsed / interval).floor() + 1) * interval);
+                        return time:utcDiffSeconds(fireTime, time:utcNow()) < 1d ? () : fireTime;
                     }
-
+                    """
+    ),
+    TIMER_START_TIME(
+            "timerStartTime",
+            """
                     // Accepts epoch milliseconds, an ISO-8601 timestamp, or TIBCO's "yyyy MMM dd HH:mm:ss z"
                     // property format. TIBCO uses the machine's time zone when the start time has none.
                     function timerStartTime(string value) returns time:Utc?|error {
@@ -740,27 +731,17 @@ public enum Intrinsics {
                             second: clock.length() > 2 ? check decimal:fromString(clock[2]) : 0
                         };
                     }
-
-                    // A start time in the past anchors the schedule: TIBCO projects set an old date to mean
-                    // "at this time of day", so the first run is the next start + n * interval after now.
-                    function nextTimerFireTime(time:Utc startTime, decimal interval) returns time:Utc? {
-                        decimal elapsed = time:utcDiffSeconds(time:utcNow(), startTime);
-                        return futureTimerFireTime(elapsed < 0d
-                            ? startTime
-                            : time:utcAddSeconds(startTime, ((elapsed / interval).floor() + 1) * interval));
-                    }
-
-                    // The scheduler rejects a start time that has passed by the time the job is registered, so a
-                    // fire time less than a second away runs immediately instead (returned as nil).
-                    function futureTimerFireTime(time:Utc fireTime) returns time:Utc? {
-                        return time:utcDiffSeconds(fireTime, time:utcNow()) < 1d ? () : fireTime;
-                    }
-
+                    """
+    ),
+    TIMER_OUTPUT(
+            "timerOutput",
+            """
                     // The fields of TIBCO's TimerOutputSchema in the machine's time zone, wrapped in the `root` that
                     // stands for the output element, so mappings such as $Timer/Hour resolve. Week is the week of
                     // the year counted from 1 January, and Time is assumed to be formatted as HH:mm:ss.
-                    function timerOutput(time:Zone? zone) returns xml|error {
+                    function timerOutput() returns xml {
                         time:Utc now = time:utcNow();
+                        time:Zone? zone = timerSystemZone();
                         time:Civil civil = zone is () ? time:utcToCivil(now) : zone.utcToCivil(now);
                         int second = <int>(civil.second ?: 0d).floor();
                         int[] daysBeforeMonth = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -777,7 +758,11 @@ public enum Intrinsics {
                             + xml `<DayOfMonth>${civil.day}</DayOfMonth>`;
                         return xml `<root>${fields}</root>`;
                     }
-
+                    """
+    ),
+    TIMER_TIME_UTILS(
+            "timerSystemZone",
+            """
                     // Some Ballerina runtimes fail to load the system zone; UTC is then used, which is also the
                     // usual zone of a container.
                     function timerSystemZone() returns time:Zone? {

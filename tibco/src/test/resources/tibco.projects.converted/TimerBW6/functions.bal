@@ -6,7 +6,7 @@ import ballerina/xslt;
 function LogTick(Context cx) returns error? {
     xml var0 = getFromContext(cx, "LogTick-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'scheduled tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:param name="Timer"/><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="$Timer/root/Hour"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = var2/**/<message>/*;
     log:printInfo(var3.toString());
@@ -32,21 +32,21 @@ function scopeScopeFn(Context cx) returns () {
     }
 }
 
-function start_test_timer_Scheduled(Context params) returns () {
+function start_test_timer_ReadsOutput(Context params) returns () {
     scopeScopeFn(params);
 }
 
-function trigger_test_timer_Scheduled(xml timerOutput) returns () {
+function trigger_test_timer_ReadsOutput() returns () {
     map<SharedVariableContext> jobSharedVariables = {};
-    map<xml> paramXML = {"$input": timerOutput};
+    map<xml> paramXML = {"$input": timerOutput()};
     Context cx = initContext(paramXML, jobSharedVariables);
-    start_test_timer_Scheduled(cx);
+    start_test_timer_ReadsOutput(cx);
 }
 
 function LogTick_1(Context cx) returns error? {
     xml var0 = getFromContext(cx, "LogTick-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'bound tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'scheduled tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = var2/**/<message>/*;
     log:printInfo(var3.toString());
@@ -72,52 +72,90 @@ function scope_1ScopeFn(Context cx) returns () {
     }
 }
 
-function start_test_timer_Configured(Context params) returns () {
+function start_test_timer_Scheduled(Context params) returns () {
     scope_1ScopeFn(params);
 }
 
-function trigger_test_timer_Configured(xml timerOutput) returns () {
+function trigger_test_timer_Scheduled() returns () {
     map<SharedVariableContext> jobSharedVariables = {};
-    map<xml> paramXML = {"$input": timerOutput};
+    map<xml> paramXML = {};
+    Context cx = initContext(paramXML, jobSharedVariables);
+    start_test_timer_Scheduled(cx);
+}
+
+function LogTick_2(Context cx) returns error? {
+    xml var0 = getFromContext(cx, "LogTick-input");
+    xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:tib="http://www.tibco.com/bw/xslt/custom-functions" version="2.0"><xsl:template name="LogTick-input" match="/"><tns:ActivityInput><message><xsl:value-of select="'bound tick'"/></message></tns:ActivityInput></xsl:template></xsl:stylesheet>`);
+    xml var2 = check xslt:transform(var0, var1, cx.variables);
+    xml var3 = var2/**/<message>/*;
+    log:printInfo(var3.toString());
+}
+
+function Timer_2(Context cx) returns error? {
+    addToContext(cx, "Timer", getFromContext(cx, "$input"));
+}
+
+function scope_2ActivityRunner(Context cx) returns error? {
+    check Timer_2(cx);
+    check LogTick_2(cx);
+}
+
+function scope_2FaultHandler(error err, Context cx) returns () {
+    panic err;
+}
+
+function scope_2ScopeFn(Context cx) returns () {
+    error? result = scope_2ActivityRunner(cx);
+    if result is error {
+        scope_2FaultHandler(result, cx);
+    }
+}
+
+function start_test_timer_Configured(Context params) returns () {
+    scope_2ScopeFn(params);
+}
+
+function trigger_test_timer_Configured() returns () {
+    map<SharedVariableContext> jobSharedVariables = {};
+    map<xml> paramXML = {};
     Context cx = initContext(paramXML, jobSharedVariables);
     start_test_timer_Configured(cx);
 }
 
-listener TimerListener test_timer_Scheduled_timer = new ({timeInterval: 5, intervalUnit: "Second", startTime: "2024-01-01T00:00:02Z", runOnce: false}, trigger_test_timer_Scheduled);
-listener TimerListener test_timer_Configured_timer = new ({timeInterval: Configured_TimeInterval, intervalUnit: "", startTime: Configured_StartTime, runOnce: false}, trigger_test_timer_Configured);
+listener TimerListener test_timer_ReadsOutput_timer = new ({interval: 3600, startTime: check timerStartTime("2024-01-01T08:00:00"), runOnce: true}, trigger_test_timer_ReadsOutput);
+listener TimerListener test_timer_Scheduled_timer = new ({interval: 5, startTime: check time:utcFromString("2024-01-01T00:00:02Z"), runOnce: false}, trigger_test_timer_Scheduled);
+listener TimerListener test_timer_Configured_timer = new ({interval: <decimal>check int:fromString(Configured_TimeInterval.trim()) / 1000, startTime: check timerStartTime(Configured_StartTime), runOnce: false}, trigger_test_timer_Configured);
 
 // A TIBCO Timer starter fires its process on a schedule. `task:Listener` can't host it because
 // it requires an `isolated` execute method and the generated process functions aren't isolated,
 // so this listener schedules a `task:Job` instead; being a listener keeps the program alive.
 type TimerConfig record {|
-    int|string timeInterval = 0;
-    string intervalUnit = "";
-    string startTime = "";
+    decimal interval = 1;
+    time:Utc? startTime = ();
     boolean runOnce = false;
 |};
 
 class ProcessTimerJob {
     *task:Job;
-    private final function (xml) returns () run;
-    private final time:Zone? zone;
+    private final function () returns () run;
 
-    function init(function (xml) returns () run, time:Zone? zone) {
+    function init(function () returns () run) {
         self.run = run;
-        self.zone = zone;
     }
 
     public function execute() {
-        xml|error output = timerOutput(self.zone);
-        self.run(output is xml ? output : xml `<root/>`);
+        self.run();
     }
 }
 
 class TimerListener {
-    private final TimerConfig config;
-    private final function (xml) returns () run;
+    private final TimerConfig|error config;
+    private final function () returns () run;
     private task:JobId? jobId = ();
 
-    function init(TimerConfig config, function (xml) returns () run) {
+    // An error is a Timer the converter could not resolve; it fails the program at startup.
+    function init(TimerConfig|error config, function () returns () run) {
         self.config = config;
         self.run = run;
     }
@@ -129,24 +167,27 @@ class TimerListener {
     }
 
     public function 'start() returns error? {
-        time:Utc? startTime = check timerStartTime(self.config.startTime);
-        ProcessTimerJob job = new (self.run, timerSystemZone());
+        TimerConfig config = check self.config;
+        ProcessTimerJob job = new (self.run);
         // TIBCO keeps firing after a failed process instance.
         task:TaskPolicy taskPolicy = {errorPolicy: task:LOG_AND_CONTINUE};
-        if self.config.runOnce {
-            time:Utc? fireTime = startTime is () ? () : futureTimerFireTime(startTime);
+        // TIBCO fires every second when the interval is shorter than one second.
+        decimal interval = decimal:max(config.interval, 1);
+        time:Utc? startTime = config.startTime;
+        time:Utc? fireTime = startTime is ()
+            ? ()
+            : firstTimerFireTime(startTime, config.runOnce ? () : interval);
+        if config.runOnce {
             self.jobId = fireTime is ()
                 ? check task:scheduleJobRecurByFrequency(job, 1, maxCount = 1,
                         taskPolicy = taskPolicy)
                 : check task:scheduleOneTimeJob(job, time:utcToCivil(fireTime));
             return;
         }
-        decimal interval = check timerIntervalSeconds(self.config);
-        time:Utc? firstFireTime = startTime is () ? () : nextTimerFireTime(startTime, interval);
-        self.jobId = firstFireTime is ()
+        self.jobId = fireTime is ()
             ? check task:scheduleJobRecurByFrequency(job, interval, taskPolicy = taskPolicy)
             : check task:scheduleJobRecurByFrequency(job, interval,
-                    startTime = time:utcToCivil(firstFireTime), taskPolicy = taskPolicy);
+                    startTime = time:utcToCivil(fireTime), taskPolicy = taskPolicy);
     }
 
     public function gracefulStop() returns error? {
@@ -161,29 +202,39 @@ class TimerListener {
     }
 }
 
-// An empty unit means a bound Time Interval, which TIBCO reads as milliseconds. Month and Year
-// are approximated as 30 and 365 days.
-final readonly & map<decimal> timerUnitSeconds = {
-    "": 0.001,
-    "Millisecond": 0.001,
-    "Second": 1,
-    "Minute": 60,
-    "Hour": 3600,
-    "Day": 86400,
-    "Week": 604800,
-    "Month": 2592000,
-    "Year": 31536000
-};
+// A start time in the past anchors a recurring schedule: TIBCO projects set an old date to mean
+// "at this time of day", so the first run is the next start + n * interval after now. The
+// scheduler rejects a start time that has passed by the time the job is registered, so a fire
+// time less than a second away runs immediately instead (returned as nil).
+function firstTimerFireTime(time:Utc startTime, decimal? interval) returns time:Utc? {
+    decimal elapsed = time:utcDiffSeconds(time:utcNow(), startTime);
+    time:Utc fireTime = interval is () || elapsed < 0d
+        ? startTime
+        : time:utcAddSeconds(startTime, ((elapsed / interval).floor() + 1) * interval);
+    return time:utcDiffSeconds(fireTime, time:utcNow()) < 1d ? () : fireTime;
+}
 
-function timerIntervalSeconds(TimerConfig config) returns decimal|error {
-    int|string rawInterval = config.timeInterval;
-    int amount = rawInterval is int ? rawInterval : check int:fromString(rawInterval.trim());
-    decimal? unitSeconds = timerUnitSeconds[config.intervalUnit];
-    if unitSeconds is () {
-        return error("Unsupported timer interval unit: " + config.intervalUnit);
-    }
-    // TIBCO fires every second when the interval is shorter than one second.
-    return decimal:max(<decimal>amount * unitSeconds, 1);
+// The fields of TIBCO's TimerOutputSchema in the machine's time zone, wrapped in the `root` that
+// stands for the output element, so mappings such as $Timer/Hour resolve. Week is the week of
+// the year counted from 1 January, and Time is assumed to be formatted as HH:mm:ss.
+function timerOutput() returns xml {
+    time:Utc now = time:utcNow();
+    time:Zone? zone = timerSystemZone();
+    time:Civil civil = zone is () ? time:utcToCivil(now) : zone.utcToCivil(now);
+    int second = <int>(civil.second ?: 0d).floor();
+    int[] daysBeforeMonth = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    boolean leapYear = civil.year % 4 == 0 && (civil.year % 100 != 0 || civil.year % 400 == 0);
+    int dayOfYear = daysBeforeMonth[civil.month - 1] + civil.day - 1
+        + (leapYear && civil.month > 2 ? 1 : 0);
+    int nowMillis = now[0] * 1000 + <int>(now[1] * 1000).floor();
+    string date = string `${civil.year}-${timerPad(civil.month)}-${timerPad(civil.day)}`;
+    string clock = string `${timerPad(civil.hour)}:${timerPad(civil.minute)}:${timerPad(second)}`;
+    xml fields = xml `<Now>${nowMillis}</Now><Hour>${civil.hour}</Hour>`
+        + xml `<Minute>${civil.minute}</Minute><Second>${second}</Second>`
+        + xml `<Week>${dayOfYear / 7 + 1}</Week><Month>${civil.month}</Month>`
+        + xml `<Year>${civil.year}</Year><Date>${date}</Date><Time>${clock}</Time>`
+        + xml `<DayOfMonth>${civil.day}</DayOfMonth>`;
+    return xml `<root>${fields}</root>`;
 }
 
 // Accepts epoch milliseconds, an ISO-8601 timestamp, or TIBCO's "yyyy MMM dd HH:mm:ss z"
@@ -261,43 +312,6 @@ function timerLocalCivil(string localTime) returns time:Civil|error {
         minute: check int:fromString(clock[1]),
         second: clock.length() > 2 ? check decimal:fromString(clock[2]) : 0
     };
-}
-
-// A start time in the past anchors the schedule: TIBCO projects set an old date to mean
-// "at this time of day", so the first run is the next start + n * interval after now.
-function nextTimerFireTime(time:Utc startTime, decimal interval) returns time:Utc? {
-    decimal elapsed = time:utcDiffSeconds(time:utcNow(), startTime);
-    return futureTimerFireTime(elapsed < 0d
-                ? startTime
-                : time:utcAddSeconds(startTime, ((elapsed / interval).floor() + 1) * interval));
-}
-
-// The scheduler rejects a start time that has passed by the time the job is registered, so a
-// fire time less than a second away runs immediately instead (returned as nil).
-function futureTimerFireTime(time:Utc fireTime) returns time:Utc? {
-    return time:utcDiffSeconds(fireTime, time:utcNow()) < 1d ? () : fireTime;
-}
-
-// The fields of TIBCO's TimerOutputSchema in the machine's time zone, wrapped in the `root` that
-// stands for the output element, so mappings such as $Timer/Hour resolve. Week is the week of
-// the year counted from 1 January, and Time is assumed to be formatted as HH:mm:ss.
-function timerOutput(time:Zone? zone) returns xml|error {
-    time:Utc now = time:utcNow();
-    time:Civil civil = zone is () ? time:utcToCivil(now) : zone.utcToCivil(now);
-    int second = <int>(civil.second ?: 0d).floor();
-    int[] daysBeforeMonth = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    boolean leapYear = civil.year % 4 == 0 && (civil.year % 100 != 0 || civil.year % 400 == 0);
-    int dayOfYear = daysBeforeMonth[civil.month - 1] + civil.day - 1
-        + (leapYear && civil.month > 2 ? 1 : 0);
-    int nowMillis = now[0] * 1000 + <int>(now[1] * 1000).floor();
-    string date = string `${civil.year}-${timerPad(civil.month)}-${timerPad(civil.day)}`;
-    string clock = string `${timerPad(civil.hour)}:${timerPad(civil.minute)}:${timerPad(second)}`;
-    xml fields = xml `<Now>${nowMillis}</Now><Hour>${civil.hour}</Hour>`
-        + xml `<Minute>${civil.minute}</Minute><Second>${second}</Second>`
-        + xml `<Week>${dayOfYear / 7 + 1}</Week><Month>${civil.month}</Month>`
-        + xml `<Year>${civil.year}</Year><Date>${date}</Date><Time>${clock}</Time>`
-        + xml `<DayOfMonth>${civil.day}</DayOfMonth>`;
-    return xml `<root>${fields}</root>`;
 }
 
 // Some Ballerina runtimes fail to load the system zone; UTC is then used, which is also the
