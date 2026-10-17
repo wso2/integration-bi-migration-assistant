@@ -52,13 +52,25 @@ import tibco.model.Scope.Flow.Activity.Expression.XPath;
 import tibco.model.Type;
 import tibco.model.Variable;
 
+import java.math.BigDecimal;
+import java.time.DateTimeException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -331,6 +343,12 @@ public class ProcessConverter {
                 .flatMap(activity -> ActivityConverter.convertActivity(cx, activity).stream())
                 .collect(Collectors.toCollection(ArrayList::new));
         functions.addAll(generateControlFlowFunctions(cx, process));
+        cx.getAnalysisResult().activities().stream()
+                .filter(activity -> activity instanceof Activity.ReceiveEvent receiveEvent
+                        && receiveEvent.timer().isPresent())
+                .findFirst()
+                .ifPresent(activity -> functions.add(
+                        convertTimerStarter(cx, process, (Activity.ReceiveEvent) activity)));
         cx.handledScopes.add(process.scope());
         AnalysisResult analysisResult = cx.getAnalysisResult();
         analysisResult.scopes(process).stream().map(scope -> generateControlFlowFunctionsForScope(cx, scope))
@@ -339,6 +357,167 @@ public class ProcessConverter {
         functions.sort(Comparator.comparing(BallerinaModel.Function::functionName));
         process.nameSpaces().forEach(cx::addNameSpace);
         return cx.serialize(result.service(), functions);
+    }
+
+    private static BallerinaModel.@NotNull Function convertTimerStarter(ProcessContext cx, Process6 process,
+                                                                        Activity.ReceiveEvent receiveEvent) {
+        String processName = ConversionUtils.sanitizes(process.name());
+        String triggerFn = "trigger_" + processName;
+        cx.addModuleDeclaration("listener %s %s_timer = new (%s, %s);".formatted(
+                cx.projectContext.getTimerListenerClass(), processName,
+                timerConfigExpr(cx, process, receiveEvent.timer().orElseThrow()), triggerFn));
+        return new BallerinaModel.Function(triggerFn, List.of(), NIL, startProcess(cx, readsTimerOutput(receiveEvent)
+                ? "{\"%s\": %s()}".formatted(ConversionUtils.Constants.CONTEXT_INPUT_NAME,
+                        cx.projectContext.getTimerOutputFn())
+                : "{}"));
+    }
+
+    // A Timer that can't be resolved becomes an error config, so the program fails at startup with the reason
+    // instead of silently scheduling with a default.
+    private static @NotNull String timerConfigExpr(ProcessContext cx, Process6 process,
+                                                   Activity.ReceiveEvent.TimerEventSource timer) {
+        try {
+            return "{interval: %s, startTime: %s, runOnce: %s}".formatted(timerIntervalExpr(cx, process, timer),
+                    timerStartTimeExpr(cx, process, timer), timer.runOnce());
+        } catch (UnresolvedTimerException e) {
+            cx.log(LoggingUtils.Level.WARN, "Timer %s in process %s: %s".formatted(timer.name(), process.name(),
+                    e.getMessage()));
+            return "error(\"%s\")".formatted(ConversionUtils.escapeString(e.getMessage()));
+        }
+    }
+
+    // Month and Year are approximated as 30 and 365 days. An empty unit means milliseconds.
+    private static final Map<String, BigDecimal> TIMER_UNIT_SECONDS = Map.of(
+            "", new BigDecimal("0.001"),
+            "Millisecond", new BigDecimal("0.001"),
+            "Second", BigDecimal.ONE,
+            "Minute", BigDecimal.valueOf(60),
+            "Hour", BigDecimal.valueOf(3600),
+            "Day", BigDecimal.valueOf(86400),
+            "Week", BigDecimal.valueOf(604800),
+            "Month", BigDecimal.valueOf(2592000),
+            "Year", BigDecimal.valueOf(31536000));
+
+    // TIBCO reads a bound Time Interval as milliseconds and hides Interval Unit, so a unit still stored in the
+    // process is stale.
+    private static @NotNull String timerIntervalExpr(ProcessContext cx, Process6 process,
+                                                     Activity.ReceiveEvent.TimerEventSource timer) {
+        boolean bound = timer.timeInterval().orElse(null) instanceof Activity.ReceiveEvent.TimerValue.ProcessProperty;
+        if (bound && !timer.intervalUnit().isEmpty()) {
+            cx.log(LoggingUtils.Level.WARN, ("Timer %s in process %s: Interval Unit %s is ignored because Time "
+                    + "Interval is property-bound, which TIBCO reads as milliseconds")
+                    .formatted(timer.name(), process.name(), timer.intervalUnit()));
+        }
+        BigDecimal unitSeconds = TIMER_UNIT_SECONDS.get(bound ? "" : timer.intervalUnit());
+        if (unitSeconds == null) {
+            throw new UnresolvedTimerException("Unsupported timer interval unit: " + timer.intervalUnit());
+        }
+        return switch (timer.timeInterval().map(value -> resolveTimerSetting(cx, process, value))
+                .orElse(new TimerSetting.Literal("0"))) {
+            case TimerSetting.Configurable configurable ->
+                    "<decimal>check int:fromString(%s.trim()) / 1000".formatted(configurable.name());
+            case TimerSetting.Literal literal -> {
+                try {
+                    yield BigDecimal.valueOf(Long.parseLong(literal.value().trim())).multiply(unitSeconds)
+                            .stripTrailingZeros().toPlainString();
+                } catch (NumberFormatException e) {
+                    throw new UnresolvedTimerException("Unsupported timer interval: " + literal.value());
+                }
+            }
+        };
+    }
+
+    private static @NotNull String timerStartTimeExpr(ProcessContext cx, Process6 process,
+                                                      Activity.ReceiveEvent.TimerEventSource timer) {
+        if (timer.startTime().isEmpty()) {
+            return "()";
+        }
+        return switch (resolveTimerSetting(cx, process, timer.startTime().get())) {
+            case TimerSetting.Literal literal -> timerStartInstant(literal.value())
+                    .map(instant -> "check time:utcFromString(\"%s\")".formatted(instant))
+                    .orElseGet(() -> "check %s(\"%s\")".formatted(cx.projectContext.getTimerStartTimeFn(),
+                            ConversionUtils.escapeString(literal.value())));
+            case TimerSetting.Configurable configurable ->
+                    "check %s(%s)".formatted(cx.projectContext.getTimerStartTimeFn(), configurable.name());
+        };
+    }
+
+    private static final DateTimeFormatter TIMER_ISO_FORMAT = new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            .optionalStart().appendOffset("+HH:MM", "Z").optionalEnd()
+            .optionalStart().appendOffset("+HHMM", "Z").optionalEnd()
+            .toFormatter();
+    private static final DateTimeFormatter TIMER_TIBCO_FORMAT =
+            DateTimeFormatter.ofPattern("uuuu MMM d H:mm[:ss]", Locale.ENGLISH);
+
+    // Only a start time with an explicit offset is resolved here. A zoneless one uses the machine's zone and a named
+    // zone the runtime's zone rules, so both are left to the generated code.
+    private static @NotNull Optional<Instant> timerStartInstant(String value) {
+        String trimmed = value.trim();
+        String[] parts = trimmed.split(" +");
+        try {
+            if (trimmed.matches("\\d+")) {
+                return Optional.of(Instant.ofEpochMilli(Long.parseLong(trimmed)));
+            }
+            if (trimmed.matches("\\d{4}-.*")) {
+                return Optional.of(OffsetDateTime.parse(trimmed, TIMER_ISO_FORMAT).toInstant());
+            }
+            if (parts.length == 5 && parts[4].matches("UTC|GMT|Z|[+-]\\d{2}:?\\d{2}")) {
+                return Optional.of(LocalDateTime.parse(String.join(" ", Arrays.copyOf(parts, 4)), TIMER_TIBCO_FORMAT)
+                        .atOffset(parts[4].matches("UTC|GMT|Z") ? ZoneOffset.UTC : ZoneOffset.of(parts[4]))
+                        .toInstant());
+            }
+        } catch (DateTimeException e) {
+            return Optional.empty();
+        }
+        return Optional.empty();
+    }
+
+    private static @NotNull TimerSetting resolveTimerSetting(ProcessContext cx, Process6 process,
+                                                             Activity.ReceiveEvent.TimerValue value) {
+        return switch (value) {
+            case Activity.ReceiveEvent.TimerValue.Literal literal -> new TimerSetting.Literal(literal.value());
+            case Activity.ReceiveEvent.TimerValue.ProcessProperty property -> process.variables().stream()
+                    .filter(variable -> variable instanceof Variable.PropertyVariable variableProperty
+                            && variableProperty.name().equals(property.propertyName()))
+                    .map(variable -> switch ((Variable.PropertyVariable) variable) {
+                        case Variable.PropertyVariable.SimpleProperty simple -> (TimerSetting)
+                                new TimerSetting.Configurable(
+                                        cx.projectContext.getOrAddConfigurableVariable(simple.source(), STRING));
+                        case Variable.PropertyVariable.PropertyReference reference ->
+                                new TimerSetting.Literal(reference.literal());
+                    })
+                    .findFirst()
+                    .orElseThrow(() -> new UnresolvedTimerException("property %s is not a property of process %s"
+                            .formatted(property.propertyName(), process.name())));
+        };
+    }
+
+    private sealed interface TimerSetting {
+
+        record Literal(String value) implements TimerSetting {
+
+        }
+
+        record Configurable(String name) implements TimerSetting {
+
+        }
+    }
+
+    private static final class UnresolvedTimerException extends RuntimeException {
+
+        UnresolvedTimerException(String message) {
+            super(message);
+        }
+    }
+
+    private static boolean readsTimerOutput(Activity.ReceiveEvent receiveEvent) {
+        return receiveEvent.variable()
+                .map(variable -> Pattern.compile("\\$" + Pattern.quote(variable) + "\\b")
+                        .matcher(ConversionUtils.elementToString(
+                                receiveEvent.element().getOwnerDocument().getDocumentElement()))
+                        .find())
+                .orElse(false);
     }
 
     private static List<BallerinaModel.Function> generateControlFlowFunctions(ProcessContext cx, Process6 process) {
@@ -460,6 +639,11 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
     @NotNull
     static BallerinaModel.Function createMainFunction(ProcessContext cx, Process5 process) {
+        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(), Optional.empty(),
+                new BallerinaModel.BlockFunctionBody(startProcess(cx, "{}")));
+    }
+
+    private static @NotNull List<Statement> startProcess(ProcessContext cx, String initVariables) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
                 new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
@@ -467,18 +651,17 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         body.add(jobSharedVariables);
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
         VarDeclStatment paramXmlDecl = new VarDeclStatment(new TypeDesc.MapTypeDesc(XML), "paramXML",
-                exprFrom("{}"));
+                exprFrom(initVariables));
         body.add(paramXmlDecl);
 
-        BallerinaModel.TypeDesc.FunctionTypeDesc processFnType = ConversionUtils.processFunctionType(cx);
-        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(), processFnType.parameters().get(0).name(),
+        VarDeclStatment contextDecl = new VarDeclStatment(cx.contextType(),
+                ConversionUtils.processFunctionType(cx).parameters().get(0).name(),
                 new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref(), jobSharedVariables.ref())));
         body.add(contextDecl);
 
         body.add(new Statement.CallStatement(
                 new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
-        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(), Optional.empty(),
-                new BallerinaModel.BlockFunctionBody(body));
+        return body;
     }
 
     record TypeConversionResult(Collection<BallerinaModel.Service> service, Optional<BallerinaModel.Function> mainFn) {
