@@ -67,12 +67,6 @@ public interface AnalysisResult {
 
     Collection<Scope.Flow.Link> sources(Scope.Flow.Activity activity);
 
-    Stream<TransitionData> transitionConditions(
-            Scope.Flow.Activity activity);
-
-    Stream<Scope.Flow.Activity.Source.Predicate> transitionCondition(
-            Scope.Flow.Activity activity, Scope.Flow.Link link);
-
     Stream<Scope.Flow.Activity> sortedActivities(Scope scope);
 
     Stream<Scope.Flow.Activity> sortedActivities(ExplicitTransitionGroup group);
@@ -101,11 +95,6 @@ public interface AnalysisResult {
 
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
             BallerinaModel.TypeDesc returnType) {
-
-    }
-
-    record TransitionData(Scope.Flow.Activity activity,
-            Scope.Flow.Activity.Source.Predicate predicate) {
 
     }
 

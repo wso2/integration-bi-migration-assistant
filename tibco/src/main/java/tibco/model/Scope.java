@@ -715,15 +715,26 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Source(String linkName, Optional<Flow.Activity.Source.Predicate> condition) {
+            /**
+             * @param linkName        name of the outgoing link
+             * @param condition       transition condition, if the link has one
+             * @param faultDetailsVar variable that receives the fault details when this error link fires
+             * @param faultNameVar    variable that receives the fault name when this error link fires
+             */
+            record Source(String linkName, Optional<Flow.Activity.Source.Predicate> condition,
+                          Optional<String> faultDetailsVar, Optional<String> faultNameVar) {
 
                 public Source(String linkName) {
-                    this(linkName, Optional.empty());
+                    this(linkName, Optional.empty(), Optional.empty(), Optional.empty());
                 }
 
                 public sealed interface Predicate {
 
                     record Else() implements Flow.Activity.Source.Predicate {
+
+                    }
+
+                    record Error() implements Flow.Activity.Source.Predicate {
 
                     }
                 }
