@@ -555,8 +555,10 @@ public class TibcoProjectConversionTest {
     }
 
     @Test(groups = {"tibco", "converter"}, dataProvider = "keepStructureOptions")
-    public void testBW6CrossModuleCallProcess(boolean keepStructure) {
+    public void testBW6CrossModuleCallProcess(boolean keepStructure) throws IOException {
         Map<String, String> textEdits = migrateMultiRootByAPI("multi-root-bw6", keepStructure);
+        assertMatchesExpectedOutput(textEdits, Path.of("src", "test", "resources", "multi-root-bw6-converted",
+                keepStructure ? "keep-structure" : "flat"));
 
         Map.Entry<String, String> caller = textEdits.entrySet().stream()
                 .filter(each -> each.getKey().startsWith("appmodule/") && each.getKey().endsWith(".bal"))
@@ -573,6 +575,35 @@ public class TibcoProjectConversionTest {
                         .filter(each -> each.getKey().startsWith("sharedmodule/"))
                         .anyMatch(each -> each.getValue().contains("public function start_sharedmodule_subs_Helper(")),
                 "Start function of a process called from another module should be public");
+    }
+
+    private static void assertMatchesExpectedOutput(Map<String, String> textEdits, Path expectedDir)
+            throws IOException {
+        Map<String, String> sourceEdits = new TreeMap<>();
+        textEdits.forEach((key, value) -> {
+            if (key.endsWith(".bal") || key.endsWith(".toml")) {
+                sourceEdits.put(key, value.replace("\r\n", "\n"));
+            }
+        });
+        if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+            TestUtils.deleteDirectory(expectedDir);
+            for (Map.Entry<String, String> entry : sourceEdits.entrySet()) {
+                Path filePath = expectedDir.resolve(entry.getKey());
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, entry.getValue());
+            }
+        }
+
+        Map<String, String> expectedEdits = new TreeMap<>();
+        try (Stream<Path> expectedFiles = Files.walk(expectedDir)) {
+            for (Path path : expectedFiles.filter(Files::isRegularFile).toList()) {
+                expectedEdits.put(expectedDir.relativize(path).toString().replace('\\', '/'),
+                        Files.readString(path).replace("\r\n", "\n"));
+            }
+        }
+        Assert.assertEquals(sourceEdits.keySet(), expectedEdits.keySet(), "Generated files do not match");
+        expectedEdits.forEach((key, expected) ->
+                Assert.assertEquals(sourceEdits.get(key), expected, "File contents do not match for: " + key));
     }
 
     private static Map<String, String> migrateMultiRootByAPI(String sourceDirName) {
