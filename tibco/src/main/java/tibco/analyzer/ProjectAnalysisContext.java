@@ -76,6 +76,7 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>(),
+            new HashSet<>(),
             new HashSet<>());
     private Set<Process> currentProcesses = new HashSet<>();
 
@@ -108,6 +109,12 @@ public class ProjectAnalysisContext implements LoggingContext {
             names.add(base + "FaultHandler");
         });
         names.addAll(moduleTypeNames(xsdTypes, reservedTypeNames));
+        currentProcesses.forEach(process -> {
+            String processName = ConversionUtils.sanitizes(process.name());
+            names.add(ConversionUtils.processFunctionName(process));
+            names.add(processName + "_listener");
+            names.add(processName + "_client");
+        });
         return names;
     }
 
@@ -210,6 +217,8 @@ public class ProjectAnalysisContext implements LoggingContext {
                 capturedResources.jmsSharedResource().add(jmsSharedResource);
             case Resource.SFTPResource sftpResource ->
                 capturedResources.sftpResources().add(sftpResource);
+            case Resource.DataFormatResource dataFormatResource ->
+                capturedResources.dataFormatResources().add(dataFormatResource);
             case Resource.SharedVariable sharedVariable ->
                 capturedResources.sharedVariables().add(sharedVariable);
         }

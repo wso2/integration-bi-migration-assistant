@@ -1,0 +1,32 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="RenderOrders-input"
+                             name="RenderOrders"
+                             outputVariable="RenderOrders"
+                             tibex:xpdlId="c3e9b7d2-0a16-4f85-b4d8-9e1a6c2f7b05"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="QueryOrdersToRenderOrders"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="RenderOrdersToWriteReport"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/render/xsd/+c3e9b7d2-0a16-4f85-b4d8-9e1a6c2f7b05+input&quot; xmlns:tns2=&quot;http://example.com/xsd/orders&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;QueryOrders&quot;/>&lt;xsl:template name=&quot;RenderOrders-input&quot; match=&quot;/&quot;>&lt;tns1:Rows>&lt;xsl:for-each select=&quot;$QueryOrders/Record&quot;>&lt;tns2:order>&lt;tns2:orderId>&lt;xsl:value-of select=&quot;id&quot;/>&lt;/tns2:orderId>&lt;tns2:customer>&lt;xsl:value-of select=&quot;customer_name&quot;/>&lt;/tns2:customer>&lt;tns2:amount>&lt;xsl:value-of select=&quot;total&quot;/>&lt;/tns2:amount>&lt;/tns2:order>&lt;/xsl:for-each>&lt;/tns1:Rows>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.parse.renderdata"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:parse="http://ns.tibco.com/bw/palette/parse"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/parse#//RenderData"/>
+                        <value dataFormat="orderFormat" xsi:type="parse:RenderData"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

@@ -270,6 +270,7 @@ public class MuleToBalConverter {
     private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services,
                                         Service lastHttpService) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, HTTP_RESPONSE_TYPE);
@@ -469,6 +470,7 @@ public class MuleToBalConverter {
     private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
                                             Collection<Service> services, List<Listener> listeners) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.ANYPOINT_MQ;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
         ctx.projectCtx.attributes.put(JMS_MESSAGE_REF, Constants.JMS_MESSAGE_TYPE);
 
@@ -541,6 +543,7 @@ public class MuleToBalConverter {
                                         Collection<Service> services, List<Listener> listeners) {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.PUBSUB;
 
         // Add Pub/Sub import
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_PUBSUB));
@@ -594,6 +597,7 @@ public class MuleToBalConverter {
     private static void genFileListenerSource(Context ctx, Flow flow, FileListener fileListener,
                                               Collection<Service> services, List<Listener> listeners) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.FILE;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Add file and regex imports
@@ -741,6 +745,7 @@ public class MuleToBalConverter {
     }
 
     private static void genVMListenerSource(Context ctx, Flow flow, VMListener vmListener, Set<Function> functions) {
+        ctx.attributesOrigin = Context.AttributesOrigin.VM;
         // TODO: Consider config ref usage
         String queueName = vmListener.queueName();
         String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
@@ -753,6 +758,7 @@ public class MuleToBalConverter {
 
     private static void genSchedulerSource(Context ctx, Flow flow, Scheduler scheduler, Set<Function> functions,
                                            List<ClassDef> classDefs) {
+        ctx.attributesOrigin = Context.AttributesOrigin.NONE;
         String jobClassName = "Job";
         ClassDef classDef = genBalJobClass(ctx, jobClassName, flow.flowBlocks());
         classDefs.add(classDef);
@@ -865,6 +871,7 @@ public class MuleToBalConverter {
 
     private static HTTPInterceptor genRequestInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("Context %s = {%s: {%s: %s, %s: new}};".formatted(
                 Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF, Constants.HTTP_REQUEST_REF,
@@ -889,6 +896,7 @@ public class MuleToBalConverter {
     // Runs the blocks after an APIkit router; the listener's http:response is applied by the resources instead
     private static HTTPInterceptor genResponseInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("Context %s = {%s: {%s: %s}};".formatted(Constants.CONTEXT_REFERENCE,
                 Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_REF)));
@@ -919,6 +927,7 @@ public class MuleToBalConverter {
     private static HTTPInterceptor genResponseErrorInterceptor(Context ctx, Optional<ErrorHandler> errorHandler,
                                                                Optional<HttpResponse> httpErrorResponse) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         String interceptedResponse = "interceptedResponse";
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("Context %s = {%s: {%s: %s}};".formatted(Constants.CONTEXT_REFERENCE,
@@ -1014,6 +1023,7 @@ public class MuleToBalConverter {
 
     private static void genBalFuncForGlobalErrorHandler(Context ctx, ErrorHandler errorHandler,
                                                         Set<Function> functions) {
+        ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
         String name = errorHandler.name();
         String methodName = errorHandler.name().isEmpty() ? "errorHandler" :
                 convertToBalIdentifier(name); // Ideally field will not be empty
@@ -1035,6 +1045,7 @@ public class MuleToBalConverter {
 
     private static void genBalFuncForPrivateOrSubFlow(Context ctx, Set<Function> functions, String flowName,
                                                       List<MuleRecord> flowBlocks) {
+        ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
         List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
         String methodName = convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
@@ -1057,6 +1068,7 @@ public class MuleToBalConverter {
                                          Set<Function> functions, Optional<Statement.Comment> comment)
             throws ScriptConversionException {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         Optional<String> apiKitRouterRef = flowBlocks.stream()
                 .filter(ApiKitRouter.class::isInstance)
                 .map(ApiKitRouter.class::cast)

@@ -48,6 +48,7 @@ public class ProjectConverter {
             Collection<Resource.JDBCSharedResource> jdbcSharedResource,
             Collection<Resource.JMSSharedResource> jmsSharedResource,
             Collection<Resource.SFTPResource> sftpResources,
+            Collection<Resource.DataFormatResource> dataFormatResources,
             Collection<Resource.SharedVariable> sharedVariables
     ) {
 
@@ -65,6 +66,7 @@ public class ProjectConverter {
                     jdbcSharedResource,
                     jmsSharedResource,
                     sftpResources,
+                    dataFormatResources,
                     sharedVariables).flatMap(Collection::stream);
         }
 
@@ -85,6 +87,7 @@ public class ProjectConverter {
                     mergeCollections(first.jdbcSharedResource, second.jdbcSharedResource),
                     mergeCollections(first.jmsSharedResource, second.jmsSharedResource),
                     mergeCollections(first.sftpResources, second.sftpResources),
+                    mergeCollections(first.dataFormatResources, second.dataFormatResources),
                     mergeCollections(first.sharedVariables, second.sharedVariables));
         }
 
@@ -107,7 +110,7 @@ public class ProjectConverter {
             Optional<NodeResponse> generatedTypes) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         cx.logState("CodeGeneration started for project");
-        convertResources(cx, projectResources);
+        convertResources(cx, projectResources, types);
 
         List<ProcessResult> results =
                 processes.stream()
@@ -229,7 +232,8 @@ public class ProjectConverter {
         }
     }
 
-    private static void convertResources(ProjectContext cx, ProjectResources projectResources) {
+    private static void convertResources(ProjectContext cx, ProjectResources projectResources,
+                                         Collection<Type.Schema> schemas) {
         for (Resource.JDBCResource resource : projectResources.jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
@@ -251,9 +255,23 @@ public class ProjectConverter {
         for (Resource.SFTPResource resource : projectResources.sftpResources) {
             ResourceConvertor.convertSftpResource(cx, resource);
         }
+        for (Resource.DataFormatResource resource : projectResources.dataFormatResources) {
+            cx.addDataFormatResource(resource, hasQualifiedFields(resource, schemas));
+        }
         for (Resource.SharedVariable resource : projectResources.sharedVariables) {
             cx.addSharedVariable(resource);
         }
+    }
+
+    // Field elements follow their schema's elementFormDefault. TIBCO generates data format schemas as qualified, so
+    // that is assumed when no schema declares the row namespace.
+    private static boolean hasQualifiedFields(Resource.DataFormatResource resource, Collection<Type.Schema> schemas) {
+        return schemas.stream()
+                .map(Type.Schema::element)
+                .filter(schema -> schema.getAttribute("targetNamespace").equals(resource.rowNamespace()))
+                .findFirst()
+                .map(schema -> schema.getAttribute("elementFormDefault").equals("qualified"))
+                .orElse(true);
     }
 
     static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas,
