@@ -36,6 +36,7 @@ public class MELConverter {
 
     private static final Pattern UNBRACED_OBJECT_KEY =
             Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
+    private static final Pattern DEFAULT_OPERATOR = Pattern.compile("default(?![\\w.])");
 
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
@@ -567,12 +568,20 @@ public class MELConverter {
                 : convertAttributeAccess(attributeKey,
                         ConversionUtils.convertToBalIdentifier(paramAccessToken.toString()));
         result.append(tokenResult);
-        if (addToStringCalls) {
+        boolean queryParamValue = attributeKey.equals("queryParams") && !paramAccessToken.isEmpty();
+        if (addToStringCalls && !(queryParamValue && keepsNilQueryParam(melExpr.substring(i)))) {
             result.append(".toString()");
         }
 
         i--; // Adjust for the next iteration
         return i;
+    }
+
+    // Before a default, or as a map value, a missing query param stays nil. An http:request leaves a nil map value
+    // out, which listeners read the same as the bare name Mule sends.
+    private static boolean keepsNilQueryParam(String rest) {
+        String next = rest.stripLeading();
+        return DEFAULT_OPERATOR.matcher(next).lookingAt() || next.startsWith(",") || next.startsWith("}");
     }
 
     private static String convertHeaderAccess(Context ctx, String headerName) {
@@ -603,16 +612,15 @@ public class MELConverter {
 
     private static String convertAttributeAccess(String attributeKey, String paramName) {
         StringBuilder resultantStr = new StringBuilder();
-        resultantStr.append(Constants.ATTRIBUTES_FIELD_ACCESS);
         switch (attributeKey) {
             case "uriParams" -> {
-                resultantStr.append(".uriParams");
+                resultantStr.append(Constants.ATTRIBUTES_FIELD_ACCESS).append(".uriParams");
                 if (!paramName.isEmpty()) {
                     resultantStr.append(".get(\"%s\")".formatted(paramName));
                 }
             }
             case "queryParams" -> {
-                resultantStr.append(".request");
+                resultantStr.append(Constants.HTTP_REQUEST_ACCESS);
                 if (paramName.isEmpty()) {
                     resultantStr.append(".getQueryParams()");
                 } else {
@@ -620,9 +628,9 @@ public class MELConverter {
                 }
             }
 
-            case "method" -> resultantStr.append(".request.method");
+            case "method" -> resultantStr.append(Constants.HTTP_REQUEST_ACCESS).append(".method");
             default -> {
-                resultantStr.append("[\"%s\"]".formatted(attributeKey));
+                resultantStr.append(Constants.ATTRIBUTES_FIELD_ACCESS).append("[\"%s\"]".formatted(attributeKey));
                 if (!paramName.isEmpty()) {
                     resultantStr.append(".").append(paramName);
                 }

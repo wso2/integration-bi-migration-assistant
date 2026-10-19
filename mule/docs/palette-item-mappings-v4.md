@@ -2787,8 +2787,8 @@ import ballerina/http;
 public type Vars record {|
     map<string[]> queryParams?;
     map<string[]> queryParams2?;
-    string city?;
-    string city2?;
+    string? city?;
+    string? city2?;
     map<string> uriParams?;
     string country?;
     anydata unsupportedAttribute?;
@@ -2816,15 +2816,15 @@ service /mule4 on config {
 
     resource function get attribute_test/[string country]/v1(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new, uriParams: {country}}};
-        ctx.vars.queryParams = ctx.attributes.request.getQueryParams();
-        ctx.vars.queryParams2 = ctx.attributes.request.getQueryParams();
-        ctx.vars.city = ctx.attributes.request.getQueryParamValue("city");
-        ctx.vars.city2 = ctx.attributes.request.getQueryParamValue("city");
+        ctx.vars.queryParams = (<http:Request>ctx.attributes.request).getQueryParams();
+        ctx.vars.queryParams2 = (<http:Request>ctx.attributes.request).getQueryParams();
+        ctx.vars.city = (<http:Request>ctx.attributes.request).getQueryParamValue("city");
+        ctx.vars.city2 = (<http:Request>ctx.attributes.request).getQueryParamValue("city");
         ctx.vars.uriParams = ctx.attributes.uriParams;
         ctx.vars.country = ctx.attributes.uriParams.get("country");
         ctx.vars.unsupportedAttribute = ctx.attributes["unsupportedAttribute"];
         ctx.vars.unsupportedAttributeAccess = ctx.attributes["unsupportedAttribute"].city;
-        ctx.vars.httpMethod = ctx.attributes.request.method;
+        ctx.vars.httpMethod = (<http:Request>ctx.attributes.request).method;
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
@@ -3587,7 +3587,7 @@ service /mule4 on config {
     resource function get test_query(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
-        log:printInfo(string `Path params - version: ${ctx.attributes.request.getQueryParamValue("country").toString()}, id: ${ctx.attributes.request.getQueryParamValue("city").toString()}`);
+        log:printInfo(string `Path params - version: ${(<http:Request>ctx.attributes.request).getQueryParamValue("country").toString()}, id: ${(<http:Request>ctx.attributes.request).getQueryParamValue("city").toString()}`);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
@@ -4315,6 +4315,89 @@ function getOptionalHeader(http:Request req, string name) returns string? {
 
 ```
 
+- ### Http Request With Inbound Query Params
+
+**Input (http_request_with_inbound_query_params.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders" allowedMethods="GET"/>
+        <logger level="INFO" doc:name="Logger" message="language: #[attributes.queryParams.language default 'en']"/>
+        <set-payload value="#[attributes.queryParams.language]" doc:name="Set Payload"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders">
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"language" : attributes.queryParams.language,
+	"currency" : attributes.queryParams.currency default "USD",
+	("channel" : attributes.queryParams.channel) if(!isEmpty(attributes.queryParams.channel)),
+	"source" : "web"
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_inbound_query_params.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo(string `language: ${(<http:Request>ctx.attributes.request).getQueryParamValue("language") ?: "en"}`);
+
+        // set payload
+        string? payload0 = (<http:Request>ctx.attributes.request).getQueryParamValue("language");
+        ctx.payload = payload0;
+
+        // http client request
+        http:Client http_request_config = check new ("https://orders.example.com:80");
+        map<string?> queryParams_nilable = {
+            "language": (<http:Request>ctx.attributes.request).getQueryParamValue("language"),
+            "currency": (<http:Request>ctx.attributes.request).getQueryParamValue("currency") ?: "USD",
+            "channel": (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() != "" ? (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() : (),
+            "source": "web"
+        };
+        map<string> queryParams = map from string key in queryParams_nilable.keys()
+            where queryParams_nilable.get(key) is string
+            select [key, <string>queryParams_nilable.get(key)];
+        http:Response clientResult0 = check http_request_config->/orders.get(params = check queryParams.cloneWithType());
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
 - ### Http Request With Mel Config
 
 **Input (http_request_with_mel_config.xml):**
@@ -4717,7 +4800,7 @@ service /mule4 on listener_config {
             where uriParams_nilable.get(key) is string
             select [key, <string>uriParams_nilable.get(key)];
         map<string?> queryParams_nilable = {
-            "language": ctx.attributes.request.getQueryParamValue("language").toString()
+            "language": (<http:Request>ctx.attributes.request).getQueryParamValue("language")
         };
         map<string> queryParams = map from string key in queryParams_nilable.keys()
             where queryParams_nilable.get(key) is string
@@ -6563,7 +6646,7 @@ service / on HTTP_Listener_config {
 
     resource function default test(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
-        if ctx.attributes.request.getQueryParamValue("age") < 16 {
+        if (<http:Request>ctx.attributes.request).getQueryParamValue("age") < 16 {
             fail error PRECONDITIONS__INCORRECT_AGE("Minimum age of 16 required to drive");
         } else {
             log:printInfo("User age above 16 years. Allowed to drive");

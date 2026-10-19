@@ -29,7 +29,7 @@ service /mule4 on listener_config {
             where uriParams_nilable.get(key) is string
             select [key, <string>uriParams_nilable.get(key)];
         map<string?> queryParams_nilable = {
-            "language": ctx.attributes.request.getQueryParamValue("language").toString()
+            "language": (<http:Request>ctx.attributes.request).getQueryParamValue("language")
         };
         map<string> queryParams = map from string key in queryParams_nilable.keys()
             where queryParams_nilable.get(key) is string
