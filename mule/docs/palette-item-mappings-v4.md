@@ -6,6 +6,7 @@
 - [Async](palette-item-mappings-v4.md#async)
 - [Choice](palette-item-mappings-v4.md#choice)
 - [Config Property Access](palette-item-mappings-v4.md#config-property-access)
+- [Correlation Id](palette-item-mappings-v4.md#correlation-id)
 - [Database Connector](palette-item-mappings-v4.md#database-connector)
 - [Error Handler](palette-item-mappings-v4.md#error-handler)
 - [Expression Component](palette-item-mappings-v4.md#expression-component)
@@ -1163,6 +1164,1159 @@ configurable string company_name = "WSO2";
 
 public function demoFlow(Context ctx) {
     log:printInfo(string `Company name : ${company_name}`);
+}
+
+```
+
+## Correlation Id
+
+- ### Correlation Id In Dataweave
+
+**Input (correlation_id_in_dataweave.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <flow name="dataWeaveFlow">
+        <http:listener config-ref="listener_config" path="/dw"/>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var correlationId = "local"
+---
+{correlationId: correlationId, source: "script"}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="ids"><![CDATA[%dw 2.0
+output application/json
+---
+{"x-correlation-id": correlationId, id: correlationId default "none"}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </flow>
+</mule>
+
+```
+**Output (correlation_id_in_dataweave.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/uuid;
+
+public type Vars record {|
+    json _dwOutput_?;
+    json ids?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default dw(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        json _dwOutput_ = _dwMethod(ctx);
+        ctx.vars._dwOutput_ = _dwOutput_;
+        ctx.payload = _dwOutput_;
+        json ids = check _dwMethod1(ctx);
+        ctx.vars.ids = ids;
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function _dwMethod(Context ctx) returns json {
+    string correlationId = "local";
+    return {
+        "correlationId": correlationId,
+        "source": "script"
+    };
+}
+
+public function _dwMethod1(Context ctx) returns json|error => {
+    "x-correlation-id": check ctx.correlationId.ensureType(json),
+    "id": (<string?>ctx.correlationId) ?: "none"
+};
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+```
+
+- ### Correlation Id In Sub Flow
+
+**Input (correlation_id_in_sub_flow.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <flow name="mainFlow">
+        <http:listener config-ref="listener_config" path="/main"/>
+        <flow-ref name="traceSubFlow"/>
+    </flow>
+    <sub-flow name="traceSubFlow">
+        <set-variable variableName="trace" value="#[{correlationId: correlationId}]"/>
+        <set-variable variableName="correlationId" value="#['manual']"/>
+        <set-variable variableName="fromVars" value="#[vars.correlationId]"/>
+        <logger level="INFO" message="Processing #[correlationId]"/>
+    </sub-flow>
+</mule>
+
+```
+**Output (correlation_id_in_sub_flow.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/uuid;
+
+public type Vars record {|
+    anydata trace?;
+    string correlationId?;
+    anydata fromVars?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default main(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        traceSubFlow(ctx);
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function traceSubFlow(Context ctx) {
+    ctx.vars.trace = {correlationId: ctx.correlationId};
+    ctx.vars.correlationId = "manual";
+    ctx.vars.fromVars = ctx.vars?.correlationId;
+    log:printInfo(string `Processing ${ctx.correlationId.toString()}`);
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+```
+
+- ### Correlation Id Reads
+
+**Input (correlation_id_reads.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="request_config">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <flow name="demoFlow">
+        <http:listener config-ref="listener_config" path="/demo"/>
+        <set-variable variableName="cid1" value='#[correlationId default ""]'/>
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="cid2"><![CDATA[%dw 2.0
+output application/java
+---
+correlationId]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="#['cid: ' ++ correlationId]"/>
+        <logger level="INFO" message="#[correlationId default 'none']"/>
+        <http:request method="GET" config-ref="request_config" path="/orders" correlationId="#[vars.cid1]"/>
+    </flow>
+</mule>
+
+```
+**Output (correlation_id_reads.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/uuid;
+
+public type Vars record {|
+    anydata cid1?;
+    any cid2?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default demo(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.cid1 = (<string?>ctx.correlationId) ?: "";
+        any cid2 = _dwMethod(ctx);
+        ctx.vars.cid2 = cid2;
+        log:printInfo("cid: " + ctx.correlationId.toString());
+        log:printInfo((<string?>ctx.correlationId) ?: "none");
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        http:Response clientResult0 = check request_config->/orders.get(headers = {"X-Correlation-ID": ctx.vars?.cid1.toString()});
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function _dwMethod(Context ctx) returns any => ctx.correlationId;
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+```
+
+- ### Correlation Id With Apikit
+
+**Input (correlation_id_with_apikit.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+
+    <http:listener-config name="listener-config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+
+    <apikit:config name="api-config" api="api/api.raml" outboundHeadersMapName="outboundHeaders"
+                   httpStatusVarName="httpStatus"/>
+
+    <flow name="api-main">
+        <http:listener config-ref="listener-config" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" message="#['Request ' ++ correlationId]"/>
+        <apikit:router config-ref="api-config"/>
+        <logger level="INFO" message="#['Response ' ++ correlationId]"/>
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <set-variable variableName="httpStatus" value="404"/>
+                <set-payload value="#[{'message': 'Resource not found', correlationId: correlationId}]"/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+    <flow name="get:\orders:api-config">
+        <set-payload value="#[{orders: [], correlationId: correlationId}]"/>
+    </flow>
+</mule>
+
+```
+**Output (correlation_id_with_apikit.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/uuid;
+
+public type Vars record {|
+    anydata outboundHeaders?;
+    anydata httpStatus?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public type APIKIT__NOT_FOUND distinct error;
+
+public listener http:Listener listener\-config = new (8081);
+
+service http:InterceptableService / on listener\-config {
+    function init() returns error? {
+    }
+
+    public function createInterceptors() returns [MuleRequestInterceptor0, MuleResponseErrorInterceptor0, MuleResponseInterceptor0] {
+        return [new MuleRequestInterceptor0(), new MuleResponseErrorInterceptor0(), new MuleResponseInterceptor0()];
+    }
+
+    resource function default api/[string... path](http:Request request, http:RequestContext requestContext) returns http:Response|error {
+        _ = getSharedCorrelationId(requestContext, request);
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
+    }
+
+    resource function get api/orders(http:Request request, http:RequestContext requestContext) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getSharedCorrelationId(requestContext, request)};
+
+        // set payload
+        anydata payload1 = {orders: [], correlationId: ctx.correlationId};
+        ctx.payload = payload1;
+
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+
+        // http response headers
+        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            response.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        response.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 200).toString());
+        return response;
+    }
+}
+
+service class MuleRequestInterceptor0 {
+    *http:RequestInterceptor;
+
+    resource function 'default [string... path](http:RequestContext requestContext, http:Request request) returns http:NextService|error? {
+        Context ctx = {attributes: {request: request, response: new}, correlationId: getSharedCorrelationId(requestContext, request)};
+        log:printInfo("Request " + ctx.correlationId.toString());
+        return requestContext.next();
+    }
+}
+
+service class MuleResponseErrorInterceptor0 {
+    *http:ResponseErrorInterceptor;
+
+    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
+        Context ctx = {attributes: {response: interceptedResponse}, correlationId: getSharedCorrelationId(requestContext)};
+        // on-error-propagate
+        ctx.vars.httpStatus = "404";
+
+        // set payload
+        anydata payload0 = {"message": "Resource not found", correlationId: ctx.correlationId};
+        ctx.payload = payload0;
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.statusCode = 500;
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
+
+        // http response headers
+        anydata responseHeaderValues = ctx.vars?.outboundHeaders ?: {};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            interceptedResponse.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        interceptedResponse.statusCode = check int:fromString((ctx.vars?.httpStatus ?: 500).toString());
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+service class MuleResponseInterceptor0 {
+    *http:ResponseInterceptor;
+
+    remote function interceptResponse(http:RequestContext requestContext, http:Response response) returns http:Response|error {
+        Context ctx = {attributes: {response: response}, correlationId: getSharedCorrelationId(requestContext)};
+        log:printInfo("Response " + ctx.correlationId.toString());
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
+        return response;
+    }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+function getSharedCorrelationId(http:RequestContext requestContext, http:Request? request = ()) returns string {
+    // Mule keeps one ID for a whole request, so the resource and the interceptors use the ID the first of them made
+    string|error id = requestContext.getWithType("correlationId");
+    if id is string {
+        return id;
+    }
+    string newId = request is () ? uuid:createType4AsString() : getCorrelationId(request);
+    requestContext.set("correlationId", newId);
+    return newId;
+}
+
+```
+
+- ### Correlation Id With Error Handler
+
+**Input (correlation_id_with_error_handler.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <flow name="ordersFlow">
+        <http:listener config-ref="listener_config" path="/orders">
+            <http:response>
+                <http:headers><![CDATA[#[{"X-Correlation-ID": correlationId}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="500">
+                <http:headers><![CDATA[#[{"X-Correlation-ID": correlationId}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <set-payload value="#[1/0]"/>
+        <error-handler>
+            <on-error-propagate type="ANY">
+                <set-payload value='#[{"message": error.description, correlationId: correlationId}]'/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+</mule>
+
+```
+**Output (correlation_id_with_error_handler.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/uuid;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service http:InterceptableService / on listener_config {
+    function init() returns error? {
+    }
+
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
+    }
+
+    resource function default orders(http:Request request, http:RequestContext requestContext) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getSharedCorrelationId(requestContext, request)};
+        do {
+
+            // set payload
+            anydata payload0 = 1 / 0;
+            ctx.payload = payload0;
+        } on fail error err {
+            // on-error-propagate
+
+            // set payload
+            anydata payload1 = {"message": err.message(), correlationId: ctx.correlationId};
+            ctx.payload = payload1;
+            http:Response response = <http:Response>ctx.attributes.response;
+            response.statusCode = 500;
+        }
+
+        http:Response response = <http:Response>ctx.attributes.response;
+        response.setPayload(ctx.payload);
+
+        // http response headers
+        anydata responseHeaderValues = {"X-Correlation-ID": ctx.correlationId};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            response.setHeader(headerName, headerValue);
+        }
+        return response;
+    }
+}
+
+service class MuleResponseErrorInterceptor0 {
+    *http:ResponseErrorInterceptor;
+
+    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
+        Context ctx = {attributes: {response: interceptedResponse}, correlationId: getSharedCorrelationId(requestContext)};
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
+
+        // http response headers
+        anydata responseHeaderValues = {"X-Correlation-ID": ctx.correlationId};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            interceptedResponse.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        interceptedResponse.statusCode = 500;
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+function getSharedCorrelationId(http:RequestContext requestContext, http:Request? request = ()) returns string {
+    // Mule keeps one ID for a whole request, so the resource and the interceptors use the ID the first of them made
+    string|error id = requestContext.getWithType("correlationId");
+    if id is string {
+        return id;
+    }
+    string newId = request is () ? uuid:createType4AsString() : getCorrelationId(request);
+    requestContext.set("correlationId", newId);
+    return newId;
+}
+
+```
+
+- ### Correlation Id With Multiple Methods
+
+**Input (correlation_id_with_multiple_methods.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <flow name="itemsFlow">
+        <http:listener config-ref="listener_config" path="/items" allowedMethods="GET,POST">
+            <http:error-response statusCode="500">
+                <http:headers><![CDATA[#[{"X-Correlation-ID": correlationId}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" message="#[correlationId]"/>
+        <error-handler>
+            <on-error-continue type="ANY">
+                <set-payload value="#[correlationId]"/>
+            </on-error-continue>
+        </error-handler>
+    </flow>
+</mule>
+
+```
+**Output (correlation_id_with_multiple_methods.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/uuid;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service http:InterceptableService / on listener_config {
+    function init() returns error? {
+    }
+
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
+    }
+
+    resource function get items(http:Request request, http:RequestContext requestContext) returns http:Response|error {
+        return invokeEndPoint0(request, requestContext);
+    }
+
+    resource function post items(http:Request request, http:RequestContext requestContext) returns http:Response|error {
+        return invokeEndPoint0(request, requestContext);
+    }
+}
+
+service class MuleResponseErrorInterceptor0 {
+    *http:ResponseErrorInterceptor;
+
+    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
+        Context ctx = {attributes: {response: interceptedResponse}, correlationId: getSharedCorrelationId(requestContext)};
+        if ctx.payload !is () {
+            (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        }
+
+        // http response headers
+        anydata responseHeaderValues = {"X-Correlation-ID": ctx.correlationId};
+        map<string> responseHeaders = check responseHeaderValues.cloneWithType();
+        foreach [string, string] [headerName, headerValue] in responseHeaders.entries() {
+            interceptedResponse.setHeader(headerName, headerValue);
+        }
+
+        // http response status code
+        interceptedResponse.statusCode = 500;
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function invokeEndPoint0(http:Request request, http:RequestContext requestContext) returns http:Response|error {
+    Context ctx = {attributes: {request, response: new}, correlationId: getSharedCorrelationId(requestContext, request)};
+    do {
+        log:printInfo(ctx.correlationId.toString());
+    } on fail error err {
+        // on-error-continue
+
+        // set payload
+        anydata payload0 = ctx.correlationId;
+        ctx.payload = payload0;
+    }
+
+    (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+    return <http:Response>ctx.attributes.response;
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+function getSharedCorrelationId(http:RequestContext requestContext, http:Request? request = ()) returns string {
+    // Mule keeps one ID for a whole request, so the resource and the interceptors use the ID the first of them made
+    string|error id = requestContext.getWithType("correlationId");
+    if id is string {
+        return id;
+    }
+    string newId = request is () ? uuid:createType4AsString() : getCorrelationId(request);
+    requestContext.set("correlationId", newId);
+    return newId;
+}
+
+```
+
+- ### Correlation Id Without Http Source
+
+**Input (correlation_id_without_http_source.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <vm:config name="vm_config">
+        <vm:queues>
+            <vm:queue queueName="orders"/>
+        </vm:queues>
+    </vm:config>
+    <flow name="vmListenerFlow">
+        <vm:listener queueName="orders" config-ref="vm_config"/>
+        <logger level="INFO" message="#['Received ' ++ correlationId]"/>
+    </flow>
+</mule>
+
+```
+**Output (correlation_id_without_http_source.bal):**
+```ballerina
+import ballerina/log;
+import ballerina/uuid;
+
+public type Context record {|
+    anydata payload = ();
+    string correlationId = uuid:createType4AsString();
+|};
+
+public function vmListenerFlow(Context ctx) {
+    log:printInfo("Received " + ctx.correlationId.toString());
+}
+
+```
+
+- ### Http Request Never Sends Correlation Id
+
+**Input (http_request_never_sends_correlation_id.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="request_config">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <flow name="neverFlow">
+        <http:listener config-ref="listener_config" path="/never"/>
+        <http:request method="GET" config-ref="request_config" path="/orders" sendCorrelationId="NEVER"/>
+    </flow>
+</mule>
+
+```
+**Output (http_request_never_sends_correlation_id.bal):**
+```ballerina
+import ballerina/http;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default 'never(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        http:Response clientResult0 = check request_config->/orders.get();
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
+- ### Http Request Property Path Sends Correlation Id
+
+**Input (http_request_property_path_sends_correlation_id.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <global-property name="orders.path" value="/orders"/>
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="request_config">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <flow name="propertyPathFlow">
+        <http:listener config-ref="listener_config" path="/property-path"/>
+        <http:request method="GET" config-ref="request_config" path="${orders.path}"/>
+    </flow>
+    <flow name="propertyPathWithHeadersFlow">
+        <http:listener config-ref="listener_config" path="/property-path-with-headers"/>
+        <http:request method="GET" config-ref="request_config" path="${orders.path}">
+            <http:headers><![CDATA[#[{"accept": "application/json"}]]]></http:headers>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_property_path_sends_correlation_id.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/lang.regexp;
+import ballerina/uuid;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+configurable string orders_path = "/orders";
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default property\-path(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        string queryPath = pathBuilder0(string `${orders_path}`, {}, {});
+        http:Response clientResult0 = check request_config->get(queryPath, headers = {"X-Correlation-ID": ctx.correlationId});
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default property\-path\-with\-headers(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        map<string?> headers_nilable = {"accept": "application/json"};
+        map<string> headers = map from string key in headers_nilable.keys()
+            where headers_nilable.get(key) is string
+            select [key, <string>headers_nilable.get(key)];
+        if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+            headers["X-Correlation-ID"] = ctx.correlationId;
+        }
+        string queryPath = pathBuilder1(string `${orders_path}`, {}, {});
+        http:Response clientResult1 = check request_config->get(queryPath, headers);
+        ctx.payload = check clientResult1.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string {
+    // TODO: Instead try to use clientResult0->request_config./basePath/.get
+    string requestPath = path;
+    foreach var [key, value] in uriParams.entries() {
+        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+    }
+    foreach var [key, value] in queryParams.entries() {
+        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+    }
+    return requestPath;
+}
+
+function pathBuilder1(string path, map<string> uriParams, map<string> queryParams) returns string {
+    // TODO: Instead try to use clientResult1->request_config./basePath/.get
+    string requestPath = path;
+    foreach var [key, value] in uriParams.entries() {
+        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+    }
+    foreach var [key, value] in queryParams.entries() {
+        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+    }
+    return requestPath;
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+```
+
+- ### Http Request Sends Correlation Id
+
+**Input (http_request_sends_correlation_id.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="request_config">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <http:request-config name="never_config" sendCorrelationId="NEVER">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <flow name="autoFlow">
+        <http:listener config-ref="listener_config" path="/auto"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/auto" />
+    </flow>
+    <flow name="alwaysFlow">
+        <http:listener config-ref="listener_config" path="/always"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/always" sendCorrelationId="ALWAYS"/>
+    </flow>
+    <flow name="customFlow">
+        <http:listener config-ref="listener_config" path="/custom"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/custom" correlationId="#[vars.orderId]"/>
+    </flow>
+    <flow name="neverFlow">
+        <http:listener config-ref="listener_config" path="/never"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/never" sendCorrelationId="NEVER" correlationId="#[vars.orderId]"/>
+    </flow>
+    <flow name="configNeverFlow">
+        <http:listener config-ref="listener_config" path="/config-never"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="never_config" path="/config-never" />
+    </flow>
+    <flow name="configNeverOverriddenFlow">
+        <http:listener config-ref="listener_config" path="/config-never-overridden"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="never_config" path="/config-never-overridden" sendCorrelationId="ALWAYS"/>
+    </flow>
+    <flow name="explicitHeaderFlow">
+        <http:listener config-ref="listener_config" path="/explicit"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/explicit">
+            <http:headers><![CDATA[#[{"x-correlation-id": vars.orderId, "accept": "application/json"}]]]></http:headers>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_sends_correlation_id.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/uuid;
+
+public type Vars record {|
+    string orderId?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default auto(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        http:Response clientResult0 = check request_config->/auto.get(headers = {"X-Correlation-ID": ctx.correlationId});
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default always(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        http:Response clientResult1 = check request_config->/always.get(headers = {"X-Correlation-ID": ctx.correlationId});
+        ctx.payload = check clientResult1.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default custom(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        http:Response clientResult2 = check request_config->/custom.get(headers = {"X-Correlation-ID": ctx.vars?.orderId.toString()});
+        ctx.payload = check clientResult2.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default 'never(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        http:Response clientResult3 = check request_config->/'never.get();
+        ctx.payload = check clientResult3.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default config\-never(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client never_config = check new ("localhost:8082");
+        http:Response clientResult4 = check never_config->/config\-never.get();
+        ctx.payload = check clientResult4.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default config\-never\-overridden(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client never_config = check new ("localhost:8082");
+        http:Response clientResult5 = check never_config->/config\-never\-overridden.get(headers = {"X-Correlation-ID": ctx.correlationId});
+        ctx.payload = check clientResult5.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function default explicit(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        ctx.vars.orderId = "order-1";
+
+        // http client request
+        http:Client request_config = check new ("localhost:8082");
+        map<string?> headers_nilable = {"x-correlation-id": ctx.vars?.orderId.toString(), "accept": "application/json"};
+        map<string> headers = map from string key in headers_nilable.keys()
+            where headers_nilable.get(key) is string
+            select [key, <string>headers_nilable.get(key)];
+        if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+            headers["X-Correlation-ID"] = ctx.correlationId;
+        }
+        http:Response clientResult6 = check request_config->/explicit.get(headers);
+        ctx.payload = check clientResult6.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
 }
 
 ```
@@ -3738,16 +4892,18 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
-    http:Response clientResult0 = check http_request_config->/posts/latest.get();
+    http:Response clientResult0 = check http_request_config->/posts/latest.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
@@ -3780,16 +4936,18 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_config_base_path_formats.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function apiFlow(Context ctx) {
 
     // http client request
     http:Client api_request_config = check new ("https://orders.example.com:80/api/v1");
-    http:Response clientResult0 = check api_request_config->/orders.get();
+    http:Response clientResult0 = check api_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -3797,7 +4955,7 @@ public function rootFlow(Context ctx) {
 
     // http client request
     http:Client root_request_config = check new ("https://orders.example.com:80");
-    http:Response clientResult1 = check root_request_config->/orders.get();
+    http:Response clientResult1 = check root_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult1.getJsonPayload();
 }
 
@@ -3824,9 +4982,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_config_base_path_property.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 configurable string api_basePath = "/api/v1";
@@ -3835,7 +4995,7 @@ public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new (string `https://orders.example.com:80/${api_basePath}`);
-    http:Response clientResult0 = check http_request_config->/orders.get();
+    http:Response clientResult0 = check http_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -3862,16 +5022,18 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_configuration_with_other_attributes.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80", timeout = 10);
-    http:Response clientResult0 = check http_request_config->/orders.get();
+    http:Response clientResult0 = check http_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -3911,16 +5073,18 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("https://jsonplaceholder.typicode.com:80");
-    http:Response clientResult0 = check http_request_config->/car\-posts/'12/honda\-civic/'991/'1\.1/latest.get();
+    http:Response clientResult0 = check http_request_config->/car\-posts/'12/honda\-civic/'991/'1\.1/latest.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
@@ -3952,6 +5116,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_timeout_not_a_number.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     int timeout?;
@@ -3960,6 +5125,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 configurable string http_timeout = "10000";
@@ -3970,7 +5136,7 @@ public function propertyTimeoutFlow(Context ctx) {
 
     // TODO: failed to convert responseTimeout ${http.timeout}
     http:Client http_request_config = check new ("https://orders.example.com:80");
-    http:Response clientResult0 = check http_request_config->/orders.get();
+    http:Response clientResult0 = check http_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -3981,7 +5147,7 @@ public function expressionTimeoutFlow(Context ctx) {
 
     // TODO: failed to convert responseTimeout #[vars.timeout]
     http:Client http_request_config = check new ("https://orders.example.com:80");
-    http:Response clientResult1 = check http_request_config->/orders.get();
+    http:Response clientResult1 = check http_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult1.getJsonPayload();
 }
 
@@ -4017,16 +5183,18 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_timeout_precedence.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function configTimeoutFlow(Context ctx) {
 
     // http client request
     http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 5);
-    http:Response clientResult0 = check timeout_request_config->/orders.get();
+    http:Response clientResult0 = check timeout_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4034,7 +5202,7 @@ public function requestTimeoutFlow(Context ctx) {
 
     // http client request
     http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 2.5);
-    http:Response clientResult1 = check timeout_request_config->/orders.get();
+    http:Response clientResult1 = check timeout_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult1.getJsonPayload();
 }
 
@@ -4042,7 +5210,7 @@ public function defaultTimeoutFlow(Context ctx) {
 
     // http client request
     http:Client default_request_config = check new ("https://orders.example.com:80", timeout = 20);
-    http:Response clientResult2 = check default_request_config->/orders.get();
+    http:Response clientResult2 = check default_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult2.getJsonPayload();
 }
 
@@ -4076,6 +5244,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_base_path_and_timeouts.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string orderId?;
@@ -4084,6 +5253,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
@@ -4097,7 +5267,7 @@ public function demoFlow(Context ctx) {
     map<string> uriParams = map from string key in uriParams_nilable.keys()
         where uriParams_nilable.get(key) is string
         select [key, <string>uriParams_nilable.get(key)];
-    http:Response clientResult0 = check order\-hybris\-sapi\-http\-request\-configuration->/orders/[uriParams.get("id")].get();
+    http:Response clientResult0 = check order\-hybris\-sapi\-http\-request\-configuration->/orders/[uriParams.get("id")].get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4141,9 +5311,11 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 configurable string anypoint_auth_client_id = ?;
@@ -4161,6 +5333,9 @@ public function demoFlow(Context ctx) {
     map<string> headers = map from string key in headers_nilable.keys()
         where headers_nilable.get(key) is string
         select [key, <string>headers_nilable.get(key)];
+    if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+        headers["X-Correlation-ID"] = ctx.correlationId;
+    }
     http:Response clientResult0 = check http_request_config->/posts/latest.get(headers);
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
@@ -4201,6 +5376,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/uuid;
 
 public type Attributes record {|
     http:Request request?;
@@ -4211,6 +5387,7 @@ public type Attributes record {|
 public type Context record {|
     anydata payload = ();
     Attributes attributes;
+    string correlationId = uuid:createType4AsString();
 |};
 
 public listener http:Listener listener_config = new (8081);
@@ -4220,17 +5397,26 @@ service /mule4 on listener_config {
     }
 
     resource function get http_request(http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new}};
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
 
         // http client request
         http:Client http_request_config = check new ("https://jsonplaceholder.typicode.com:80");
-        http:Response clientResult0 = check http_request_config->/posts/latest.get();
+        http:Response clientResult0 = check http_request_config->/posts/latest.get(headers = {"X-Correlation-ID": ctx.correlationId});
         ctx.payload = check clientResult0.getJsonPayload();
         log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
 }
 
 ```
@@ -4268,6 +5454,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_inbound_headers.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Attributes record {|
     http:Request request?;
@@ -4278,6 +5465,7 @@ public type Attributes record {|
 public type Context record {|
     anydata payload = ();
     Attributes attributes;
+    string correlationId = uuid:createType4AsString();
 |};
 
 public listener http:Listener listener_config = new (8081);
@@ -4287,7 +5475,7 @@ service /mule4 on listener_config {
     }
 
     resource function get orders(http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new}};
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
 
         // http client request
         http:Client http_request_config = check new ("https://orders.example.com:80");
@@ -4299,6 +5487,9 @@ service /mule4 on listener_config {
         map<string> headers = map from string key in headers_nilable.keys()
             where headers_nilable.get(key) is string
             select [key, <string>headers_nilable.get(key)];
+        if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+            headers["X-Correlation-ID"] = ctx.correlationId;
+        }
         http:Response clientResult0 = check http_request_config->/orders.get(headers);
         ctx.payload = check clientResult0.getJsonPayload();
         // TODO: failed to convert #[attributes.headers.'orderType']
@@ -4306,6 +5497,15 @@ service /mule4 on listener_config {
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
 }
 
 function getOptionalHeader(http:Request req, string name) returns string? {
@@ -4460,6 +5660,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_multiple_uri_params.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string customerId?;
@@ -4470,6 +5671,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
@@ -4498,6 +5700,9 @@ public function demoFlow(Context ctx) {
     map<string> queryParams = map from string key in queryParams_nilable.keys()
         where queryParams_nilable.get(key) is string
         select [key, <string>queryParams_nilable.get(key)];
+    if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+        headers["X-Correlation-ID"] = ctx.correlationId;
+    }
     http:Response clientResult0 = check http_request_config->/customers/[uriParams.get("customerId")]/orders/[uriParams.get("order-id")].get(headers, params = check queryParams.cloneWithType());
     ctx.payload = check clientResult0.getJsonPayload();
 }
@@ -4532,6 +5737,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_property_and_uri_param_in_segment.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string orderId?;
@@ -4540,6 +5746,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 configurable string api_region = "eu";
@@ -4555,7 +5762,7 @@ public function demoFlow(Context ctx) {
     map<string> uriParams = map from string key in uriParams_nilable.keys()
         where uriParams_nilable.get(key) is string
         select [key, <string>uriParams_nilable.get(key)];
-    http:Response clientResult0 = check http_request_config->/orders/[string `${api_region}-${uriParams.get("id")}`].get();
+    http:Response clientResult0 = check http_request_config->/orders/[string `${api_region}-${uriParams.get("id")}`].get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4589,6 +5796,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_query_params_only.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string status?;
@@ -4597,6 +5805,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
@@ -4611,7 +5820,7 @@ public function demoFlow(Context ctx) {
     map<string> queryParams = map from string key in queryParams_nilable.keys()
         where queryParams_nilable.get(key) is string
         select [key, <string>queryParams_nilable.get(key)];
-    http:Response clientResult0 = check http_request_config->/orders.get(params = check queryParams.cloneWithType());
+    http:Response clientResult0 = check http_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId}, params = check queryParams.cloneWithType());
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4637,16 +5846,18 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_unbound_uri_param.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80");
-    http:Response clientResult0 = check http_request_config->/orders/\{id\}.get();
+    http:Response clientResult0 = check http_request_config->/orders/\{id\}.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4687,6 +5898,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_uri_and_query_params.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Attributes record {|
     http:Request request?;
@@ -4697,6 +5909,7 @@ public type Attributes record {|
 public type Context record {|
     anydata payload = ();
     Attributes attributes;
+    string correlationId = uuid:createType4AsString();
 |};
 
 public listener http:Listener listener_config = new (8081);
@@ -4706,7 +5919,7 @@ service /mule4 on listener_config {
     }
 
     resource function get orders/[string id](http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}, correlationId: getCorrelationId(request)};
 
         // http client request
         http:Client order\-hybris\-sapi\-http\-request\-configuration = check new ("https://orders.example.com:80");
@@ -4722,12 +5935,21 @@ service /mule4 on listener_config {
         map<string> queryParams = map from string key in queryParams_nilable.keys()
             where queryParams_nilable.get(key) is string
             select [key, <string>queryParams_nilable.get(key)];
-        http:Response clientResult0 = check order\-hybris\-sapi\-http\-request\-configuration->/orders/[uriParams.get("id")].get(params = check queryParams.cloneWithType());
+        http:Response clientResult0 = check order\-hybris\-sapi\-http\-request\-configuration->/orders/[uriParams.get("id")].get(headers = {"X-Correlation-ID": ctx.correlationId}, params = check queryParams.cloneWithType());
         ctx.payload = check clientResult0.getJsonPayload();
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
 }
 
 ```
@@ -4759,6 +5981,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_uri_param_in_segment.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string orderId?;
@@ -4767,6 +5990,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
@@ -4780,7 +6004,7 @@ public function demoFlow(Context ctx) {
     map<string> uriParams = map from string key in uriParams_nilable.keys()
         where uriParams_nilable.get(key) is string
         select [key, <string>uriParams_nilable.get(key)];
-    http:Response clientResult0 = check http_request_config->/orders/[string `order-${uriParams.get("id")}`].get();
+    http:Response clientResult0 = check http_request_config->/orders/[string `order-${uriParams.get("id")}`].get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4813,6 +6037,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_uri_params_only.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string orderId?;
@@ -4821,6 +6046,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
@@ -4834,7 +6060,7 @@ public function demoFlow(Context ctx) {
     map<string> uriParams = map from string key in uriParams_nilable.keys()
         where uriParams_nilable.get(key) is string
         select [key, <string>uriParams_nilable.get(key)];
-    http:Response clientResult0 = check http_request_config->/orders/[uriParams.get("id")]/items.get();
+    http:Response clientResult0 = check http_request_config->/orders/[uriParams.get("id")]/items.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -4868,16 +6094,18 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
 
     // http client request
     http:Client http_request_config = check new ("https://jsonplaceholder.typicode.com/todos/1");
-    http:Response clientResult0 = check http_request_config->/.get();
+    http:Response clientResult0 = check http_request_config->/.get(headers = {"X-Correlation-ID": ctx.correlationId});
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
@@ -5025,9 +6253,11 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 **Output (logger_with_dataweave_script.bal):**
 ```ballerina
 import ballerina/log;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 configurable string application_version = ?;
@@ -5052,7 +6282,7 @@ public function _dwMethod(Context ctx) returns json|error {
     string status = "ok";
     string msg = "Before Request Send Email";
     return CustomLogMapper::logger({
-                                      "correlationId": correlationId,
+                                      "correlationId": ctx.correlationId,
                                       "app": app,
                                       "mule": mule,
                                       "status": status,
@@ -5070,7 +6300,7 @@ public function _dwMethod1(Context ctx) returns json|error {
     string status = "ok";
     string msg = "After Request Send Email";
     return CustomLogMapper::logger({
-                                      "correlationId": correlationId,
+                                      "correlationId": ctx.correlationId,
                                       "app": app,
                                       "mule": mule,
                                       "status": status,
