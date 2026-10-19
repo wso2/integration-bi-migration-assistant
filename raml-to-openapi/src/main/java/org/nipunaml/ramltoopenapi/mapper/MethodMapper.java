@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.nipunaml.ramltoopenapi.exception.ConverterException;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
+import org.raml.v2.api.model.v10.methods.TraitRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,14 +18,20 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Maps RAML methods to OpenAPI operations.
  */
 public class MethodMapper {
-    
+
+    /**
+     * Extension listing the names of the RAML traits applied to an operation, which OpenAPI has no field for.
+     */
+    public static final String TRAITS_EXTENSION = "x-raml-traits";
+
     private static final Logger logger = LoggerFactory.getLogger(MethodMapper.class);
-    
+
     private final TypeConverter typeConverter;
     private final ParameterMapper parameterMapper;
     private final ResponseMapper responseMapper;
@@ -103,8 +110,24 @@ public class MethodMapper {
             operation.setSecurity(securityRequirements);
             logger.debug("    Security: {} requirement(s)", securityRequirements.size());
         }
-        
+
+        // The parser merges trait contents such as headers into the method but keeps only the names of the traits,
+        // which tell, for example, that a header serves an API Manager policy
+        List<String> traits = Stream.concat(traitRefs(resource != null ? resource.is() : null),
+                traitRefs(ramlMethod.is()))
+            .map(TraitRef::name)
+            .distinct()
+            .toList();
+        if (!traits.isEmpty()) {
+            operation.addExtension(TRAITS_EXTENSION, traits);
+            logger.debug("    Traits: {}", traits);
+        }
+
         return operation;
+    }
+
+    private static Stream<TraitRef> traitRefs(List<TraitRef> refs) {
+        return refs != null ? refs.stream() : Stream.empty();
     }
 
     /**

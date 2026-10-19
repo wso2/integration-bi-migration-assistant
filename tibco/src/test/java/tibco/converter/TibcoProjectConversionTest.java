@@ -187,6 +187,41 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    @Test(groups = {"tibco", "converter"})
+    public void testRestInvokeHttpImport() throws Exception {
+        Path tempDir = Files.createTempDirectory("tibco-keep-structure-test");
+        ProjectConversionContext cx = new ProjectConversionContext(
+                TestUtils.createTestConversionContext("testOrg", false, true), "RestInvokeBW6");
+        try {
+            TibcoConverter.migrateTibcoProject(cx,
+                    Path.of("src", "test", "resources", "tibco.projects", "RestInvokeBW6").toString(),
+                    tempDir.toString());
+            List<Path> balFiles;
+            try (Stream<Path> files = Files.walk(tempDir)) {
+                balFiles = files.filter(file -> file.toString().endsWith(".bal")).toList();
+            }
+            Assert.assertTrue(balFiles.stream().anyMatch(file -> readString(file).contains("http:NoContentError")),
+                    "expected a converted REST Invoke activity");
+            for (Path file : balFiles) {
+                String content = readString(file);
+                if (content.contains("http:")) {
+                    Assert.assertTrue(content.contains("import ballerina/http;"),
+                            file.getFileName() + " uses the http module without importing it");
+                }
+            }
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
+    private static String readString(Path file) {
+        try {
+            return Files.readString(file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test(groups = {"tibco", "converter"}, dataProvider = "projectTestCaseProvider")
     public void testProjectConversionByAPI(Path tibcoProject, Path expectedBallerinaProject) throws IOException {
         // Create parameter map for the API
@@ -640,6 +675,38 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    @Test
+    public void testRestInvokeKeepsJsonQuotes() throws Exception {
+        Path tibcoProject = Path.of("src", "test", "resources", "tibco.projects", "RestInvokeBW6");
+        Path tempDir = Files.createTempDirectory("tibco-rest-invoke-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", "RestInvokeBW6"),
+                    tibcoProject.toString(), tempDir.toString());
+
+            String generated;
+            try (Stream<Path> balFiles = Files.walk(tempDir)) {
+                List<Path> paths = balFiles.filter(p -> p.toString().endsWith(".bal")).sorted().toList();
+                StringBuilder sb = new StringBuilder();
+                for (Path p : paths) {
+                    sb.append(Files.readString(p));
+                }
+                generated = sb.toString();
+            }
+
+            Assert.assertTrue(generated.contains(
+                    "select=\"'{&quot;reason&quot;: &quot;archive-complete&quot;}'\""),
+                    "EndSession-input must keep the JSON double quotes inside the XPath string literal");
+            Assert.assertTrue(generated.contains(
+                    "select=\"'{&quot;event&quot;: &quot;orders-archived&quot;}'\""),
+                    "SendNotification-input must keep the JSON double quotes inside the XPath string literal");
+            Assert.assertFalse(generated.contains("'{'"),
+                    "A single quote must not terminate an XPath string literal early");
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
     private void assertActivityRunnerCalls(String generated, String runner, List<String> expectedActivities) {
         String body = activityRunnerBody(generated, runner);
         Assert.assertFalse(body.strip().isEmpty(), runner + " must not be empty");
@@ -698,6 +765,60 @@ public class TibcoProjectConversionTest {
         } finally {
             TestUtils.deleteDirectory(tempDir);
         }
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testJdbcDriverResolvedFromSubstitutionBindings() {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("orgName", "testOrg");
+        parameters.put("projectName", "JdbcSubstvarBW6");
+        parameters.put("sourcePath",
+                Path.of("src", "test", "resources", "jdbc-substvar", "JdbcSubstvarBW6").toString());
+        parameters.put("stateCallback", (java.util.function.Consumer<String>) s -> {
+        });
+        List<String> logs = new ArrayList<>();
+        parameters.put("logCallback", (java.util.function.Consumer<String>) logs::add);
+
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
+        Assert.assertNull(result.get("error"), "Conversion failed with error: " + result.get("error"));
+        @SuppressWarnings("unchecked")
+        var textEdits = (Map<String, String>) result.get("textEdits");
+
+        String ballerinaToml = textEdits.get("Ballerina.toml");
+        Assert.assertEquals(ballerinaToml.split("\\[\\[platform\\.java17\\.dependency]]", -1).length - 1, 5,
+                "Each resolvable driver should be declared once: " + ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("artifactId = \"mariadb-java-client\""),
+                "A property unset in the default profile should resolve when the other profiles agree: "
+                        + ballerinaToml);
+        Assert.assertFalse(ballerinaToml.contains("artifactId = \"mysql-connector-java\""),
+                "The default profile should win, and disagreeing profiles must not pick a driver: " + ballerinaToml);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("/DB/Analytics/driver")
+                        && log.contains("DEV.substvar") && log.contains("PROD.substvar")),
+                "Taking a value from non-default profiles should be logged: " + logs);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("/DB/Split/driver")
+                        && log.contains("differs") && log.contains("DEV.substvar") && log.contains("PROD.substvar")),
+                "Disagreeing profiles should be logged: " + logs);
+        Assert.assertTrue(ballerinaToml.contains("artifactId = \"postgresql\""), ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("artifactId = \"mssql-jdbc\""), ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("artifactId = \"ojdbc8\""),
+                "A DataDirect Oracle driver should map to the Oracle driver: " + ballerinaToml);
+        Assert.assertTrue(ballerinaToml.contains("artifactId = \"jcc\""), ballerinaToml);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("inventoryDb.jdbcResource")
+                        && log.contains("DataDirect")),
+                "Replacing a DataDirect driver should warn that its URL needs rewriting: " + logs);
+        Assert.assertTrue(logs.stream().anyMatch(log -> log.contains("warehouseDb.jdbcResource")
+                        && log.contains("DataDirect")),
+                "A DataDirect URL should warn even when a standard driver class picked the dependency: " + logs);
+        Assert.assertFalse(ballerinaToml.contains("artifactId = \"h2\""),
+                "An unresolvable driver must not fall back to H2: " + ballerinaToml);
+
+        String connections = textEdits.get("connections.bal");
+        Assert.assertTrue(connections.contains(
+                "jdbc:Client dbConnection = checkpanic new (DB_Main_url, DB_Main_user, DB_Main_password);"),
+                connections);
+        Assert.assertTrue(connections.contains(
+                "jdbc:Client reportingDb = checkpanic new (DB_Main_url, DB_Main_user, DB_Main_password);"),
+                "Resources bound to the same module property should share its configurable: " + connections);
     }
 
     @DataProvider

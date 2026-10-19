@@ -1,0 +1,35 @@
+#%RAML 1.0
+title: Nullable And Scalar Types
+types:
+  Id:
+    type: string
+    pattern: ^[0-9]+$
+  ShortId:
+    type: Id
+    maxLength: 4
+  MaybeName: string | nil
+  Order:
+    type: object
+    properties:
+      id: Id
+      note: string | nil
+      count: integer | string | nil
+      parent: Order | nil
+      placedOn: date-only
+      placedAt: datetime-only
+      cutoff: time-only
+      createdAt: datetime
+      metadata: any
+      nothing: nil
+      lines:
+        type: Order[]
+        minItems: 1
+        maxItems: 5
+  Orders: Order[]
+/orders:
+  get:
+    responses:
+      200:
+        body:
+          application/json:
+            type: Order[]

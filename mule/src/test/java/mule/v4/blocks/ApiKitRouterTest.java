@@ -35,7 +35,9 @@ public class ApiKitRouterTest extends AbstractBlockTest {
                 {"apikit-router/multiple_allowed_methods.xml", "apikit-router/multiple_allowed_methods.bal"},
                 {"apikit-router/error_handlers.xml", "apikit-router/error_handlers.bal"},
                 {"apikit-router/response_bodies_with_any_error_handler.xml",
-                        "apikit-router/response_bodies_with_any_error_handler.bal"}
+                        "apikit-router/response_bodies_with_any_error_handler.bal"},
+                {"apikit-router/nested_listener_path.xml", "apikit-router/nested_listener_path.bal"},
+                {"apikit-router/unresolved_listener_path.xml", "apikit-router/unresolved_listener_path.bal"}
         };
     }
 }

@@ -7,10 +7,10 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType(), string[] _var_0 = check (check payload.ids).cloneWithType() in {"ids": string:'join(",", ..._var_0)};
-
 public function sampleFlow(Context ctx) {
     json _dwOutput_ = check _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;
 }
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType(), string[] _var_0 = check (check payload.ids).cloneWithType() in {"ids": string:'join(",", ..._var_0)};

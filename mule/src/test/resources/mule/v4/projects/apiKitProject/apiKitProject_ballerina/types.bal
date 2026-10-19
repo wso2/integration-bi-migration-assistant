@@ -1,5 +1,9 @@
 import ballerina/http;
 
+public type APIKIT__NOT_FOUND distinct error;
+
+public type APIKIT__NOT_IMPLEMENTED distinct error;
+
 public type Attributes record {|
     http:Request request?;
     http:Response response?;

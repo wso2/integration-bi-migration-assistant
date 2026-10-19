@@ -12,6 +12,8 @@ public type Context record {|
     Attributes attributes;
 |};
 
+public type EXPRESSION distinct error;
+
 public listener http:Listener listener_config = new (8083);
 
 service /mule4 on listener_config {
@@ -37,7 +39,7 @@ service /mule4 on listener_config {
 
 public function my_error_handler(Context ctx, error err) {
     // TODO: if conditions may require some manual adjustments
-    if err is "ANY" && err.message() == "#[error.description contains 'timeout']" {
+    if err.message() == "#[error.description contains 'timeout']" {
 
         // on-error-propagate
 
@@ -47,7 +49,7 @@ public function my_error_handler(Context ctx, error err) {
         log:printInfo("xxx: first error catch");
         http:Response response = <http:Response>ctx.attributes.response;
         response.statusCode = 500;
-    } else if err is "EXPRESSION" {
+    } else if err is EXPRESSION {
         // on-error-continue
         log:printError("Message: " + err.message());
         log:printError("Trace: " + err.stackTrace().toString());

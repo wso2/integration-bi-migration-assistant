@@ -28,6 +28,9 @@ import mule.v4.model.MuleXMLTag;
 import mule.v4.model.ParseResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -39,6 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -57,6 +61,7 @@ import static mule.v4.model.MuleModel.Async;
 import static mule.v4.model.MuleModel.Choice;
 import static mule.v4.model.MuleModel.Database;
 import static mule.v4.model.MuleModel.DbMySqlConnection;
+import static mule.v4.model.MuleModel.ApiAutodiscovery;
 import static mule.v4.model.MuleModel.DbOracleConnection;
 import static mule.v4.model.MuleModel.DbGenericConnection;
 import static mule.v4.model.MuleModel.Enricher;
@@ -114,6 +119,9 @@ import static mule.v4.model.MuleXMLTag.HTTP_REQUEST_CONNECTION;
 
 public class MuleConfigReader {
 
+    private static final String DOC_NAMESPACE = "http://www.mulesoft.org/schema/mule/documentation";
+    private static final String DEFAULT_RESPONSE_TIMEOUT = "defaultResponseTimeout";
+
     public static ParseResult readMuleConfigFromRoot(Context ctx, MuleXMLNavigator muleXMLNavigator,
                                                      String xmlFilePath) {
         Element root;
@@ -163,6 +171,8 @@ public class MuleConfigReader {
         if (MuleXMLTag.APIKIT_CONFIG.tag().equals(elementTagName)) {
             ApiKitConfig apiKitConfig = readApiKitConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.apiKitConfigs.put(apiKitConfig.name(), apiKitConfig);
+        } else if (MuleXMLTag.API_AUTODISCOVERY.tag().equals(elementTagName)) {
+            ctx.projectCtx.apiAutodiscoveries.add(readApiAutodiscovery(ctx, muleElement));
         } else if (MuleXMLTag.HTTP_LISTENER_CONFIG.tag().equals(elementTagName)) {
             HTTPListenerConfig httpListenerConfig = readHttpListenerConfig(ctx, muleElement);
             ctx.currentFileCtx.configs.httpListenerConfigs.put(httpListenerConfig.name(), httpListenerConfig);
@@ -197,10 +207,34 @@ public class MuleConfigReader {
         } else if (MuleXMLTag.IMPORT.tag().equals(elementTagName)) {
             MuleImport muleImport = readImport(ctx, muleElement);
             ctx.currentFileCtx.configs.imports.add(muleImport);
+        } else if (MuleXMLTag.CONFIGURATION.tag().equals(elementTagName)) {
+            readConfiguration(ctx, muleElement);
         } else {
             UnsupportedBlock unsupportedBlock = readUnsupportedBlock(ctx, muleElement);
             ctx.currentFileCtx.configs.unsupportedBlocks.add(unsupportedBlock);
         }
+    }
+
+    private static void readConfiguration(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        ctx.projectCtx.defaultResponseTimeout = readValue(element.getAttribute(DEFAULT_RESPONSE_TIMEOUT));
+        // Only defaultResponseTimeout is converted, so any other setting still needs a manual conversion
+        if (muleElement.peekChild() != null || hasOtherConfigurationAttributes(element)) {
+            ctx.currentFileCtx.configs.unsupportedBlocks.add(readUnsupportedBlock(ctx, muleElement));
+        }
+    }
+
+    private static boolean hasOtherConfigurationAttributes(Element element) {
+        NamedNodeMap attributes = element.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Node attribute = attributes.item(i);
+            if (!DEFAULT_RESPONSE_TIMEOUT.equals(attribute.getNodeName())
+                    && !DOC_NAMESPACE.equals(attribute.getNamespaceURI())
+                    && !XMLConstants.XMLNS_ATTRIBUTE_NS_URI.equals(attribute.getNamespaceURI())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static MuleRecord readBlock(Context ctx, MuleElement muleElement) {
@@ -815,7 +849,7 @@ public class MuleConfigReader {
                 if (!protocol.isEmpty()) {
                     url = protocol.toLowerCase() + "://" + url;
                 }
-                return url;
+                return url + clientBasePath(httpRequestConfig.basePath());
             };
         }
 
@@ -828,9 +862,10 @@ public class MuleConfigReader {
         Optional<String> queryParamsScript = Optional.empty();
         List<UnsupportedBlock> unsupportedBlocks = new ArrayList<>();
 
-        // Check for inline DataWeave script (CDATA) in http:request element
-        String textContent = element.getTextContent();
-        if (textContent != null && !textContent.trim().isEmpty() && textContent.trim().startsWith("#[")) {
+        // Check for inline DataWeave script (CDATA) in http:request element. The text of child elements, such as
+        // http:uri-params, is not part of it.
+        String textContent = directTextContent(element);
+        if (!textContent.isBlank() && textContent.trim().startsWith("#[")) {
             headersScript = Optional.of(textContent.trim());
         }
 
@@ -861,7 +896,25 @@ public class MuleConfigReader {
         }
 
         return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
-                queryParamsScript, unsupportedBlocks);
+                queryParamsScript, readValue(element.getAttribute("responseTimeout")), unsupportedBlocks);
+    }
+
+    private static String clientBasePath(String basePath) {
+        String path = basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath;
+        // A property value that already starts with "/" gives "//", which the Ballerina client collapses
+        return path.isEmpty() || path.startsWith("/") ? path : "/" + path;
+    }
+
+    private static String directTextContent(Element element) {
+        StringBuilder text = new StringBuilder();
+        NodeList children = element.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.TEXT_NODE || child.getNodeType() == Node.CDATA_SECTION_NODE) {
+                text.append(child.getNodeValue());
+            }
+        }
+        return text.toString();
     }
 
     private static void processQueryParams(Map<String, String> queryParams, MuleElement muleElement) {
@@ -958,6 +1011,11 @@ public class MuleConfigReader {
         return new ApiKitConfig(name, api);
     }
 
+    private static ApiAutodiscovery readApiAutodiscovery(Context ctx, MuleElement muleElement) {
+        Element element = muleElement.getElement();
+        return new ApiAutodiscovery(element.getAttribute("apiId"), element.getAttribute("flowRef"));
+    }
+
     private static ApiKitRouter readApiKitRouter(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String configRef = element.getAttribute("config-ref");
@@ -1005,7 +1063,8 @@ public class MuleConfigReader {
                 protocol = childElement.getAttribute("protocol");
             }
         }
-        return new HTTPRequestConfig(configName, host, port, protocol);
+        return new HTTPRequestConfig(configName, host, port, protocol, element.getAttribute("basePath"),
+                readValue(element.getAttribute("responseTimeout")));
     }
 
     private static VMConfig readVmConfig(Context ctx, MuleElement muleElement) {

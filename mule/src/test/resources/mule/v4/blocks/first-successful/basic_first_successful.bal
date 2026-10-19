@@ -32,12 +32,30 @@ service / on http_listener {
     }
 }
 
+public function route0(Context ctx) returns anydata|error {
+    // Route 0
+
+    // set payload
+    string payload0 = "Route 0 completed";
+    ctx.payload = payload0;
+    return ctx.payload;
+}
+
 public function route1(Context ctx) returns anydata|error {
     // Route 1
 
     // set payload
     string payload1 = "Route 1 completed";
     ctx.payload = payload1;
+    return ctx.payload;
+}
+
+public function route2(Context ctx) returns anydata|error {
+    // Route 2
+
+    // set payload
+    string payload2 = "Route 2 completed";
+    ctx.payload = payload2;
     return ctx.payload;
 }
 
@@ -55,22 +73,4 @@ public function firstSuccessful0(Context ctx) returns anydata|error {
         return r2;
     }
     return error("All routes failed", r2);
-}
-
-public function route2(Context ctx) returns anydata|error {
-    // Route 2
-
-    // set payload
-    string payload2 = "Route 2 completed";
-    ctx.payload = payload2;
-    return ctx.payload;
-}
-
-public function route0(Context ctx) returns anydata|error {
-    // Route 0
-
-    // set payload
-    string payload0 = "Route 0 completed";
-    ctx.payload = payload0;
-    return ctx.payload;
 }

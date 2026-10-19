@@ -14,6 +14,25 @@
             <class name="mule.v4.ApiKitInterceptorTest"/>
             <class name="mule.v4.YamlToTomlConverterTest"/>
             <class name="mule.MuleProjectConversionTest"/>
+            <class name="mule.common.apispec.ApiSpecTest"/>
+            <class name="mule.common.apispec.ApiSpecResolverTest"/>
+            <class name="mule.common.apispec.ApiSpecReaderTest"/>
+            <class name="mule.common.apispec.OpenApiSpecReaderTest"/>
+            <class name="mule.common.apispec.ApiSpecLoaderTest"/>
+            <class name="mule.v4.ApiSpecContextTest"/>
+            <class name="mule.common.apispec.ApiKitFlowNameTest"/>
+            <class name="mule.common.apispec.ApiContractCheckerTest"/>
+            <class name="mule.common.report.ApiContractReportTest"/>
+            <class name="mule.v4.SpecResourceSignatureTest"/>
+            <class name="mule.v4.ApiKitSpecSignatureTest"/>
+            <class name="mule.common.ProjectPropertiesTest"/>
+            <class name="mule.common.apispec.ApiTypeGeneratorTest"/>
+            <class name="mule.v4.ApiSpecTypesContextTest"/>
+            <class name="mule.v4.SuccessResponseTest"/>
+            <class name="mule.v4.CheckedResponseTest"/>
+            <class name="mule.common.apispec.ApiPoliciesTest"/>
+            <class name="mule.v4.ApiPolicyTodoTest"/>
+            <class name="mule.v4.ApiSpecTestGeneratorTest"/>
 
             <!-- V4 support updated blocks -->
             <class name="mule.v4.blocks.HttpListenerTest"/>
