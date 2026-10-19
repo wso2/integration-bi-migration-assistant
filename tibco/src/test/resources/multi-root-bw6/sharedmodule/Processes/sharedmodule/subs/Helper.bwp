@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="sharedmodule.subs.Helper" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/sharedmodule/subs/Helper"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+    <bpws:scope name="HelperScope">
+        <bpws:flow name="helperFlow">
+            <bpws:links>
+                <bpws:link name="StartToEnd" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:empty name="Start">
+                <bpws:sources>
+                    <bpws:source linkName="StartToEnd"/>
+                </bpws:sources>
+            </bpws:empty>
+            <bpws:empty name="End">
+                <bpws:targets>
+                    <bpws:target linkName="StartToEnd"/>
+                </bpws:targets>
+            </bpws:empty>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>
