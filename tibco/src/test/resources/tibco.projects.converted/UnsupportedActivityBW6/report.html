@@ -349,7 +349,7 @@ table code {
                   </div>
                   <div>
                     <span class="breakdown-label">Lines Generated:</span>
-                    <span class="breakdown-value">115</span>
+                    <span class="breakdown-value">117</span>
                   </div>
                 </div>
               </div>
@@ -446,7 +446,11 @@ table code {
             
         &lt;bpws:sources&gt;
                   
-            &lt;bpws:source linkName="JavaToLogB"/&gt;
+            &lt;bpws:source linkName="JavaToLogB"&gt;
+                        
+                &lt;bpws:transitionCondition expressionLanguage="urn:example:unsupported"&gt;&lt;![CDATA[true()]]&gt;&lt;/bpws:transitionCondition&gt;
+                      
+            &lt;/bpws:source&gt;
                 
         &lt;/bpws:sources&gt;
             

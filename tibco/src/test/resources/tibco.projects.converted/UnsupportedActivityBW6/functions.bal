@@ -2,7 +2,7 @@ import ballerina/log;
 import ballerina/xslt;
 
 function JavaInvoke(Context cx) returns error? {
-    // FIXME: Unsupported activity JavaInvoke: Unknown extension kind: bw.java.javamethod
+    // FIXME: Unsupported activity JavaInvoke: [ParseError] : Unsupported expression language: urn:example:unsupported
 
     // <bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
     //     <tibex:activityExtension inputVariable="JavaInvoke-input" name="JavaInvoke" outputVariable="JavaInvoke" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
@@ -10,7 +10,9 @@ function JavaInvoke(Context cx) returns error? {
     //             <bpws:target linkName="LogAToJava"/>
     //         </bpws:targets>
     //         <bpws:sources>
-    //             <bpws:source linkName="JavaToLogB"/>
+    //             <bpws:source linkName="JavaToLogB">
+    //                 <bpws:transitionCondition expressionLanguage="urn:example:unsupported"><![CDATA[true()]]></bpws:transitionCondition>
+    //             </bpws:source>
     //         </bpws:sources>
     //         <tibex:config>
     //             <bwext:BWActivity xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig" xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext" xmlns:java="http://ns.tibco.com/bw/palette/java" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" activityTypeID="bw.java.javamethod">
@@ -24,7 +26,7 @@ function JavaInvoke(Context cx) returns error? {
     //         </tibex:config>
     //     </tibex:activityExtension>
     // </bpws:extensionActivity>
-    return error("Unsupported activity JavaInvoke: Unknown extension kind: bw.java.javamethod");
+    return error("Unsupported activity JavaInvoke: [ParseError] : Unsupported expression language: urn:example:unsupported");
 }
 
 function LogA(Context cx) returns error? {

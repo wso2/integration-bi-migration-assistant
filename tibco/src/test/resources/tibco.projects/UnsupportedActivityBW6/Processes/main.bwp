@@ -39,7 +39,9 @@
   <tibex:activityExtension inputVariable="JavaInvoke-input" name="JavaInvoke" outputVariable="JavaInvoke">
     <bpws:targets><bpws:target linkName="LogAToJava"/></bpws:targets>
     <bpws:sources>
-      <bpws:source linkName="JavaToLogB"/>
+      <bpws:source linkName="JavaToLogB">
+        <bpws:transitionCondition expressionLanguage="urn:example:unsupported"><![CDATA[true()]]></bpws:transitionCondition>
+      </bpws:source>
     </bpws:sources>
     <tibex:config>
       <bwext:BWActivity activityTypeID="bw.java.javamethod"
