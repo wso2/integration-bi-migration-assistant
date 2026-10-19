@@ -48,6 +48,11 @@ import static mule.v4.model.MuleModel.UnsupportedBlock;
  */
 public class ConversionUtils {
 
+    // A URI parameter placeholder of an http:request path, e.g. {id}. ${id} is a property placeholder instead.
+    private static final Pattern URI_PARAM_PATTERN = Pattern.compile("(?<!\\$)\\{([^{}]+)}");
+    // A URI parameter or a property placeholder of an http:request path segment, e.g. {id} or ${region}
+    private static final Pattern PATH_PLACEHOLDER_PATTERN = Pattern.compile("(\\$?)\\{([^{}]+)}");
+
     /**
      * Converts mule path to a Ballerina resource path.
      *
@@ -104,30 +109,50 @@ public class ConversionUtils {
     /**
      * Converts mule http request path to a Ballerina client resource path.
      *
-     * @param ctx      mule to bal converter data
-     * @param basePath mule http request path
+     * @param ctx          mule to bal converter data
+     * @param basePath     mule http request path
+     * @param uriParamsVar variable of the {@code map<string>} holding the {@code http:uri-params} of the request,
+     *                     empty when the request has none
      * @return ballerina client resource path
      * @throws ScriptConversionException if MEL conversion fails
      */
-    public static String getBallerinaClientResourcePath(Context ctx, String basePath)
+    public static String getBallerinaClientResourcePath(Context ctx, String basePath, Optional<String> uriParamsVar)
             throws ScriptConversionException {
         List<String> list = new ArrayList<>();
         for (String segment : basePath.split("/")) {
             if (!segment.isEmpty()) {
-                list.add(processClientPathSegment(ctx, segment));
+                list.add(processClientPathSegment(ctx, segment, uriParamsVar));
             }
         }
         return list.isEmpty() ? "/" : "/" + String.join("/", list);
     }
 
-    private static String processClientPathSegment(Context ctx, String segment)
+    private static String processClientPathSegment(Context ctx, String segment, Optional<String> uriParamsVar)
             throws ScriptConversionException {
         if (segment.startsWith("#[") && segment.endsWith("]")) {
             // Handle MEL in url. e.g. /users/#[vars.userId]
             String balExpr = convertMELToBal(ctx, segment, false);
             return "[" + balExpr + "]";
         }
+        if (uriParamsVar.isPresent() && URI_PARAM_PATTERN.matcher(segment).find()) {
+            return "[" + uriParamsSegmentExpr(ctx, segment, uriParamsVar.get()) + "]";
+        }
         return ConversionUtils.convertToBalIdentifier(segment);
+    }
+
+    private static String uriParamsSegmentExpr(Context ctx, String segment, String uriParamsVar) {
+        Matcher uriParam = URI_PARAM_PATTERN.matcher(segment);
+        if (uriParam.matches()) {
+            return uriParamValue(uriParamsVar, uriParam.group(1));
+        }
+        return "string `%s`".formatted(PATH_PLACEHOLDER_PATTERN.matcher(segment).replaceAll(placeholder ->
+                Matcher.quoteReplacement("${%s}".formatted(placeholder.group(1).isEmpty()
+                        ? uriParamValue(uriParamsVar, placeholder.group(2))
+                        : processPropertyName(ctx, placeholder.group(2))))));
+    }
+
+    private static String uriParamValue(String uriParamsVar, String uriParamName) {
+        return "%s.get(\"%s\")".formatted(uriParamsVar, uriParamName);
     }
 
     public static void processExprCompContent(Context ctx, String convertedBalStmts) {

@@ -50,6 +50,90 @@ public class HttpRequestTest extends AbstractBlockTest {
                 "http-request/http_request_with_headers.bal");
     }
 
+    @Test
+    public void testHttpRequestWithInboundHeaders() {
+        testMule4ToBal("http-request/http_request_with_inbound_headers.xml",
+                "http-request/http_request_with_inbound_headers.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUriAndQueryParams() {
+        testMule4ToBal("http-request/http_request_with_uri_and_query_params.xml",
+                "http-request/http_request_with_uri_and_query_params.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithMultipleUriParams() {
+        testMule4ToBal("http-request/http_request_with_multiple_uri_params.xml",
+                "http-request/http_request_with_multiple_uri_params.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUriParamsOnly() {
+        testMule4ToBal("http-request/http_request_with_uri_params_only.xml",
+                "http-request/http_request_with_uri_params_only.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithQueryParamsOnly() {
+        testMule4ToBal("http-request/http_request_with_query_params_only.xml",
+                "http-request/http_request_with_query_params_only.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUnboundUriParam() {
+        testMule4ToBal("http-request/http_request_with_unbound_uri_param.xml",
+                "http-request/http_request_with_unbound_uri_param.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUriParamInSegment() {
+        testMule4ToBal("http-request/http_request_with_uri_param_in_segment.xml",
+                "http-request/http_request_with_uri_param_in_segment.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithPropertyAndUriParamInSegment() {
+        testMule4ToBal("http-request/http_request_with_property_and_uri_param_in_segment.xml",
+                "http-request/http_request_with_property_and_uri_param_in_segment.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithBasePathAndTimeouts() {
+        testMule4ToBal("http-request/http_request_with_base_path_and_timeouts.xml",
+                "http-request/http_request_with_base_path_and_timeouts.bal");
+    }
+
+    @Test
+    public void testHttpRequestConfigBasePathFormats() {
+        testMule4ToBal("http-request/http_request_config_base_path_formats.xml",
+                "http-request/http_request_config_base_path_formats.bal");
+    }
+
+    @Test
+    public void testHttpRequestConfigBasePathProperty() {
+        testMule4ToBal("http-request/http_request_config_base_path_property.xml",
+                "http-request/http_request_config_base_path_property.bal");
+    }
+
+    @Test
+    public void testHttpRequestTimeoutPrecedence() {
+        testMule4ToBal("http-request/http_request_timeout_precedence.xml",
+                "http-request/http_request_timeout_precedence.bal");
+    }
+
+    @Test
+    public void testHttpRequestConfigurationWithOtherAttributes() {
+        testMule4ToBal("http-request/http_request_configuration_with_other_attributes.xml",
+                "http-request/http_request_configuration_with_other_attributes.bal");
+    }
+
+    @Test
+    public void testHttpRequestTimeoutNotANumber() {
+        testMule4ToBal("http-request/http_request_timeout_not_a_number.xml",
+                "http-request/http_request_timeout_not_a_number.bal");
+    }
+
     // TODO: due to some reason depends on the order, fix it
     @Test(enabled = false)
     public void testHttpRequestWithMelConfig() {
