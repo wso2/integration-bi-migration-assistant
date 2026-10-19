@@ -565,8 +565,7 @@ public class MELConverter {
         String attributeKey = attributeKeyToken.toString();
         String tokenResult = attributeKey.equals("headers")
                 ? convertHeaderAccess(ctx, paramAccessToken.toString())
-                : convertAttributeAccess(attributeKey,
-                        ConversionUtils.convertToBalIdentifier(paramAccessToken.toString()));
+                : convertAttributeAccess(attributeKey, paramAccessToken.toString());
         result.append(tokenResult);
         boolean queryParamValue = attributeKey.equals("queryParams") && !paramAccessToken.isEmpty();
         if (addToStringCalls && !(queryParamValue && keepsNilQueryParam(melExpr.substring(i)))) {
@@ -632,7 +631,7 @@ public class MELConverter {
             default -> {
                 resultantStr.append(Constants.ATTRIBUTES_FIELD_ACCESS).append("[\"%s\"]".formatted(attributeKey));
                 if (!paramName.isEmpty()) {
-                    resultantStr.append(".").append(paramName);
+                    resultantStr.append(".").append(ConversionUtils.convertToBalIdentifier(paramName));
                 }
             }
         }

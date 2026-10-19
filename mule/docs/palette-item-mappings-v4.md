@@ -4700,6 +4700,92 @@ public function demoFlow(Context ctx) {
 
 ```
 
+- ### Http Request With Special Param Names
+
+**Input (http_request_with_special_param_names.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders/{order-id}/{type}" allowedMethods="GET"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders/{id}/{kind}">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : attributes.uriParams.'order-id',
+	"kind" : attributes.uriParams.'type'
+}]]]></http:uri-params>
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"page-size" : attributes.queryParams.'page-size',
+	"limit" : attributes.queryParams.limit,
+	"2fa" : attributes.queryParams.'2fa'
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_special_param_names.bal):**
+```ballerina
+import ballerina/http;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders/[string order\-id]/[string 'type](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {order\-id, 'type}}};
+
+        // http client request
+        http:Client http_request_config = check new ("https://orders.example.com:80");
+        map<string?> uriParams_nilable = {
+            "id": ctx.attributes.uriParams.get("order-id").toString(),
+            "kind": ctx.attributes.uriParams.get("type").toString()
+        };
+        map<string> uriParams = map from string key in uriParams_nilable.keys()
+            where uriParams_nilable.get(key) is string
+            select [key, <string>uriParams_nilable.get(key)];
+        map<string?> queryParams_nilable = {
+            "page-size": (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
+            "limit": (<http:Request>ctx.attributes.request).getQueryParamValue("limit"),
+            "2fa": (<http:Request>ctx.attributes.request).getQueryParamValue("2fa")
+        };
+        map<string> queryParams = map from string key in queryParams_nilable.keys()
+            where queryParams_nilable.get(key) is string
+            select [key, <string>queryParams_nilable.get(key)];
+        http:Response clientResult0 = check http_request_config->/orders/[uriParams.get("id")]/[uriParams.get("kind")].get(params = check queryParams.cloneWithType());
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
 - ### Http Request With Unbound Uri Param
 
 **Input (http_request_with_unbound_uri_param.xml):**
