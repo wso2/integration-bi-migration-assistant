@@ -48,6 +48,7 @@ public sealed interface Resource {
         HTTP_CLIENT,
         JMS_SHARED,
         SFTP,
+        DATA_FORMAT,
         SHARED_VARIABLE
     }
 
@@ -120,6 +121,28 @@ public sealed interface Resource {
         @Override
         public @NotNull ResourceKind kind() {
             return ResourceKind.SFTP;
+        }
+    }
+
+    record DataFormatResource(String name, String path, String columnSeparator, String lineSeparator,
+                              String rowNamespace, String rowName, List<String> fieldNames) implements Resource {
+
+        public DataFormatResource {
+            assert path != null && !path.isEmpty() : "Data format resource path must not be empty";
+            assert !columnSeparator.isEmpty() : "Data format column separator must not be empty";
+            assert !lineSeparator.isEmpty() : "Data format line separator must not be empty";
+            assert !rowName.isEmpty() : "Data format row element name must not be empty";
+            fieldNames = List.copyOf(fieldNames);
+        }
+
+        @Override
+        public Collection<SubstitutionBinding> substitutionBindings() {
+            return List.of();
+        }
+
+        @Override
+        public @NotNull ResourceKind kind() {
+            return ResourceKind.DATA_FORMAT;
         }
     }
 

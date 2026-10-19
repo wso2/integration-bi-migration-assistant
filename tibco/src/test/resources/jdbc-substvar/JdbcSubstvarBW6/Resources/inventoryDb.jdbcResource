@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jdbc="http://xsd.tns.tibco.com/amf/models/sharedresource/jdbc" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:subject="http://xsd.tns.tibco.com/trinity/models/identity/subject" name="inventoryDb" type="jdbc:JdbcDataSource">
+  <jndi:reference key="subjectJndiName" type="subject:SubjectConfiguration" value=""/>
+  <jndi:configuration xsi:type="jdbc:JdbcDataSource" username="demo" password="">
+    <connectionConfig xsi:type="jdbc:NonXaConnection" jdbcDriver="tibcosoftwareinc.jdbc.oracle.OracleDriver" dbURL="jdbc:tibcosoftwareinc:oracle://localhost:1521;SID=DEMO"/>
+  </jndi:configuration>
+</jndi:namedResource>

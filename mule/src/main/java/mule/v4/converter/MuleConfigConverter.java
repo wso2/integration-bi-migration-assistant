@@ -29,6 +29,7 @@ import mule.v4.dataweave.converter.DWReader;
 import mule.v4.dataweave.converter.DWUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -89,6 +90,7 @@ import static mule.v4.model.MuleModel.OnErrorContinue;
 import static mule.v4.model.MuleModel.OnErrorPropagate;
 import static mule.v4.model.MuleModel.ExpressionComponent;
 import static mule.v4.model.MuleModel.FlowReference;
+import static mule.v4.model.MuleModel.HTTPRequestConfig;
 import static mule.v4.model.MuleModel.HttpRequest;
 import static mule.v4.model.MuleModel.Kind;
 import static mule.v4.model.MuleModel.LogLevel;
@@ -114,6 +116,7 @@ public class MuleConfigConverter {
     private static final String RESPONSE_HEADERS_VAR = "responseHeaders";
     private static final String HEADER_NAME_VAR = "headerName";
     private static final String HEADER_VALUE_VAR = "headerValue";
+    private static final String REQUEST_URI_PARAMS_VAR = "uriParams";
     /**
      * Names the statements that write {@code http:headers} to a response declare in the resource body.
      */
@@ -332,10 +335,14 @@ public class MuleConfigConverter {
                 return convertEnricher(ctx, enricher);
             }
             case HttpRequest httpRequest -> {
-                return convertHttpRequest(ctx, httpRequest);
+                WorkerStatementResult result = convertHttpRequest(ctx, httpRequest);
+                ctx.attributesOrigin = Context.AttributesOrigin.HTTP_REQUEST;
+                return result;
             }
             case Database database -> {
-                return convertDatabase(ctx, database);
+                WorkerStatementResult result = convertDatabase(ctx, database);
+                ctx.attributesOrigin = Context.AttributesOrigin.NONE;
+                return result;
             }
             case Async async -> {
                 return convertAsync(ctx, async);
@@ -368,6 +375,7 @@ public class MuleConfigConverter {
                 return convertAnypointMqPublish(ctx, publish);
             }
             case UnsupportedBlock unsupportedBlock -> {
+                ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
                 return convertUnsupportedBlock(ctx, unsupportedBlock);
             }
             case null -> throw new IllegalStateException();
@@ -766,7 +774,8 @@ public class MuleConfigConverter {
             path = extractVariables(ctx, httpRequest.path());
         } else {
             try {
-                path = getBallerinaClientResourcePath(ctx, httpRequest.path());
+                path = getBallerinaClientResourcePath(ctx, httpRequest.path(),
+                        httpRequest.uriParamsScript().map(script -> REQUEST_URI_PARAMS_VAR));
             } catch (ScriptConversionException e) {
                 stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
                 return new WorkerStatementResult(stmts);
@@ -778,14 +787,15 @@ public class MuleConfigConverter {
 
         stmts.add(stmtFrom("\n\n// http client request\n"));
         String escapedConfigRef = ConversionUtils.convertToBalIdentifier(httpRequest.configRef());
-        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s);", escapedConfigRef, url)));
+        stmts.add(stmtFrom(String.format("http:Client %s = check new(%s%s);", escapedConfigRef, url,
+                clientTimeoutArg(ctx, httpRequest, stmts))));
 
         String headersVar = httpRequest.headersScript()
                 .map(script -> processMapScript(ctx, script, stmts, "headers"))
                 .orElse(null);
 
         String uriParamsVar = httpRequest.uriParamsScript()
-                .map(script -> processMapScript(ctx, script, stmts, "uriParams"))
+                .map(script -> processMapScript(ctx, script, stmts, REQUEST_URI_PARAMS_VAR))
                 .orElse(null);
 
         String queryParamsVar = httpRequest.queryParamsScript()
@@ -819,6 +829,9 @@ public class MuleConfigConverter {
         } else {
             // Build HTTP request parameters
             List<String> params = new ArrayList<>();
+            if (headersVar != null) {
+                params.add(headersVar);
+            }
             String queryParamsStr;
             try {
                 queryParamsStr = genQueryParam(ctx, queryParams);
@@ -829,14 +842,8 @@ public class MuleConfigConverter {
             if (!queryParamsStr.isEmpty()) {
                 params.add(queryParamsStr);
             }
-            if (headersVar != null) {
-                params.add(headersVar);
-            }
-            if (uriParamsVar != null) {
-                params.add(uriParamsVar);
-            }
             if (queryParamsVar != null) {
-                params.add(queryParamsVar);
+                params.add("params = check %s.cloneWithType()".formatted(queryParamsVar));
             }
 
             stmts.add(stmtFrom("%s %s = check %s->%s.%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
@@ -850,6 +857,23 @@ public class MuleConfigConverter {
         }
 
         return new WorkerStatementResult(stmts);
+    }
+
+    private static String clientTimeoutArg(Context ctx, HttpRequest httpRequest, List<Statement> stmts) {
+        // Mule uses the first timeout set, in this order
+        Optional<String> responseTimeout = httpRequest.responseTimeout()
+                .or(() -> Optional.ofNullable(ctx.projectCtx.getHttpRequestConfig(httpRequest.configRef()))
+                        .flatMap(HTTPRequestConfig::responseTimeout))
+                .or(() -> ctx.projectCtx.defaultResponseTimeout);
+        if (responseTimeout.isEmpty()) {
+            return "";
+        }
+        if (!responseTimeout.get().matches("\\d+")) {
+            stmts.add(new Statement.Comment("TODO: failed to convert responseTimeout " + responseTimeout.get()));
+            return "";
+        }
+        return ", timeout = " + new BigDecimal(responseTimeout.get()).movePointLeft(3).stripTrailingZeros()
+                .toPlainString();
     }
 
     private static String generateRequestPathBuilder(Context ctx, String todoComment) {

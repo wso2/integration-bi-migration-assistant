@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable value="#['C100']" doc:name="Set Customer Id" variableName="customerId"/>
+        <set-variable value="#['1001']" doc:name="Set Order Id" variableName="orderId"/>
+        <set-variable value="#['en']" doc:name="Set Language" variableName="language"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/customers/{customerId}/orders/{order-id}">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type" : "application/json"
+}]]]></http:headers>
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"customerId" : vars.customerId,
+	"order-id" : vars.orderId
+}]]]></http:uri-params>
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"language" : vars.language
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
