@@ -7314,6 +7314,86 @@ public function mule6demoFlow(Context ctx) {
 
 ```
 
+- ### Transform Message With Quoted Attribute Names
+
+**Input (transform_message_with_quoted_attribute_names.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders/{order-id}" allowedMethods="GET"/>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    apiKey: attributes.headers.'x-api-key',
+    orderId: attributes.uriParams.'order-id',
+    pageSize: attributes.queryParams.'page-size',
+    sortBy: attributes.queryParams."sort-by" default "date"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_quoted_attribute_names.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders/[string order\-id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {order\-id}}};
+        json _dwOutput_ = check transformMessage(ctx);
+        ctx.vars._dwOutput_ = _dwOutput_;
+        ctx.payload = _dwOutput_;
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function transformMessage(Context ctx) returns json|error => {
+    "apiKey": check ((<http:Request>ctx.attributes.request).hasHeader("x-api-key") ? (<http:Request>ctx.attributes.request).getHeader("x-api-key") : error("no such header")),
+    "orderId": check (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : error("no such uri param")),
+    "pageSize": check (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
+    "sortBy": (check (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by")) ?: "date"
+};
+
+```
+
 - ### Transform Message With Simple Value
 
 **Input (transform_message_with_simple_value.xml):**

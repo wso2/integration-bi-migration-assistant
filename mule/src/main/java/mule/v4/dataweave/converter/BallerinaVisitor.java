@@ -1289,7 +1289,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitKeySelector(DataWeaveParser.KeySelectorContext ctx) {
         assert dwContext.inKeyAccess;
-        dwContext.append(ctx.STRING().getText());
+        String quotedKey = ctx.STRING().getText();
+        dwContext.append(quotedKey.substring(1, quotedKey.length() - 1));
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;
