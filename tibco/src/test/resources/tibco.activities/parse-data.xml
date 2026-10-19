@@ -1,0 +1,41 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ParseOrders-input"
+                             name="ParseOrders"
+                             outputVariable="ParseOrders"
+                             tibex:xpdlId="5d1f3a7c-2b84-4e9a-9c61-7f0e8b2a4d13"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToParseOrders"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ParseOrdersToEnd"/>
+            <bpws:source linkName="ParseOrdersToReportError" tibex:faultDetailsVar="ParseOrders"
+                         tibex:faultNameVar="FaultName">
+                <tibex:DesignExpression>
+                    <tibex:expression expression="##error##"
+                                      expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"/>
+                </tibex:DesignExpression>
+                <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+            </bpws:source>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/parse/xsd/+5d1f3a7c-2b84-4e9a-9c61-7f0e8b2a4d13+input&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;InboundDir&quot;/>&lt;xsl:param name=&quot;BatchSize&quot;/>&lt;xsl:param name=&quot;batchIndex&quot;/>&lt;xsl:template name=&quot;ParseOrders-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;fileName>&lt;xsl:value-of select=&quot;concat($InboundDir, 'orders.txt')&quot;/>&lt;/fileName>&lt;startRecord>&lt;xsl:value-of select=&quot;(($batchIndex - 1) * $BatchSize) + 1&quot;/>&lt;/startRecord>&lt;noOfRecords>&lt;xsl:value-of select=&quot;$BatchSize&quot;/>&lt;/noOfRecords>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.parse.parsedata"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:parse="http://ns.tibco.com/bw/palette/parse"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/parse#//ParseData"/>
+                        <value dataFormat="orderFormat" encoding="ASCII" inputType="File"
+                               manuallySpecifiedStartRecord="true" xsi:type="parse:ParseData"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

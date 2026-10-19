@@ -71,6 +71,7 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>(),
+            new HashSet<>(),
             new HashSet<>());
     private Set<Process> currentProcesses = new HashSet<>();
 
@@ -105,6 +106,12 @@ public class ProjectAnalysisContext implements LoggingContext {
         xsdTypes.values().stream().map(XSD.XSDType::names).flatMap(Collection::stream).forEach(typeName -> {
             names.add(typeName);
             names.add(ConversionUtils.sanitizes(typeName));
+        });
+        currentProcesses.forEach(process -> {
+            String processName = ConversionUtils.sanitizes(process.name());
+            names.add(ConversionUtils.processFunctionName(process));
+            names.add(processName + "_listener");
+            names.add(processName + "_client");
         });
         return names;
     }
@@ -185,6 +192,8 @@ public class ProjectAnalysisContext implements LoggingContext {
                 capturedResources.sftpResources().add(sftpResource);
             case Resource.SAPConnectionResource sapConnectionResource ->
                 capturedResources.sapConnectionResources().add(sapConnectionResource);
+            case Resource.DataFormatResource dataFormatResource ->
+                capturedResources.dataFormatResources().add(dataFormatResource);
             case Resource.SharedVariable sharedVariable ->
                 capturedResources.sharedVariables().add(sharedVariable);
         }

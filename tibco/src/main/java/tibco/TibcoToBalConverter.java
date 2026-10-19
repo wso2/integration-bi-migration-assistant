@@ -95,11 +95,13 @@ public class TibcoToBalConverter {
         java.util.Set<Resource.SFTPResource> sftpResources = SFTP_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.SAPConnectionResource> sapConnectionResources =
                 SAP_CONNECTION_RESOURCE_PARSING_UNIT.parse(pcx);
+        java.util.Set<Resource.DataFormatResource> dataFormatResources = DATA_FORMAT_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.SharedVariable> sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
 
         return new tibco.converter.ProjectConverter.ProjectResources(jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
-                jmsSharedResource, sftpResources, sapConnectionResources, sharedVariables);
+                jmsSharedResource, sftpResources, sapConnectionResources, dataFormatResources,
+                sharedVariables);
     }
 
 
@@ -149,6 +151,11 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     (String projectPath) -> getFilesWithExtension(projectPath, "sapconnectionResource"),
                     XmlToTibcoModelParser::parseSAPConnectionResource,
+                    TibcoToBalConverter::getResourceContext);
+    private static final ParsingUnit<Resource.DataFormatResource> DATA_FORMAT_RESOURCE_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
+                    (String projectPath) -> getFilesWithExtension(projectPath, "dataFormatResource"),
+                    XmlToTibcoModelParser::parseDataFormatResource,
                     TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.SharedVariable> SHARED_VARIABLE_PARSING_UNIT = new ParsingUnit<>() {
         @Override

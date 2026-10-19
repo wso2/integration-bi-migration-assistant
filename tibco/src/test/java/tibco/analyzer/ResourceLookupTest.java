@@ -40,7 +40,7 @@ public class ResourceLookupTest {
         ProjectResources projectResources = new ProjectResources(
                 List.of(localResource), new ArrayList<>(), new ArrayList<>(),
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-                new ArrayList<>());
+                new ArrayList<>(), new ArrayList<>());
 
         // Create contexts
         ConversionContext conversionContext = new ConversionContext("test-org", false, false,
@@ -70,7 +70,7 @@ public class ResourceLookupTest {
         ProjectResources globalProjectResources = new ProjectResources(
                 new ArrayList<>(), new ArrayList<>(), List.of(globalResource),
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-                new ArrayList<>());
+                new ArrayList<>(), new ArrayList<>());
 
         ProjectConversionContext projectConversionContext =
                 new ProjectConversionContext(conversionContext, "test-project");
@@ -79,7 +79,7 @@ public class ResourceLookupTest {
         ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(projectConversionContext,
                 new ProjectResources(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                         new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-                        new ArrayList<>()));
+                        new ArrayList<>(), new ArrayList<>()));
 
         // Test lookup
         Resource.ResourceIdentifier identifier =
@@ -105,7 +105,7 @@ public class ResourceLookupTest {
         ProjectAnalysisContext analysisContext = new ProjectAnalysisContext(projectConversionContext,
                 new ProjectResources(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                         new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-                        new ArrayList<>()));
+                        new ArrayList<>(), new ArrayList<>()));
 
         // Test lookup for non-existent resource
         Resource.ResourceIdentifier identifier =
@@ -127,7 +127,7 @@ public class ResourceLookupTest {
         ProjectResources projectResources = new ProjectResources(
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 new ArrayList<>(), new ArrayList<>(), List.of(resource), new ArrayList<>(), new ArrayList<>(),
-                new ArrayList<>());
+                new ArrayList<>(), new ArrayList<>());
 
         // Create contexts
         ConversionContext conversionContext = new ConversionContext("test-org", false, false,

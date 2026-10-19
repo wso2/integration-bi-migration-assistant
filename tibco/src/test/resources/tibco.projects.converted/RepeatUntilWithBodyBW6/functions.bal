@@ -16,11 +16,10 @@ function GroupStart(Context cx) returns error? {
 function LogIteration(Context cx) returns error? {
     xml var0 = getFromContext(cx, "LogIteration-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0">
-    <xsl:template name="LogIteration-input" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns="http://www.tibco.com/pe/WriteToLogActivitySchema" version="2.0"><xsl:param name="post"/>    <xsl:template name="LogIteration-input" match="/">
         <tns:ActivityInput>
             <message>
-                <xsl:value-of select="concat('Processing: ', $post/request)"/>
+                <xsl:value-of select="concat(&quot;Processing: &quot;, $post/root/request)"/>
             </message>
         </tns:ActivityInput>
     </xsl:template>
@@ -82,7 +81,7 @@ function SendHTTPResponse(Context cx) returns error? {
             </asciiContent>
             <Headers>
                 <Content-Type>
-                    <xsl:value-of select="'application/json'"/>
+                    <xsl:value-of select="&quot;application/json&quot;"/>
                 </Content-Type>
             </Headers>
         </tns1:ResponseActivityInput>

@@ -415,6 +415,8 @@ public class Context extends ContextBase {
         public final Map<String, List<ApiKitFlowName>> apiKitFlows = new LinkedHashMap<>();
         // Autodiscoveries of all files, since one usually sits in a global file apart from the flow it names
         public final List<MuleModel.ApiAutodiscovery> apiAutodiscoveries = new ArrayList<>();
+        // defaultResponseTimeout of the <configuration> element, which applies to the requests of all files
+        public Optional<String> defaultResponseTimeout = Optional.empty();
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();

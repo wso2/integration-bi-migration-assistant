@@ -25,6 +25,8 @@
     - `bw.sftp.dir`
     - `bw.sftp.get`
     - `bw.sftp.put`
+    - `bw.parse.parsedata` (delimited Data Format resources only)
+    - `bw.parse.renderdata` (delimited Data Format resources only)
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`

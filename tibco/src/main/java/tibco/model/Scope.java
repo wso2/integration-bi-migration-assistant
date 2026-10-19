@@ -442,6 +442,47 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return ExtensionKind.SFTP_PUT;
                         }
                     }
+                  
+                    record ParseData(String dataFormat, InputType inputType, String encoding,
+                                     boolean skipBlankLines, boolean manuallySpecifiedStartRecord,
+                                     boolean continueOnError) implements ActivityExtension.Config {
+
+                        public ParseData {
+                            assert !dataFormat.isEmpty();
+                            assert inputType != null;
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.PARSE_DATA;
+                        }
+
+                        public enum InputType {
+                            FILE,
+                            STRING;
+
+                            public static @NotNull InputType from(String inputType) {
+                                return switch (inputType) {
+                                    case "File" -> FILE;
+                                    case "String", "" -> STRING;
+                                    default -> throw new IllegalArgumentException(
+                                            "Unknown Parse Data input type: " + inputType);
+                                };
+                            }
+                        }
+                    }
+
+                    record RenderData(String dataFormat) implements ActivityExtension.Config {
+
+                        public RenderData {
+                            assert !dataFormat.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.RENDER_DATA;
+                        }
+                    }
 
                     record SAPInvoke(String sapConnection, String functionName, Set<String> tableParameters,
                                      Set<String> importTableParameters, String schemaPath, boolean schemaResolved)
@@ -625,6 +666,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         SFTP_PUT,
                         SFTP_RENAME_FILE,
                         SAP_INVOKE,
+                        PARSE_DATA,
+                        RENDER_DATA,
                         MAPPER,
                         BW_ASSIGN,
                         SQL;
@@ -646,6 +689,8 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.sftp.get" -> SFTP_GET;
                                 case "bw.sftp.put" -> SFTP_PUT;
                                 case "bw.sap.InvokeRequestResponse" -> SAP_INVOKE;
+                                case "bw.parse.parsedata" -> PARSE_DATA;
+                                case "bw.parse.renderdata" -> RENDER_DATA;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;
