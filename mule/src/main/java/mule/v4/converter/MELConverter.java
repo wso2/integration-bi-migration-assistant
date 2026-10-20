@@ -568,7 +568,8 @@ public class MELConverter {
                 : convertAttributeAccess(attributeKey, paramAccessToken.toString());
         result.append(tokenResult);
         boolean queryParamValue = attributeKey.equals("queryParams") && !paramAccessToken.isEmpty();
-        if (addToStringCalls && !(queryParamValue && keepsNilQueryParam(melExpr.substring(i)))) {
+        if (addToStringCalls && !(queryParamValue
+                && keepsNilQueryParam(melExpr.substring(0, startPos - baseToken.length()), melExpr.substring(i)))) {
             result.append(".toString()");
         }
 
@@ -576,11 +577,12 @@ public class MELConverter {
         return i;
     }
 
-    // Before a default, or as a map value, a missing query param stays nil. An http:request leaves a nil map value
-    // out, which listeners read the same as the bare name Mule sends.
-    private static boolean keepsNilQueryParam(String rest) {
-        String next = rest.stripLeading();
-        return DEFAULT_OPERATOR.matcher(next).lookingAt() || next.startsWith(",") || next.startsWith("}");
+    // Before a default, or as a whole map value, a missing query param stays nil. An http:request leaves a nil map
+    // value out, which listeners read the same as the bare name Mule sends.
+    private static boolean keepsNilQueryParam(String before, String after) {
+        String next = after.stripLeading();
+        return DEFAULT_OPERATOR.matcher(next).lookingAt()
+                || before.stripTrailing().endsWith(":") && (next.startsWith(",") || next.startsWith("}"));
     }
 
     private static String convertHeaderAccess(Context ctx, String headerName) {

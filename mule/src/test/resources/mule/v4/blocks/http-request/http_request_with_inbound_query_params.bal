@@ -32,6 +32,7 @@ service /mule4 on listener_config {
             "language": (<http:Request>ctx.attributes.request).getQueryParamValue("language"),
             "currency": (<http:Request>ctx.attributes.request).getQueryParamValue("currency") ?: "USD",
             "channel": (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() != "" ? (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() : (),
+            "keyword": "prefix-" + (<http:Request>ctx.attributes.request).getQueryParamValue("keyword").toString(),
             "source": "web"
         };
         map<string> queryParams = map from string key in queryParams_nilable.keys()

@@ -4340,6 +4340,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	"language" : attributes.queryParams.language,
 	"currency" : attributes.queryParams.currency default "USD",
 	("channel" : attributes.queryParams.channel) if(!isEmpty(attributes.queryParams.channel)),
+	"keyword" : "prefix-" ++ attributes.queryParams.keyword,
 	"source" : "web"
 }]]]></http:query-params>
         </http:request>
@@ -4383,6 +4384,7 @@ service /mule4 on listener_config {
             "language": (<http:Request>ctx.attributes.request).getQueryParamValue("language"),
             "currency": (<http:Request>ctx.attributes.request).getQueryParamValue("currency") ?: "USD",
             "channel": (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() != "" ? (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() : (),
+            "keyword": "prefix-" + (<http:Request>ctx.attributes.request).getQueryParamValue("keyword").toString(),
             "source": "web"
         };
         map<string> queryParams = map from string key in queryParams_nilable.keys()
