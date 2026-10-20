@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="foo" xmlns="http://ws.apache.org/ns/synapse">
+    <payloadFactory media-type="json">
+        <format>{"Hello":"World"}</format>
+    </payloadFactory>
+    <respond/>
+</sequence>

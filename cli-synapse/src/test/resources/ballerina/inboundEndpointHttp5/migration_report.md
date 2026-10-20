@@ -1,25 +1,13 @@
 # Synapse to Ballerina migration report
 
-2 Synapse constructs could not be automatically converted and were left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
+1 Synapse construct could not be automatically converted and was left as TODOs in the generated code. Each entry shows the source file and the original Synapse code; review and migrate them manually.
 
-## Unsupported mediator (2)
+## Unresolved fault sequence (1)
 
-### `<log>` — HttpInboundFaultSeq.xml
+### `<onError>` — inboundEndpoint.xml
 
-Mediator not supported; manual conversion required.
-
-```xml
-<log category="ERROR" xmlns="http://ws.apache.org/ns/synapse">
-        <message>Inbound error: ${properties.synapse.ERROR_MESSAGE}</message>
-    </log>
-```
-
-### `<log>` — HttpInboundSeq.xml
-
-Mediator not supported; manual conversion required.
+Referenced fault sequence 'missingFaultSeq' was not found among the converted artifacts; falling back to the default error handler.
 
 ```xml
-<log category="INFO" logFullPayload="true" xmlns="http://ws.apache.org/ns/synapse">
-        <message>Inbound request received</message>
-    </log>
+onError="missingFaultSeq"
 ```

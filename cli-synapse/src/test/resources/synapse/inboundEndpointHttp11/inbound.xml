@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inboundEndpoint name="ComplexPatternInbound" sequence="foo" protocol="http" suspend="false"
+                 xmlns="http://ws.apache.org/ns/synapse">
+    <parameters>
+        <parameter name="inbound.http.port">8098</parameter>
+        <parameter name="dispatch.filter.pattern">/(((((a*)*)*)*)*)b</parameter>
+    </parameters>
+</inboundEndpoint>
