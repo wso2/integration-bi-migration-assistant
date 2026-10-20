@@ -34,7 +34,7 @@ function CheckStatus(Context cx) returns error? {
 function EndSession(Context cx) returns error? {
     xml var0 = getFromContext(cx, "EndSession-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.tibco.com/namespaces/tnt/plugins/restinvoke+4b9e2c71-5d3a-4f86-a0c7-1e8d6f2b9a35+RestInvokeInput" version="2.0"><xsl:template name="EndSession-input" match="/"><tns1:RestActivityInput><MessageBody><asciiContent><xsl:value-of select="'{'reason': 'archive-complete'}'"/></asciiContent></MessageBody></tns1:RestActivityInput></xsl:template></xsl:stylesheet>`);
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.tibco.com/namespaces/tnt/plugins/restinvoke+4b9e2c71-5d3a-4f86-a0c7-1e8d6f2b9a35+RestInvokeInput" version="2.0"><xsl:template name="EndSession-input" match="/"><tns1:RestActivityInput><MessageBody><asciiContent><xsl:value-of select="'{&quot;reason&quot;: &quot;archive-complete&quot;}'"/></asciiContent></MessageBody></tns1:RestActivityInput></xsl:template></xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     // WARNING: REST Invoke path and query parameters are not mapped.
     map<string> var3 = {"Accept": "application/json"};
@@ -65,7 +65,7 @@ function EndSession(Context cx) returns error? {
 function SendNotification(Context cx) returns error? {
     xml var0 = getFromContext(cx, "SendNotification-input");
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.tibco.com/namespaces/tnt/plugins/restinvoke+7c3a1e59-2d84-4b6f-a0e9-6f1b5c8d3a27+RestInvokeInput" version="2.0"><xsl:template name="SendNotification-input" match="/"><tns1:RestActivityInput><MessageBody><asciiContent><xsl:value-of select="'{'event': 'orders-archived'}'"/></asciiContent></MessageBody></tns1:RestActivityInput></xsl:template></xsl:stylesheet>`);
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:tns1="http://www.tibco.com/namespaces/tnt/plugins/restinvoke+7c3a1e59-2d84-4b6f-a0e9-6f1b5c8d3a27+RestInvokeInput" version="2.0"><xsl:template name="SendNotification-input" match="/"><tns1:RestActivityInput><MessageBody><asciiContent><xsl:value-of select="'{&quot;event&quot;: &quot;orders-archived&quot;}'"/></asciiContent></MessageBody></tns1:RestActivityInput></xsl:template></xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     // WARNING: REST Invoke path and query parameters are not mapped.
     map<string> var3 = {"Accept": "application/json"};

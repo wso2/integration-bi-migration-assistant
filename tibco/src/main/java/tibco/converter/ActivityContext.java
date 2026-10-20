@@ -74,6 +74,22 @@ public class ActivityContext implements LoggingContext {
         return processContext.client(sharedResourcePropertyName);
     }
 
+    Optional<Resource.DataFormatResource> dataFormat(String dataFormatPropertyName) {
+        return processContext.dataFormat(dataFormatPropertyName);
+    }
+
+    boolean hasQualifiedDataFormatFields(Resource.DataFormatResource dataFormat) {
+        return processContext.hasQualifiedDataFormatFields(dataFormat);
+    }
+
+    String getParseDelimitedDataFunction() {
+        return processContext.getParseDelimitedDataFunction();
+    }
+
+    String getRenderDelimitedDataFunction() {
+        return processContext.getRenderDelimitedDataFunction();
+    }
+
     public String getNamespaceFixFn() {
         return processContext.getNamespaceFixFn();
     }
