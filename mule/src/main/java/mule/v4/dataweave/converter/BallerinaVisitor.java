@@ -1256,7 +1256,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (headerAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
-            exprBuilder.append(": error(\"no such header\"))");
+            exprBuilder.append(": ())");
         } else if (uriParamAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());

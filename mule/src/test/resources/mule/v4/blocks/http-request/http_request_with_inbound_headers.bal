@@ -23,7 +23,8 @@ service /mule4 on listener_config {
         // http client request
         http:Client http_request_config = check new ("https://orders.example.com:80");
         map<string?> headers_nilable = {
-            "orderType": getOptionalHeader(<http:Request>ctx.attributes.request, "orderType").toString(),
+            "orderType": getOptionalHeader(<http:Request>ctx.attributes.request, "orderType"),
+            "lang": getOptionalHeader(<http:Request>ctx.attributes.request, "lang") ?: "en",
             "crmId": getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() != "" ? getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() : (),
             "Content-Type": "application/json"
         };

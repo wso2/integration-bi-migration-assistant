@@ -4256,6 +4256,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 ---
 {
 	"orderType" : attributes.headers.'orderType',
+	"lang" : attributes.headers.'lang' default "en",
 	("crmId" : attributes.headers.'crmId') if(!isEmpty(attributes.headers.'crmId')),
 	"Content-Type" : "application/json"
 }]]]></http:headers>
@@ -4292,7 +4293,8 @@ service /mule4 on listener_config {
         // http client request
         http:Client http_request_config = check new ("https://orders.example.com:80");
         map<string?> headers_nilable = {
-            "orderType": getOptionalHeader(<http:Request>ctx.attributes.request, "orderType").toString(),
+            "orderType": getOptionalHeader(<http:Request>ctx.attributes.request, "orderType"),
+            "lang": getOptionalHeader(<http:Request>ctx.attributes.request, "lang") ?: "en",
             "crmId": getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() != "" ? getOptionalHeader(<http:Request>ctx.attributes.request, "crmId").toString() : (),
             "Content-Type": "application/json"
         };
@@ -7316,6 +7318,84 @@ public function mule6demoFlow(Context ctx) {
 
 ```
 
+- ### Transform Message With Optional Header
+
+**Input (transform_message_with_optional_header.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="demoFlow">
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders" allowedMethods="GET"/>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    token: attributes.headers.token,
+    tokenOrDefault: attributes.headers.token default "none",
+    noToken: attributes.headers.token == null
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_optional_header.bal):**
+```ballerina
+import ballerina/http;
+
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        json _dwOutput_ = check transformMessage(ctx);
+        ctx.vars._dwOutput_ = _dwOutput_;
+        ctx.payload = _dwOutput_;
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function transformMessage(Context ctx) returns json|error => {
+    "token": check ((<http:Request>ctx.attributes.request).hasHeader("token") ? (<http:Request>ctx.attributes.request).getHeader("token") : ()),
+    "tokenOrDefault": (check ((<http:Request>ctx.attributes.request).hasHeader("token") ? (<http:Request>ctx.attributes.request).getHeader("token") : ())) ?: "none",
+    "noToken": check ((<http:Request>ctx.attributes.request).hasHeader("token") ? (<http:Request>ctx.attributes.request).getHeader("token") : ()) == ()
+};
+
+```
+
 - ### Transform Message With Quoted Attribute Names
 
 **Input (transform_message_with_quoted_attribute_names.xml):**
@@ -7388,7 +7468,7 @@ service /mule4 on listener_config {
 }
 
 public function transformMessage(Context ctx) returns json|error => {
-    "apiKey": check ((<http:Request>ctx.attributes.request).hasHeader("x-api-key") ? (<http:Request>ctx.attributes.request).getHeader("x-api-key") : error("no such header")),
+    "apiKey": check ((<http:Request>ctx.attributes.request).hasHeader("x-api-key") ? (<http:Request>ctx.attributes.request).getHeader("x-api-key") : ()),
     "orderId": check (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : error("no such uri param")),
     "pageSize": check (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
     "sortBy": (check (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by")) ?: "date"
