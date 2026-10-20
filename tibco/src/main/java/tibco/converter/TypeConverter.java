@@ -30,7 +30,11 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.MapTypeDesc;
 import common.CodeGenerator;
 import common.LoggingUtils;
+import io.ballerina.compiler.syntax.tree.ConstantDeclarationNode;
+import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
@@ -46,28 +50,49 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
 import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
-class TypeConverter {
+public final class TypeConverter {
 
     private TypeConverter() {
     }
 
-    static @NotNull SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas) {
-        cx.logState("Converting XSD schemas to Ballerina types");
-        String[] content = schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
-                .toArray(String[]::new);
+    public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
+        return generateNodes(schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
+                .toArray(String[]::new));
+    }
 
-        for (int i = 0; i < content.length; i++) {
+    public static @NotNull Set<String> declaredNames(NodeResponse response) {
+        return response.types().members().stream()
+                .map(TypeConverter::declaredName)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+    }
+
+    private static Optional<String> declaredName(ModuleMemberDeclarationNode member) {
+        return switch (member) {
+            case TypeDefinitionNode typeDefinition -> Optional.of(typeDefinition.typeName().text());
+            case EnumDeclarationNode enumDeclaration -> Optional.of(enumDeclaration.identifier().text());
+            case ConstantDeclarationNode constant -> Optional.of(constant.variableName().text());
+            default -> Optional.empty();
+        };
+    }
+
+    static @NotNull SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas,
+                                              Optional<NodeResponse> pregenerated) {
+        cx.logState("Converting XSD schemas to Ballerina types");
+        for (int i = 0; i < schemas.size(); i++) {
             cx.getProjectContext().incrementTypeCount();
         }
         try {
-            NodeResponse response = generateNodes(content);
+            NodeResponse response = pregenerated.orElseGet(() -> generateTypes(schemas));
             logTypeConversionErrors(cx, response);
             SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
             syntaxTree = syntaxTree.modifyWith(response.types());
