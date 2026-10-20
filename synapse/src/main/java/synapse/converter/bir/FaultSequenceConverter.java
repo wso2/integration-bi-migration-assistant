@@ -186,24 +186,22 @@ final class FaultSequenceConverter {
 
     // No faultSequence at all, and no project-level "fault" sequence either: log the error, and respond
     // with an error status and a JSON error payload carrying the caught error's message if this scope has
-    // a reply transport to respond on.
+    // a caller to respond to.
     private static void wrapInDefaultFaultHandler(ResourceContext resourceContext) {
         List<Statement> doBody = extractTrailingStatements(resourceContext);
         resourceContext.importStatements().add(LOG_IMPORT);
         resourceContext.statements().add(new Statement.DoStatement(doBody,
-                new OnFailClause(defaultOnFailBody(resourceContext.supportsReply()), ERROR_BINDING)));
+                new OnFailClause(defaultOnFailBody(resourceContext.hasCaller()), ERROR_BINDING)));
     }
 
-    // Log the error and, if this scope has a reply transport (see ScopeContext#supportsReply), respond
+    // Log the error and, if this scope has a caller (see ScopeContext#hasCaller), respond
     // with an error status and a JSON error payload carrying the caught error's message. respond() is a
     // no-op if the caller has already had a response attempted on it, so this is always safe to call.
-    // A scope with no reply transport (e.g. a jms/file inbound endpoint) only logs: there is no caller to
-    // respond to.
     @NotNull
-    private static List<Statement> defaultOnFailBody(boolean supportsReply) {
+    private static List<Statement> defaultOnFailBody(boolean hasCaller) {
         List<Statement> body = new ArrayList<>(List.of(new Statement.BallerinaStatement(
                 "log:printError(\"" + UNHANDLED_ERROR_LOG_MESSAGE + "\", 'error = " + FAULT_ERROR_VAR + ");")));
-        if (supportsReply) {
+        if (hasCaller) {
             body.add(new Statement.BallerinaStatement(
                     "ctx.payload = {\"error\": " + FAULT_ERROR_VAR + ".message()};"));
             body.add(new Statement.BallerinaStatement("ctx.statusCode = " + UNHANDLED_ERROR_STATUS_CODE + ";"));
