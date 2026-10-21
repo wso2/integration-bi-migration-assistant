@@ -888,7 +888,11 @@ public class MuleToBalConverter {
                 || !segments.requestInterceptorBlocks().isEmpty() || !segments.responseInterceptorBlocks().isEmpty());
         Service service = genBalService(ctx, src, segments.serviceBlocks(), functions, policyTodo(ctx, flow),
                 sharesCorrelationId);
-        if (!segments.requestInterceptorBlocks().isEmpty()) {
+        // An APIkit resource binds its typed parameters before its body runs. When binding fails, the error
+        // interceptor reads the request's ID only if a request interceptor stored it first.
+        boolean storesCorrelationIdFirst = sharesCorrelationId
+                && segments.serviceBlocks().stream().anyMatch(ApiKitRouter.class::isInstance);
+        if (!segments.requestInterceptorBlocks().isEmpty() || storesCorrelationIdFirst) {
             service.httpInterceptors().add(genRequestInterceptor(ctx, segments.requestInterceptorBlocks()));
         }
         if (hasErrorInterceptor) {
@@ -954,10 +958,14 @@ public class MuleToBalConverter {
         ctx.inServiceGen = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         List<Statement> body = new ArrayList<>();
-        body.add(stmtFrom("Context %s = {%s: {%s: %s, %s: new}%s};".formatted(
-                Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF, Constants.HTTP_REQUEST_REF,
-                Constants.HTTP_REQUEST_REF, Constants.HTTP_RESPONSE_REF, requestCorrelationIdField(ctx, true))));
-        body.addAll(convertTopLevelMuleBlocks(ctx, flowBlocks));
+        if (flowBlocks.isEmpty()) {
+            body.add(stmtFrom("_ = %s;".formatted(requestCorrelationId(ctx, true))));
+        } else {
+            body.add(stmtFrom("Context %s = {%s: {%s: %s, %s: new}%s};".formatted(
+                    Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF, Constants.HTTP_REQUEST_REF,
+                    Constants.HTTP_REQUEST_REF, Constants.HTTP_RESPONSE_REF, requestCorrelationIdField(ctx, true))));
+            body.addAll(convertTopLevelMuleBlocks(ctx, flowBlocks));
+        }
         body.add(stmtFrom("return requestContext.next();"));
 
         List<Parameter> parameters = List.of(
@@ -1208,10 +1216,6 @@ public class MuleToBalConverter {
                 fallbackBody.add(stmtFrom(("\n// TODO: The APIkit router listener path '%s' is not a fixed path, so "
                         + "the APIkit resources of this service are generated without it as their path prefix\n")
                         .formatted(httpListener.resourcePath())));
-            }
-            if (sharesCorrelationId) {
-                // The error interceptor answers this error with the request's ID
-                fallbackBody.add(stmtFrom("_ = %s;".formatted(requestCorrelationId(ctx, true))));
             }
             fallbackBody.add(stmtFrom("return error %s(\"APIKIT:NOT_FOUND\");"
                     .formatted(ConversionUtils.declareErrorType(ctx, "APIKIT:NOT_FOUND"))));

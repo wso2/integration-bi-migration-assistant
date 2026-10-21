@@ -57,6 +57,12 @@ public class CorrelationIdTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testCorrelationIdWithApiKitErrorHandler() {
+        testMule4ToBal("correlation-id/correlation_id_with_apikit_error_handler.xml",
+                "correlation-id/correlation_id_with_apikit_error_handler.bal");
+    }
+
+    @Test
     public void testCorrelationIdWithoutHttpSource() {
         testMule4ToBal("correlation-id/correlation_id_without_http_source.xml",
                 "correlation-id/correlation_id_without_http_source.bal");

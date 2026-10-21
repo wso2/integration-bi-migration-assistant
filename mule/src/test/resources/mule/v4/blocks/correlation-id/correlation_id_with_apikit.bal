@@ -33,7 +33,6 @@ service http:InterceptableService / on listener\-config {
     }
 
     resource function default api/[string... path](http:Request request, http:RequestContext requestContext) returns http:Response|error {
-        _ = getSharedCorrelationId(requestContext, request);
         return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
     }
 
