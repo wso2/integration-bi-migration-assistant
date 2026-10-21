@@ -580,6 +580,12 @@ public class TibcoConverter {
             tomlContent.append("\n");
             tomlContent.append(each.dependencyParam);
         }
+        cx.javaClassesByPackage().forEach((packageName, classNames) -> tomlContent.append("""
+
+                # TODO: Package the Java classes called by Java Invoke activities (%s) into this jar.
+                [[platform.java21.dependency]]
+                path = "./libs/%s.jar"
+                """.formatted(String.join(", ", classNames), packageName)));
         return tomlContent.toString();
     }
 

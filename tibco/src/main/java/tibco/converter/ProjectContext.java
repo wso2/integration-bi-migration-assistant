@@ -87,6 +87,7 @@ public class ProjectContext implements LoggingContext {
     private final Map<String, BallerinaModel.ModuleTypeDef> utilityTypeDefs = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
+    private final Map<String, JavaInvokeFunction> javaInvokeFunctions = new HashMap<>();
     private final Map<String, String> processClients = new HashMap<>();
 
     private String toXMLFunction = null;
@@ -871,6 +872,27 @@ public class ProjectContext implements LoggingContext {
         ComptimeFunction getSharedVariable = new GetSharedVariable(getContextTypeNames());
         utilityCompTimeFunctions.add(getSharedVariable);
         return getSharedVariable.functionName();
+    }
+
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        String signature = className + "#" + methodName + parameterTypes + "->" + returnType.map(JavaType::name)
+                .orElse("void");
+        JavaInvokeFunction function = javaInvokeFunctions.get(signature);
+        if (function == null) {
+            Set<String> takenNames = javaInvokeFunctions.values().stream()
+                    .map(JavaInvokeFunction::functionName)
+                    .collect(Collectors.toSet());
+            String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
+            function = new JavaInvokeFunction(
+                    ConversionUtils.getSanitizedUniqueName(simpleClassName + "_" + methodName, takenNames),
+                    className, methodName, parameterNames, parameterTypes, returnType);
+            javaInvokeFunctions.put(signature, function);
+            utilityCompTimeFunctions.add(function);
+            importLibraryIfNeededToUtility(Library.JAVA);
+            conversionContext.addJavaClassDependency(className);
+        }
+        return function.functionName();
     }
 
     public @NotNull String getSftpDeleteFilesFunction() {

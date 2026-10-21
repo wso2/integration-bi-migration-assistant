@@ -523,6 +523,12 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return projectContext.getFilesInPathFunction();
     }
 
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        return projectContext.getJavaInvokeFunction(className, methodName, parameterNames, parameterTypes,
+                returnType);
+    }
+
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
         projectContext.registerUnhandledActivity(activity, e);
     }

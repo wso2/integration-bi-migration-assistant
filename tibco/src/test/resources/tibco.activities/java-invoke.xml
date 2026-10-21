@@ -1,0 +1,37 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ArchiveReports-input"
+                             name="ArchiveReports"
+                             outputVariable="ArchiveReports"
+                             tibex:xpdlId="2f6c1e9a-7d43-4b8e-a5c2-91e0d3b7f468"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToArchiveReports"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ArchiveReportsToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;www.tibco.com/plugin/java/JavaInvokeActivityInput+2f6c1e9a-7d43-4b8e-a5c2-91e0d3b7f468+JavaInvokeActivityInput&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;ArchiveReports-input&quot; match=&quot;/&quot;>&lt;tns:JavaInvokeActivityInput>&lt;MethodParameters>&lt;target>&lt;xsl:value-of select=&quot;$Start/archiveName&quot;/>&lt;/target>&lt;xsl:for-each select=&quot;$Start/report&quot;>&lt;sources>&lt;xsl:value-of select=&quot;.&quot;/>&lt;/sources>&lt;/xsl:for-each>&lt;/MethodParameters>&lt;/tns:JavaInvokeActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.java.javamethod"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:java="http://ns.tibco.com/bw/palette/java"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/java#//JavaMethod"/>
+                        <value className="com.example.files.Archiver" isNew="true" isNewActivity="true" isStaticMethod="true"
+                               methodName="archive" methodReturn="void" xsi:type="java:JavaMethod">
+                            <exceptionTypes>java.lang.Exception</exceptionTypes>
+                            <methodParameter paramName="target" paramType="string"/>
+                            <methodParameter paramName="sources" paramType="string[]"/>
+                        </value>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>
