@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="appmodule.Main" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/appmodule/Main"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+    <bpws:scope name="MainScope">
+        <bpws:flow name="mainFlow">
+            <bpws:links>
+                <bpws:link name="StartToCallHelper" tibex:linkType="SUCCESS"/>
+                <bpws:link name="CallHelperToEnd" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:empty name="Start">
+                <bpws:sources>
+                    <bpws:source linkName="StartToCallHelper"/>
+                </bpws:sources>
+            </bpws:empty>
+            <bpws:extensionActivity>
+                <tibex:extActivity
+                        expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;Template&quot; match=&quot;/&quot;>&lt;Request/>&lt;/xsl:template>&lt;/xsl:stylesheet>"
+                        expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"
+                        inputVariable="CallHelper-input"
+                        name="CallHelper"
+                        outputVariable="CallHelper"
+                        type="bw.generalactivities.callprocess">
+                    <bpws:targets>
+                        <bpws:target linkName="StartToCallHelper"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="CallHelperToEnd"/>
+                    </bpws:sources>
+                    <tibex:inputBindings/>
+                    <tibex:CallProcess subProcessName="sharedmodule.subs.Helper"/>
+                </tibex:extActivity>
+            </bpws:extensionActivity>
+            <bpws:empty name="End">
+                <bpws:targets>
+                    <bpws:target linkName="CallHelperToEnd"/>
+                </bpws:targets>
+            </bpws:empty>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

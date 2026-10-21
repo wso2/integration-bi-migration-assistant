@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: sharedmodule
+Bundle-SymbolicName: sharedmodule
+Bundle-Version: 1.0.0
+Provide-Capability: com.tibco.bw.module; name="sharedmodule"
