@@ -22,7 +22,15 @@ var correlationId = "local"
                 <ee:set-variable variableName="ids"><![CDATA[%dw 2.0
 output application/json
 ---
-{"x-correlation-id": correlationId, id: correlationId default "none"}]]></ee:set-variable>
+{
+    local: do {
+        var correlationId = "local"
+        ---
+        correlationId
+    },
+    "x-correlation-id": correlationId,
+    id: correlationId default "none"
+}]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
     </flow>

@@ -47,6 +47,7 @@ public function _dwMethod(Context ctx) returns json {
 }
 
 public function _dwMethod1(Context ctx) returns json|error => {
+    "local": let string correlationId = "local" in correlationId,
     "x-correlation-id": check ctx.correlationId.ensureType(json),
     "id": (<string?>ctx.correlationId) ?: "none"
 };

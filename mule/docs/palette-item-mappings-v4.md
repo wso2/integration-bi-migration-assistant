@@ -1198,7 +1198,15 @@ var correlationId = "local"
                 <ee:set-variable variableName="ids"><![CDATA[%dw 2.0
 output application/json
 ---
-{"x-correlation-id": correlationId, id: correlationId default "none"}]]></ee:set-variable>
+{
+    local: do {
+        var correlationId = "local"
+        ---
+        correlationId
+    },
+    "x-correlation-id": correlationId,
+    id: correlationId default "none"
+}]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
     </flow>
@@ -1256,6 +1264,7 @@ public function _dwMethod(Context ctx) returns json {
 }
 
 public function _dwMethod1(Context ctx) returns json|error => {
+    "local": let string correlationId = "local" in correlationId,
     "x-correlation-id": check ctx.correlationId.ensureType(json),
     "id": (<string?>ctx.correlationId) ?: "none"
 };

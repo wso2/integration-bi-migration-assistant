@@ -31,6 +31,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -928,6 +929,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitDoBlock(DataWeaveParser.DoBlockContext ctx) {
         String mainExpr = dwContext.getExpression();
+        // The variables of a do block hide a built-in of the same name, such as correlationId, only inside the block
+        Map<String, String> outerVarNames = dwContext.currentScriptContext.varNames;
+        dwContext.currentScriptContext.varNames = new HashMap<>(outerVarNames);
         List<String> letVariables = new ArrayList<>();
         if (ctx.header() != null) {
             for (DataWeaveParser.DirectiveContext directive : ctx.header().directive()) {
@@ -941,6 +945,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         visit(ctx.expression());
         String resultExpr = dwContext.getExpression();
+        dwContext.currentScriptContext.varNames = outerVarNames;
         dwContext.append(mainExpr);
         if (letVariables.isEmpty()) {
             dwContext.append(resultExpr);
@@ -958,6 +963,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.expression());
         String valueExpr = dwContext.getExpression();
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
+        dwContext.currentScriptContext.varNames.put(ctx.IDENTIFIER().getText(), ctx.IDENTIFIER().getText());
         stats.record(DWConstruct.VARIABLE_DECLARATION, true);
         return ballerinaType + " " + ctx.IDENTIFIER().getText() + " = " + valueExpr;
     }
