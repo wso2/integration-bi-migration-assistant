@@ -140,7 +140,7 @@ public final class ConversionUtils {
                 case '\r' -> escaped.append("\\r");
                 case '\t' -> escaped.append("\\t");
                 default -> {
-                    if (Character.isISOControl(codePoint) || codePoint == ' ' || codePoint == ' ') {
+                    if (Character.isISOControl(codePoint) || codePoint == 0x2028 || codePoint == 0x2029) {
                         escaped.append("\\u{").append(Integer.toHexString(codePoint).toUpperCase()).append('}');
                     } else {
                         escaped.appendCodePoint(codePoint);

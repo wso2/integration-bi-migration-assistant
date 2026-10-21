@@ -86,6 +86,7 @@ public final class ProjectConversionContext implements LoggingContext {
     }
 
     public void setModulePropertyDefaults(TibcoToBalConverter.ModulePropertyDefaults modulePropertyDefaults) {
+        assert modulePropertyDefaults != null : "modulePropertyDefaults must not be null";
         this.modulePropertyDefaults = modulePropertyDefaults;
     }
 
