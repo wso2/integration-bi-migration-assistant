@@ -35,6 +35,7 @@ enum Library {
     JAVA_ARRAYS("ballerina", "jballerina.java.arrays"),
     SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql"),
+    TASK("ballerina", "task"),
     UUID("ballerina", "uuid"),
     TIME("ballerina", "time");
 
