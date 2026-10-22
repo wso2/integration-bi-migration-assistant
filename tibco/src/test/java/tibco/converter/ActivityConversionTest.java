@@ -34,6 +34,7 @@ import tibco.model.Method;
 import tibco.model.PartnerLink;
 import tibco.model.Process;
 import tibco.model.Process5;
+import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.XSD;
 import tibco.parser.XmlToTibcoModelParser;
@@ -90,6 +91,17 @@ public class ActivityConversionTest {
         }
         String expected = fileContent(expectedFunction);
         Assert.assertEquals(actual, expected);
+    }
+
+    @Test(groups = { "tibco", "converter" })
+    public void testEmptyActivityProducesNoFunction() throws ParserConfigurationException, IOException,
+            SAXException {
+        Element activityElement = stringToElement(
+                "<bpws:empty name=\"MyEmpty\" " +
+                        "xmlns:bpws=\"http://docs.oasis-open.org/wsbpel/2.0/process/executable\"/>");
+        Scope.Flow.Activity activity = XmlToTibcoModelParser.parseActivity(getProcessContextForElement(activityElement),
+                activityElement).get();
+        Assert.assertTrue(ActivityConverter.convertActivity(getProcessContext(activity), activity).isEmpty());
     }
 
     private static void bless(Path expectedFunction, String value) {
@@ -212,6 +224,13 @@ public class ActivityConversionTest {
         @Override
         Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
             return Optional.of(new BallerinaModel.Expression.VariableReference(sharedResourcePropertyName));
+        }
+
+        @Override
+        Optional<Resource.DataFormatResource> dataFormat(String dataFormatPropertyName) {
+            return Optional.of(new Resource.DataFormatResource("Orders.OrderFormat",
+                    "/Resources/Orders/OrderFormat.dataFormatResource", ";", "\n",
+                    "http://example.com/xsd/orders", "order", List.of("orderId", "customer", "amount")));
         }
 
         private static AnalysisResult initAnalysisResult(Scope.Flow.Activity activity) {
@@ -370,7 +389,7 @@ public class ActivityConversionTest {
                 }
 
                 @Override
-                public Set<String> getTypeNames() {
+                public Set<String> moduleSymbolNames() {
                     return Set.of();
                 }
 

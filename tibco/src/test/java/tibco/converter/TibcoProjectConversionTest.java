@@ -20,6 +20,7 @@ package tibco.converter;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -35,9 +36,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TibcoProjectConversionTest {
+
+    private static final Pattern MODULE_SYMBOL_DECLARATION = Pattern.compile(
+            "^(?:public\\s+)?(?:isolated\\s+)?(?:(?:function|type|enum)\\s+'?(?<named>[A-Za-z_][A-Za-z0-9_]*)"
+                    + "|const\\s+(?:[^=;\\n]*?\\s)?'?(?<constant>[A-Za-z_][A-Za-z0-9_]*)\\s*=)",
+            Pattern.MULTILINE);
 
     /**
      * Recursively compares two JSON Maps, handling nested Maps, Lists, and
@@ -548,8 +556,70 @@ public class TibcoProjectConversionTest {
         Assert.assertTrue(textEdits.get("demo_app_2/Ballerina.toml").contains("name = \"demo_app_2\""));
     }
 
+    @DataProvider(name = "keepStructureOptions")
+    public @NotNull Object[][] keepStructureOptions() {
+        return new Object[][]{{false}, {true}};
+    }
+
+    @Test(groups = {"tibco", "converter"}, dataProvider = "keepStructureOptions")
+    public void testBW6CrossModuleCallProcess(boolean keepStructure) throws IOException {
+        Map<String, String> textEdits = migrateMultiRootByAPI("multi-root-bw6", keepStructure);
+        assertMatchesExpectedOutput(textEdits, Path.of("src", "test", "resources", "multi-root-bw6-converted",
+                keepStructure ? "keep-structure" : "flat"));
+
+        Map.Entry<String, String> caller = textEdits.entrySet().stream()
+                .filter(each -> each.getKey().startsWith("appmodule/") && each.getKey().endsWith(".bal"))
+                .filter(each -> each.getValue().contains("sharedmodule:start_sharedmodule_subs_Helper("))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Caller should call the shared module's start function"));
+        Assert.assertTrue(caller.getValue().contains("import testOrg/sharedmodule;"),
+                "File making the call should import the shared module's package:\n" + caller.getValue());
+        Assert.assertTrue(textEdits.entrySet().stream()
+                        .filter(each -> each.getKey().endsWith(".bal"))
+                        .noneMatch(each -> each.getValue().contains("start_placeholder_")),
+                "Call to a process in another module should not fall back to a placeholder");
+        Assert.assertTrue(textEdits.entrySet().stream()
+                        .filter(each -> each.getKey().startsWith("sharedmodule/"))
+                        .anyMatch(each -> each.getValue().contains("public function start_sharedmodule_subs_Helper(")),
+                "Start function of a process called from another module should be public");
+    }
+
+    private static void assertMatchesExpectedOutput(Map<String, String> textEdits, Path expectedDir)
+            throws IOException {
+        Map<String, String> sourceEdits = new TreeMap<>();
+        textEdits.forEach((key, value) -> {
+            if (key.endsWith(".bal") || key.endsWith(".toml")) {
+                sourceEdits.put(key, value.replace("\r\n", "\n"));
+            }
+        });
+        if ("true".equalsIgnoreCase(System.getenv("BLESS"))) {
+            TestUtils.deleteDirectory(expectedDir);
+            for (Map.Entry<String, String> entry : sourceEdits.entrySet()) {
+                Path filePath = expectedDir.resolve(entry.getKey());
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, entry.getValue());
+            }
+        }
+
+        Map<String, String> expectedEdits = new TreeMap<>();
+        try (Stream<Path> expectedFiles = Files.walk(expectedDir)) {
+            for (Path path : expectedFiles.filter(Files::isRegularFile).toList()) {
+                expectedEdits.put(expectedDir.relativize(path).toString().replace('\\', '/'),
+                        Files.readString(path).replace("\r\n", "\n"));
+            }
+        }
+        Assert.assertEquals(sourceEdits.keySet(), expectedEdits.keySet(), "Generated files do not match");
+        expectedEdits.forEach((key, expected) ->
+                Assert.assertEquals(sourceEdits.get(key), expected, "File contents do not match for: " + key));
+    }
+
     private static Map<String, String> migrateMultiRootByAPI(String sourceDirName) {
+        return migrateMultiRootByAPI(sourceDirName, false);
+    }
+
+    private static Map<String, String> migrateMultiRootByAPI(String sourceDirName, boolean keepStructure) {
         Map<String, Object> parameters = new HashMap<>();
+        parameters.put("keepStructure", keepStructure);
         parameters.put("orgName", "testOrg");
         parameters.put("projectName", "testProject");
         parameters.put("sourcePath", Path.of("src", "test", "resources", sourceDirName).toString());
@@ -643,6 +713,38 @@ public class TibcoProjectConversionTest {
         }
     }
 
+    @Test
+    public void testRestInvokeKeepsJsonQuotes() throws Exception {
+        Path tibcoProject = Path.of("src", "test", "resources", "tibco.projects", "RestInvokeBW6");
+        Path tempDir = Files.createTempDirectory("tibco-rest-invoke-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", "RestInvokeBW6"),
+                    tibcoProject.toString(), tempDir.toString());
+
+            String generated;
+            try (Stream<Path> balFiles = Files.walk(tempDir)) {
+                List<Path> paths = balFiles.filter(p -> p.toString().endsWith(".bal")).sorted().toList();
+                StringBuilder sb = new StringBuilder();
+                for (Path p : paths) {
+                    sb.append(Files.readString(p));
+                }
+                generated = sb.toString();
+            }
+
+            Assert.assertTrue(generated.contains(
+                    "select=\"'{&quot;reason&quot;: &quot;archive-complete&quot;}'\""),
+                    "EndSession-input must keep the JSON double quotes inside the XPath string literal");
+            Assert.assertTrue(generated.contains(
+                    "select=\"'{&quot;event&quot;: &quot;orders-archived&quot;}'\""),
+                    "SendNotification-input must keep the JSON double quotes inside the XPath string literal");
+            Assert.assertFalse(generated.contains("'{'"),
+                    "A single quote must not terminate an XPath string literal early");
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
+    }
+
     private void assertActivityRunnerCalls(String generated, String runner, List<String> expectedActivities) {
         String body = activityRunnerBody(generated, runner);
         Assert.assertFalse(body.strip().isEmpty(), runner + " must not be empty");
@@ -688,6 +790,36 @@ public class TibcoProjectConversionTest {
                 "Call was emitted as an error stub although the target is in the same module");
         Assert.assertFalse(functions.contains("import testOrg/"),
                 "A locally defined process must not be called through a module import");
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testModuleSymbolsDoNotClashWithXsdTypes() throws Exception {
+        Path tempDir = Files.createTempDirectory("tibco-name-clash-test");
+        try {
+            TibcoConverter.migrateTibcoProject(
+                    TestUtils.createTestProjectConversionContext("testOrg", "XsdTypeNameClash"),
+                    Path.of("src", "test", "resources", "tibco.name-clash", "XsdTypeNameClash").toString(),
+                    tempDir.toString());
+            String generated;
+            try (Stream<Path> balFiles = Files.walk(tempDir)) {
+                generated = balFiles.filter(p -> p.toString().endsWith(".bal"))
+                        .map(TibcoProjectConversionTest::readString)
+                        .collect(Collectors.joining("\n"));
+            }
+            Map<String, Long> declarationCounts = MODULE_SYMBOL_DECLARATION.matcher(generated).results()
+                    .collect(Collectors.groupingBy(result -> Optional.ofNullable(result.group("named"))
+                            .orElseGet(() -> result.group("constant")), Collectors.counting()));
+            List<String> redeclared = declarationCounts.entrySet().stream()
+                    .filter(entry -> entry.getValue() > 1).map(Map.Entry::getKey).sorted().toList();
+            Assert.assertEquals(redeclared, List.of(), "Redeclared module symbols in:\n" + generated);
+            for (String xsdType : List.of("Response", "Context", "SharedVariableContext", "MainScopeActivityRunner",
+                    "InlineShape", "SequenceGroup")) {
+                Assert.assertEquals(declarationCounts.get(xsdType), Long.valueOf(1),
+                        "XSD type " + xsdType + " must keep its name");
+            }
+        } finally {
+            TestUtils.deleteDirectory(tempDir);
+        }
     }
 
     private String convertedFunctions(String projectName) throws Exception {

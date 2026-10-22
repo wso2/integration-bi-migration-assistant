@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="api_request_config" doc:name="HTTP Request configuration" basePath="api/v1/">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <http:request-config name="root_request_config" doc:name="HTTP Request configuration" basePath="/">
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="apiFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="api_request_config" path="/orders"/>
+    </flow>
+    <flow name="rootFlow" >
+        <http:request method="GET" doc:name="Request" config-ref="root_request_config" path="/orders"/>
+    </flow>
+</mule>

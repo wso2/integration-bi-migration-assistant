@@ -36,6 +36,7 @@ public class MELConverter {
 
     private static final Pattern UNBRACED_OBJECT_KEY =
             Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
+    private static final Pattern DEFAULT_OPERATOR = Pattern.compile("default(?![\\w.])");
 
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
@@ -174,6 +175,10 @@ public class MELConverter {
                     case "contains" -> {
                         throw new UnsupportedOperationException("query operations not supported");
                     }
+                    case Constants.CORRELATION_ID_REF -> {
+                        result.append(convertCorrelationId(melExpr.substring(i), addToStringCalls));
+                        result.append(currentChar);
+                    }
                     default -> {
                         processToken(token, result, addToStringCalls);
                         result.append(currentChar);
@@ -187,6 +192,18 @@ public class MELConverter {
         processToken(token, result, addToStringCalls);
 
         return result.toString();
+    }
+
+    // An object key keeps its name, and a default needs an optional operand
+    private static String convertCorrelationId(String rest, boolean addToStringCalls) {
+        String next = rest.stripLeading();
+        if (next.startsWith(":") && !next.startsWith("::")) {
+            return Constants.CORRELATION_ID_REF;
+        }
+        if (DEFAULT_OPERATOR.matcher(next).lookingAt()) {
+            return Constants.NILABLE_CORRELATION_ID;
+        }
+        return convertMuleTokenToBallerina(Constants.CORRELATION_ID_REF, addToStringCalls);
     }
 
     private static boolean isConditionalFieldGen(String expr) {
@@ -647,6 +664,7 @@ public class MELConverter {
         } else {
             balStr = switch (str) {
                 case "payload", "message.payload" -> "ctx.payload";
+                case Constants.CORRELATION_ID_REF -> Constants.CORRELATION_ID_FIELD_ACCESS;
                 case "message" -> "ctx";
                 case "null" -> "()";
                 case "error.description" -> "%s.message()".formatted(Constants.ON_FAIL_ERROR_VAR_REF);

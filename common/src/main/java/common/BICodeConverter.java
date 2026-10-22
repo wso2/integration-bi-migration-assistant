@@ -204,6 +204,8 @@ public final class BICodeConverter {
             case "io" -> List.of(new BallerinaModel.Import("ballerina", "io"));
             case "file" -> List.of(new BallerinaModel.Import("ballerina", "file"));
             case "ftp" -> List.of(new BallerinaModel.Import("ballerina", "ftp"));
+            case "java" -> List.of(new BallerinaModel.Import("ballerina", "jballerina.java"));
+            case "arrays" -> List.of(new BallerinaModel.Import("ballerina", "jballerina.java.arrays"));
             case "regex" -> List.of(new BallerinaModel.Import("ballerina", "regex"));
             case "regexp" -> List.of(new BallerinaModel.Import("ballerina", "lang.regexp"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));

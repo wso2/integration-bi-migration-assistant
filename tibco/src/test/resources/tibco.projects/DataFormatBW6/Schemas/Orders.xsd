@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="http://example.com/xsd/orders" elementFormDefault="qualified"
+        xmlns="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://example.com/xsd/orders">
+    <element name="order">
+        <complexType>
+            <sequence>
+                <element name="orderId" type="string"/>
+                <element name="customer" type="string"/>
+                <element name="amount" type="string"/>
+            </sequence>
+        </complexType>
+    </element>
+</schema>
