@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:sapconnection="http://ns.tibco.com/bw/sharedresource/sapconnection" xmi:id="_salesResource" name="Sales.SAPConnection" type="sapconnection:SAPConnection">
+  <jndi:configuration xsi:type="sapconnection:SAPConnection" xmi:id="_salesConfiguration" clientConnName="Sales.SAPConnection.ClientConnection" connType="Load Balancing" language="English" languageCode="E">
+    <substitutionBindings xmi:id="_salesSystemName" template="systemName" propName="/Resources/SAP/Sales/SystemName"/>
+    <substitutionBindings xmi:id="_salesMsgServer" template="msgServer" propName="/Resources/SAP/Sales/MsgServer"/>
+    <substitutionBindings xmi:id="_salesGroupName" template="groupName" propName="/Resources/SAP/Sales/LogonGroup"/>
+    <substitutionBindings xmi:id="_salesAppServer" template="appServer" propName="/Resources/SAP/Sales/AppServer"/>
+    <substitutionBindings xmi:id="_salesSystemNumber" template="systemNumber" propName="/Resources/SAP/Sales/SystemNumber"/>
+    <substitutionBindings xmi:id="_salesClient" template="client" propName="/Resources/SAP/Sales/Client"/>
+    <substitutionBindings xmi:id="_salesUserName" template="userName" propName="/Resources/SAP/Sales/UserName"/>
+    <substitutionBindings xmi:id="_salesPassword" template="password" propName="/Resources/SAP/Sales/Password"/>
+  </jndi:configuration>
+</jndi:namedResource>

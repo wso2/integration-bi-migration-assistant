@@ -665,6 +665,112 @@ public enum Intrinsics {
                     }
                     """
     ),
+    // TIBCO's SAP plug-in models table rows as repeated <item> elements, which map onto JCo tables (record arrays).
+    SAP_RFC_PARAMETERS(
+            "sapRfcParameters",
+            """
+                    // importTableParameterNames is () when the RFC schema was not available; the top-level
+                    // parameters are then classified from the XML shape alone.
+                    function sapRfcParameters(xml request, string[] tableParameterNames,
+                            string[]? importTableParameterNames) returns jco:RfcParameters {
+                        jco:RfcRecord importParameters = {};
+                        map<jco:RfcRecord[]> tableParameters = {};
+                        foreach xml:Element param in (request/**/<RfcRequest>)/<*> {
+                            string name = param.getName();
+                            if tableParameterNames.indexOf(name) != () {
+                                tableParameters[name] = sapRfcRows(param);
+                            } else if importTableParameterNames is () {
+                                importParameters[name] = sapRfcValue(param);
+                            } else if importTableParameterNames.indexOf(name) != () {
+                                importParameters[name] = sapRfcRows(param);
+                            } else {
+                                importParameters[name] = (param/<*>).length() == 0 ? param.data()
+                                        : sapRfcStructure(param);
+                            }
+                        }
+                        return {importParameters, tableParameters};
+                    }
+
+                    // Below the top level (or without a schema) a value made only of <item> children is taken to be
+                    // table rows.
+                    function sapRfcValue(xml:Element element) returns jco:FieldType {
+                        xml children = element/<*>;
+                        if children.length() == 0 {
+                            return element.data();
+                        }
+                        if (element/<item>).length() == children.length() {
+                            return sapRfcRows(element);
+                        }
+                        return sapRfcStructure(element);
+                    }
+
+                    function sapRfcRows(xml:Element 'table) returns jco:RfcRecord[] {
+                        jco:RfcRecord[] rows = [];
+                        foreach xml:Element row in 'table/<item> {
+                            rows.push(sapRfcStructure(row));
+                        }
+                        return rows;
+                    }
+
+                    function sapRfcStructure(xml:Element structure) returns jco:RfcRecord {
+                        jco:RfcRecord fields = {};
+                        foreach xml:Element 'field in structure/<*> {
+                            fields['field.getName()] = sapRfcValue('field);
+                        }
+                        return fields;
+                    }
+                    """
+    ),
+    SAP_RFC_TO_XML(
+            "sapRfcToXml",
+            """
+                    function sapRfcToXml(jco:RfcRecord fields) returns xml {
+                        xml result = xml ``;
+                        foreach [string, jco:FieldType?] [name, value] in fields.entries() {
+                            result += xml:createElement(name, {}, sapRfcValueToXml(value));
+                        }
+                        return result;
+                    }
+
+                    function sapRfcValueToXml(jco:FieldType? value) returns xml {
+                        if value is () {
+                            return xml ``;
+                        }
+                        if value is time:Date {
+                            return xml:createText(string `${sapPad(value.year, 4)}-${sapPad(value.month, 2)}-${
+                                    sapPad(value.day, 2)}`);
+                        }
+                        if value is time:TimeOfDay {
+                            // Fractional seconds are truncated so that e.g. 59.6 never becomes 60.
+                            int second = <int>(value.second ?: 0d).floor();
+                            return xml:createText(string `${sapPad(value.hour, 2)}:${sapPad(value.minute, 2)}:${
+                                    sapPad(second, 2)}`);
+                        }
+                        if value is byte[] {
+                            return xml:createText(value.toBase64());
+                        }
+                        if value is record {|jco:FieldType?...;|}[] {
+                            xml rows = xml ``;
+                            foreach record {|jco:FieldType?...;|} row in value {
+                                rows += xml:createElement("item", {}, sapRfcToXml(row));
+                            }
+                            return rows;
+                        }
+                        if value is record {|jco:FieldType?...;|} {
+                            return sapRfcToXml(value);
+                        }
+                        return xml:createText(value.toString());
+                    }
+
+                    function sapPad(int value, int width) returns string {
+                        string digits = value.toString();
+                        while digits.length() < width {
+                            digits = "0" + digits;
+                        }
+                        return digits;
+                    }
+                    """
+    ),
     PSG_EXCEPTION_LOG(
             "psgExceptionLog",
             """
