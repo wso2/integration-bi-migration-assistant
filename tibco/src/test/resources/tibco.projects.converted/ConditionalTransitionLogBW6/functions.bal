@@ -26,7 +26,8 @@ function Start(Context cx) returns error? {
 function scopeActivityRunner(Context cx) returns error? {
     check Start(cx);
     check LogA(cx);
-    if test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
+    boolean LogAToLogBTaken = test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx);
+    if LogAToLogBTaken {
         check LogB(cx);
     }
 }

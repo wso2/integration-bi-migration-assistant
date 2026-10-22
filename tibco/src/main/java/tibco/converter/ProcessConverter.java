@@ -20,7 +20,6 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
-import common.BallerinaModel.Expression.BinaryLogical;
 import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
@@ -55,11 +54,8 @@ import tibco.model.Variable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -406,64 +402,26 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     }
 
     private static void addTransitionPredicates(ProcessContext cx, List<BallerinaModel.Function> accum) {
-        Collection<Activity> activities = cx.getAnalysisResult().activities();
-        Set<String> linksOnlyIntoEmpty = linksOnlyIntoEmpty(activities);
-        activities.stream()
+        cx.getAnalysisResult().activities().stream()
                 .filter(each -> each instanceof Activity.ActivityWithSources)
                 .forEach(activity -> addTransitionPredicates(cx,
-                        (Activity.ActivityWithSources) activity, linksOnlyIntoEmpty, accum));
-    }
-
-    // Calls to Empty activities aren't generated, so a predicate guarding only such calls would be unused. Link
-    // names can repeat across groups, hence a link is skipped only if every activity it targets is Empty.
-    private static Set<String> linksOnlyIntoEmpty(Collection<Activity> activities) {
-        Map<String, Boolean> onlyIntoEmptyByLink = new HashMap<>();
-        activities.stream()
-                .filter(each -> each instanceof Activity.ActivityWithTargets)
-                .forEach(activity -> ((Activity.ActivityWithTargets) activity).targets().forEach(target ->
-                        onlyIntoEmptyByLink.merge(target.linkName(), activity instanceof Activity.Empty,
-                                Boolean::logicalAnd)));
-        return onlyIntoEmptyByLink.entrySet().stream()
-                .filter(Map.Entry::getValue)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
+                        (Activity.ActivityWithSources) activity, accum));
     }
 
     private static void addTransitionPredicates(ProcessContext cx, Activity.ActivityWithSources activity,
-            Set<String> linksOnlyIntoEmpty, List<BallerinaModel.Function> accum) {
+            List<BallerinaModel.Function> accum) {
+        // "otherwise" and error links need no function: ActivityFlowGenerator derives them from the sibling flags
+        // and the trapped result.
         try {
-            XPath prev = null;
             for (Activity.Source source : activity.sources()) {
-                var predicate = source.condition();
-                if (predicate.isEmpty()) {
-                    continue;
-                }
-                boolean skip = linksOnlyIntoEmpty.contains(source.linkName());
-                switch (predicate.get()) {
-                    case XPath xPath -> {
-                        prev = xPath;
-                        if (!skip && cx.isFirstPredicateFunctionUse(xPath)) {
-                            accum.add(getTransitionPredicateFn(cx, xPath, transitionPredicateExpr(cx, xPath)));
-                        }
-                    }
-                    case Activity.Source.Predicate.Else anElse -> {
-                        // No preceding sibling condition to negate means this "otherwise" link is
-                        // effectively the only/default transition, so it's unconditionally taken.
-                        if (!skip && cx.isFirstPredicateFunctionUse(anElse)) {
-                            accum.add(getTransitionPredicateFn(cx, anElse, prev != null
-                                    ? new Expression.Not(transitionPredicateExpr(cx, prev)) : exprFrom("true")));
-                        }
-                    }
+                if (source.condition().orElse(null) instanceof XPath xPath && cx.isFirstPredicateFunctionUse(xPath)) {
+                    accum.add(getTransitionPredicateFn(cx, xPath, ConversionUtils.xPathBoolean(cx,
+                            new VariableReference("input"), new VariableReference("cx"), xPath)));
                 }
             }
         } catch (Exception e) {
             cx.registerTransitionPredicateError(activity, e);
         }
-    }
-
-    // Converting the XPath registers library imports, so it must only happen for predicates that are emitted.
-    private static Expression transitionPredicateExpr(ProcessContext cx, XPath xPath) {
-        return ConversionUtils.xPathBoolean(cx, new VariableReference("input"), new VariableReference("cx"), xPath);
     }
 
     private static BallerinaModel.Function getTransitionPredicateFn(ProcessContext cx,
@@ -703,9 +661,8 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     private static BallerinaModel.@NotNull Function generateActivityFlowFunctionInner(
             ProcessContext cx, List<Activity> activities, String functionName, TypeDesc returnType,
             Function<FunctionCall, Expression> callHandler, List<Parameter> parameters) {
-        List<Statement> body = new ArrayList<>();
-        generateActivityFlowFunctionInner(cx, activities, callHandler, body, new VariableReference("input"));
-        return new BallerinaModel.Function(functionName, parameters, returnType, body);
+        return new BallerinaModel.Function(functionName, parameters, returnType,
+                ActivityFlowGenerator.generate(cx, activities, callHandler));
     }
 
     private static BallerinaModel.Function generateErrorFlowFunction(ProcessContext cx, Process6 process) {
@@ -758,52 +715,6 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         return new BallerinaModel.Function(errorHandlerFunction,
                 errorFlowFnType.parameters(), errorFlowFnType.returnType(), body);
-    }
-
-    private static void generateActivityFlowFunctionInner(
-            ProcessContext cx, List<Activity> activities, Function<FunctionCall, Expression> callHandler,
-            List<Statement> body, VariableReference input) {
-        VariableReference context = new VariableReference("cx");
-        for (Activity activity : activities) {
-            generateActivityFunctionCall(cx, activity, callHandler, body, input, context);
-        }
-    }
-
-    private static void generateActivityFunctionCall(
-            ProcessContext cx, Activity activity,
-            Function<FunctionCall, Expression> callHandler, List<Statement> body, VariableReference input,
-            VariableReference context) {
-        if (activity instanceof Activity.Empty) {
-            return;
-        }
-        AnalysisResult analysisResult = cx.getAnalysisResult();
-        // Transition predicates resolve their `$var` references from the context, so the input document is only
-        // the XPath evaluation root and carries no data.
-        List<FunctionCall> predicates = analysisResult.transitionConditions(activity)
-                .map(data -> new FunctionCall(cx.predicateFunction(data.predicate()),
-                        List.of(new XMLTemplate("<root></root>"), context)))
-                .toList();
-
-        if (predicates.isEmpty()) {
-            body.add(new Statement.CallStatement(callHandler.apply(
-                    activityFunctionCall(activity, context, analysisResult))));
-            return;
-        }
-
-        Expression cond = predicates.getFirst();
-        for (int i = 1; i < predicates.size(); i++) {
-            cond = new BinaryLogical(cond, predicates.get(i), BinaryLogical.Operator.OR);
-        }
-        Statement.IfElseStatement ifElse = new Statement.IfElseStatement(cond,
-                List.of(new Statement.CallStatement(new Check(
-                        activityFunctionCall(activity, context, analysisResult)))),
-                List.of(), List.of());
-        body.add(ifElse);
-    }
-
-    private static @NotNull FunctionCall activityFunctionCall(Activity activity, VariableReference context,
-            AnalysisResult analysisResult) {
-        return new FunctionCall(analysisResult.from(activity).functionName(), List.of(context));
     }
 
     private static ActivityConverter.XsltTransformResult xsltTransform(ProcessContext cx,

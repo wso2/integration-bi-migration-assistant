@@ -1,7 +1,8 @@
 import ballerina/data.xmldata;
 
 function HandlerScopeActivityRunner(Context cx) returns error? {
-    if test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
+    boolean CheckToRecoverTaken = test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx);
+    if CheckToRecoverTaken {
         check Recover(cx);
     }
 }
