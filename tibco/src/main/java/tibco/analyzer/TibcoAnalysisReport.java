@@ -267,7 +267,7 @@ public final class TibcoAnalysisReport {
 
         return Map.of("coverageOverview", Map.of(
                 "unitName", "activity",
-                "coveragePercentage", Math.round(coveragePercentage),
+                "coveragePercentage", (long) Math.floor(coveragePercentage),
                 "coverageLevel", coverageLevel,
                 "totalElements", totalActivityCount,
                 "migratableElements", totalActivityCount - unhandledActivityCount,

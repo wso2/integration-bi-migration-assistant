@@ -168,12 +168,11 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     String declareConstant(String name, String valueRepr, String type) {
-        name = ConversionUtils.sanitizes(name);
         BallerinaModel.TypeDesc td = getTypeByName(type);
         assert td == STRING;
-        String expr = "\"" + valueRepr + "\"";
-        constants.put(name, BallerinaModel.ModuleVar.constant(name, td, exprFrom(expr)));
-        return name;
+        return constants.computeIfAbsent(ConversionUtils.sanitizes(name),
+                key -> BallerinaModel.ModuleVar.constant(projectContext.allocateModuleSymbol(key), td,
+                        exprFrom("\"" + valueRepr + "\""))).name();
     }
 
     void declareModuleVar(String name, BallerinaModel.ModuleVar var) {
@@ -195,7 +194,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     @Override
     public boolean hasConstantWithName(String name) {
-        return constants.containsKey(name);
+        return constants.containsKey(name)
+                || constants.values().stream().anyMatch(constant -> constant.name().equals(name));
     }
 
     @Override
@@ -258,7 +258,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     ProjectContext.FunctionData getProcessStartFunction(String processName) {
-        return projectContext.getProcessStartFunction(processName);
+        return projectContext.getProcessStartFunction(processName, imports);
     }
 
     String getJsonToXMLFunction() {
@@ -438,7 +438,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     public Optional<String> getProcessFunction(String processName) {
-        return projectContext.getProcessFunction(processName);
+        return projectContext.getProcessFunction(processName, imports);
     }
 
     static final class DefaultClientDetails {
@@ -529,6 +529,12 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     public String getFilesInPathFunction() {
         return projectContext.getFilesInPathFunction();
+    }
+
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        return projectContext.getJavaInvokeFunction(className, methodName, parameterNames, parameterTypes,
+                returnType);
     }
 
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {

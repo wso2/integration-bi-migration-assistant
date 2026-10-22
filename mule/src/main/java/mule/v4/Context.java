@@ -42,6 +42,8 @@ import mule.v4.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,6 +79,8 @@ import static mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot;
  * Context class to hold the state of the conversion process.
  */
 public class Context extends ContextBase {
+    // DataWeave reads the event's correlation ID as a bare correlationId, unlike vars.correlationId or a quoted key
+    private static final Pattern CORRELATION_ID_READ = Pattern.compile("(?<![\\w.'\"])correlationId(?![\\w'\"])");
     public final ProjectContext projectCtx = new ProjectContext();
     public FileContext currentFileCtx;
     private final boolean isStandaloneBalFile;
@@ -204,6 +209,30 @@ public class Context extends ContextBase {
         loadApiSpecs();
         checkApiContracts();
         createApiTypeGenerators();
+        // The HTTP sources set the ID, and they are converted before the flows of other files that read it
+        if (!projectCtx.usesCorrelationId) {
+            projectCtx.usesCorrelationId = readsCorrelationId();
+        }
+    }
+
+    // The converter reads DataWeave from the XML files and from the .dwl files of the resources directory
+    private boolean readsCorrelationId() {
+        List<Path> files = new ArrayList<>(xmlFiles.stream().map(File::toPath).toList());
+        getMuleResourcesDir().filter(Files::isDirectory).ifPresent(resourcesDir -> {
+            try (Stream<Path> paths = Files.walk(resourcesDir)) {
+                paths.filter(path -> path.toString().endsWith(".dwl")).forEach(files::add);
+            } catch (IOException e) {
+                logger.logWarn("Failed to list the DataWeave files in %s".formatted(resourcesDir));
+            }
+        });
+        return files.stream().anyMatch(file -> {
+            try {
+                return CORRELATION_ID_READ.matcher(Files.readString(file)).find();
+            } catch (IOException e) {
+                logger.logWarn("Failed to read %s".formatted(file));
+                return false;
+            }
+        });
     }
 
     private Map<String, String> apiRefsByApiKitConfig() {
@@ -344,6 +373,9 @@ public class Context extends ContextBase {
         if (projectCtx.apiTypeGenerators.values().stream().anyMatch(ApiTypeGenerator::usesConstraints)) {
             contextImports.add(new Import("ballerina", "constraint"));
         }
+        if (projectCtx.usesCorrelationId) {
+            contextImports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_UUID));
+        }
         return contextImports;
     }
 
@@ -417,6 +449,8 @@ public class Context extends ContextBase {
         public final List<MuleModel.ApiAutodiscovery> apiAutodiscoveries = new ArrayList<>();
         // defaultResponseTimeout of the <configuration> element, which applies to the requests of all files
         public Optional<String> defaultResponseTimeout = Optional.empty();
+        // Whether the converted code reads or sends the event's correlation ID; known before any code is converted
+        public boolean usesCorrelationId = false;
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();

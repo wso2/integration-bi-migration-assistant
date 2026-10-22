@@ -895,8 +895,14 @@ public class MuleConfigReader {
             }
         }
 
+        Optional<String> sendCorrelationId = readValue(element.getAttribute("sendCorrelationId"));
+        // The listener flows are converted before the code that sends the ID, so it is recorded while reading
+        if (!sendCorrelationId.equals(Optional.of(Constants.SEND_CORRELATION_ID_NEVER))) {
+            ctx.projectCtx.usesCorrelationId = true;
+        }
         return new HttpRequest(configRef, method, urlSupplier, path, queryParams, headersScript, uriParamsScript,
-                queryParamsScript, readValue(element.getAttribute("responseTimeout")), unsupportedBlocks);
+                queryParamsScript, readValue(element.getAttribute("responseTimeout")), sendCorrelationId,
+                readValue(element.getAttribute("correlationId")), unsupportedBlocks);
     }
 
     private static String clientBasePath(String basePath) {
@@ -1064,7 +1070,8 @@ public class MuleConfigReader {
             }
         }
         return new HTTPRequestConfig(configName, host, port, protocol, element.getAttribute("basePath"),
-                readValue(element.getAttribute("responseTimeout")));
+                readValue(element.getAttribute("responseTimeout")),
+                readValue(element.getAttribute("sendCorrelationId")));
     }
 
     private static VMConfig readVmConfig(Context ctx, MuleElement muleElement) {

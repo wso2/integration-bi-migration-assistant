@@ -558,7 +558,7 @@ public class TibcoToBalConverter {
         Map<String, Object> coverageOverview = new HashMap<>();
         coverageOverview.put("projects", totalProjects);
         coverageOverview.put("unitName", "activity");
-        coverageOverview.put("coveragePercentage", Math.round(coveragePercentage));
+        coverageOverview.put("coveragePercentage", (long) Math.floor(coveragePercentage));
         coverageOverview.put("coverageLevel", coverageLevel);
         coverageOverview.put("totalElements", totalActivities);
         coverageOverview.put("migratableElements", totalMigratableActivities);

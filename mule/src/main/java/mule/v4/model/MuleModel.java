@@ -174,14 +174,16 @@ public record MuleModel() {
     public record HttpRequest(Kind kind, String configRef, String method, Supplier<String> url, String path,
                               Map<String, String> queryParams, Optional<String> headersScript,
                               Optional<String> uriParamsScript, Optional<String> queryParamsScript,
-                              Optional<String> responseTimeout, List<UnsupportedBlock> unsupportedBlocks)
+                              Optional<String> responseTimeout, Optional<String> sendCorrelationId,
+                              Optional<String> correlationId, List<UnsupportedBlock> unsupportedBlocks)
             implements MuleRecord {
         public HttpRequest(String configRef, String method, Supplier<String> url, String path,
                           Map<String, String> queryParams, Optional<String> headersScript,
                           Optional<String> uriParamsScript, Optional<String> queryParamsScript,
-                          Optional<String> responseTimeout, List<UnsupportedBlock> unsupportedBlocks) {
+                          Optional<String> responseTimeout, Optional<String> sendCorrelationId,
+                          Optional<String> correlationId, List<UnsupportedBlock> unsupportedBlocks) {
             this(Kind.HTTP_REQUEST, configRef, method, url, path, queryParams, headersScript, uriParamsScript,
-                    queryParamsScript, responseTimeout, unsupportedBlocks);
+                    queryParamsScript, responseTimeout, sendCorrelationId, correlationId, unsupportedBlocks);
         }
     }
 
@@ -416,10 +418,11 @@ public record MuleModel() {
     }
 
     public record HTTPRequestConfig(Kind kind, String name, String host, String port, String protocol,
-                                    String basePath, Optional<String> responseTimeout) implements MuleRecord {
+                                    String basePath, Optional<String> responseTimeout,
+                                    Optional<String> sendCorrelationId) implements MuleRecord {
         public HTTPRequestConfig(String name, String host, String port, String protocol, String basePath,
-                                 Optional<String> responseTimeout) {
-            this(Kind.HTTP_REQUEST_CONFIG, name, host, port, protocol, basePath, responseTimeout);
+                                 Optional<String> responseTimeout, Optional<String> sendCorrelationId) {
+            this(Kind.HTTP_REQUEST_CONFIG, name, host, port, protocol, basePath, responseTimeout, sendCorrelationId);
         }
     }
 

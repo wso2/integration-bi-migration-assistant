@@ -1511,6 +1511,7 @@ public final class XmlToTibcoModelParser {
             case SFTP_GET -> parseSFTPGet(activity);
             case SFTP_PUT -> parseSFTPPut(activity);
             case SAP_INVOKE -> parseSAPInvoke(cx, activity);
+            case JAVA_INVOKE -> parseJavaInvoke(activity);
             case PARSE_DATA -> parseParseData(activity);
             case RENDER_DATA -> parseRenderData(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
@@ -1682,6 +1683,19 @@ public final class XmlToTibcoModelParser {
         return getChildrenWithTag(schema, "complexType")
                 .filter(type -> type.getAttribute("name").equals(typeName))
                 .findFirst();
+    }
+
+    private static Config.@NotNull JavaInvoke parseJavaInvoke(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        List<Config.JavaInvoke.Parameter> parameters = getChildrenWithTag(value, "methodParameter")
+                .map(parameter -> new Config.JavaInvoke.Parameter(parameter.getAttribute("paramName"),
+                        parameter.getAttribute("paramType")))
+                .toList();
+        return new Config.JavaInvoke(value.getAttribute("className"), value.getAttribute("methodName"),
+                Boolean.parseBoolean(value.getAttribute("isStaticMethod")),
+                parseOptionalAttribute(value, "methodReturn").orElse("void"), parameters);
     }
 
     private static Config.@NotNull ParseData parseParseData(Element activity) {
