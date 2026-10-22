@@ -24,18 +24,18 @@ function scope0ActivityRunner(Context cx) returns error? {
     check Log(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-public function start_lib_Process_shared_process(Context cx) returns () {
+public function start_lib_Process_shared_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 

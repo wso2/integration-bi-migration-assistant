@@ -4,5 +4,5 @@ function throw(Context cx) returns error? {
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = xml`<root>${var2}</root>`;
     error var4 = error("ns8:DefaultFault", faultName = "ns8:DefaultFault", payload = var3);
-    panic var4;
+    return var4;
 }

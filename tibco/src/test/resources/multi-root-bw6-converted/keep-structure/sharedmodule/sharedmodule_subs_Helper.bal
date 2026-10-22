@@ -1,19 +1,19 @@
 function HelperScopeActivityRunner(Context cx) returns error? {
 }
 
-function HelperScopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function HelperScopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-public function HelperScopeScopeFn(Context cx) returns () {
+public function HelperScopeScopeFn(Context cx) returns error? {
     error? result = HelperScopeActivityRunner(cx);
     if result is error {
-        HelperScopeFaultHandler(result, cx);
+        check HelperScopeFaultHandler(result, cx);
     }
 }
 
-public function start_sharedmodule_subs_Helper(Context params) returns () {
-    HelperScopeScopeFn(params);
+public function start_sharedmodule_subs_Helper(Context params) returns error? {
+    return HelperScopeScopeFn(params);
 }
 
 xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;

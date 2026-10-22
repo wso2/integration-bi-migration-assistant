@@ -21,7 +21,6 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Action.RemoteMethodCallAction;
 import common.BallerinaModel.Expression.Check;
-import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
@@ -276,11 +275,17 @@ final class ActivityConverter {
                                                                String balClientType, Library library,
                                                                String resourceKind, String resourceName) {
         cx.addLibraryImport(library);
-        VarDeclStatment placeholder = new VarDeclStatment(typeFrom(balClientType),
-                "placeholder_" + resourceKind + "_connection",
-                new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
+        // Typed as `client|error` so the `check` below returns the error to the scope's fault handlers while the
+        // placeholder stays a usable client for the rest of the generated body. Both names are generated so that
+        // several missing resources in one activity don't redeclare the same variables.
+        VarDeclStatment missingClientError = new VarDeclStatment(UnionTypeDesc.of(typeFrom(balClientType), ERROR),
+                cx.getAnnonVarName(),
+                new FunctionCall("error", List.of(new StringConstant(
                         "Missing " + resourceKind.toUpperCase(Locale.ROOT) + " client resource '" + resourceName
-                                + "'. Cannot generate call.")))));
+                                + "'. Cannot generate call."))));
+        body.add(missingClientError);
+        VarDeclStatment placeholder = new VarDeclStatment(typeFrom(balClientType), cx.getAnnonVarName(),
+                new Check(missingClientError.ref()));
         body.add(placeholder);
         return placeholder.ref();
     }
@@ -1160,7 +1165,7 @@ final class ActivityConverter {
         loop.elementSlot().ifPresent(s -> sb.append(addToContext(cx, new VariableReference(element), s)));
         AnalysisResult analysisResult = cx.processContext.getAnalysisResult();
         String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
-        sb.append(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        sb.append(new CallStatement(new Check(new FunctionCall(scopeFn, List.of(cx.contextVarRef())))));
         // TODO: need a cleaner way to do this
         VarDeclStatment resultDecl = new VarDeclStatment(XML, "result",
                 ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
@@ -1249,14 +1254,19 @@ final class ActivityConverter {
         body.add(addToContext(cx, input, "Start"));
         Optional<String> processFn = cx.getProcessFunction(callProcess.processName());
         if (processFn.isPresent()) {
-            body.add(new CallStatement(new FunctionCall(processFn.get(), List.of(cx.contextVarRef()))));
+            body.add(new CallStatement(new Check(new FunctionCall(processFn.get(), List.of(cx.contextVarRef())))));
         } else {
             cx.log(SEVERE, "WARNING: Failed to find process for " + callProcess.processName()
                     + ". Using placeholder call.");
             body.add(new Comment(
                     "WARNING: Missing process '" + callProcess.processName() + "'. Cannot generate call."));
-            body.add(new CallStatement(new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
-                    "Missing process '" + callProcess.processName() + "'. Cannot generate call."))))));
+            // Held in an `error?` variable so the `check` returns the error to the scope's fault handlers
+            // without making the remainder of the activity body unreachable.
+            VarDeclStatment missingProcessError = new VarDeclStatment(UnionTypeDesc.of(NIL, ERROR),
+                    cx.getAnnonVarName(), new FunctionCall("error", List.of(new StringConstant(
+                            "Missing process '" + callProcess.processName() + "'. Cannot generate call."))));
+            body.add(missingProcessError);
+            body.add(new CallStatement(new Check(missingProcessError.ref())));
         }
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
@@ -1484,7 +1494,7 @@ final class ActivityConverter {
         // repeatUntil.counterName() is not threaded into the context
         body.add(stmtFrom("""
                 while true {
-                    %1$s(%2$s);
+                    check %1$s(%2$s);
                     %3$s
                     if %4$s {
                         break;
@@ -1546,7 +1556,7 @@ final class ActivityConverter {
                 exprFrom("error(\"%s\", faultName = \"%s\", payload = %s)".formatted(
                         escapedFaultName, escapedFaultName, inputBindings.resultRef())));
         body.add(errorValue);
-        body.add(stmtFrom(String.format("panic %s;", errorValue.varName())));
+        body.add(new Statement.Return<>(errorValue.ref()));
         return body;
     }
 
@@ -1563,7 +1573,7 @@ final class ActivityConverter {
         String scopeFn =
                 cx.processContext.getAnalysisResult().getControlFlowFunctions(activityWithScope.scope())
                         .scopeFn();
-        return List.of(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        return List.of(new CallStatement(new Check(new FunctionCall(scopeFn, List.of(cx.contextVarRef())))));
     }
 
     private static List<Statement> convertUnhandledActivity(ActivityContext cx,
@@ -2387,7 +2397,7 @@ final class ActivityConverter {
                         %2$s = check %3$s->post(%4$s, postData);
                     }
                     _ => {
-                        panic error("Unsupported method: " + %1$s);
+                        return error("Unsupported method: " + %1$s);
                     }
                 }
                 """.formatted(method.varName(), result.varName(), client.varName(),
@@ -2619,7 +2629,7 @@ final class ActivityConverter {
             ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference input) {
         List<Statement> body = new ArrayList<>();
         body.add(addToContext(cx, input, "Start"));
-        body.add(new CallStatement(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef()))));
+        body.add(new CallStatement(new Check(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef())))));
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
         body.add(result);

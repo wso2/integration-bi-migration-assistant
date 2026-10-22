@@ -15,7 +15,7 @@ function activityExtension(Context cx) returns error? {
         var5 = check httpClientResource->post(var4, postData);
     }
     _ => {
-        panic error("Unsupported method: " + var3);
+        return error("Unsupported method: " + var3);
     }
 }
 

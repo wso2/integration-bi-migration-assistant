@@ -1,3 +1,3 @@
 function catchAll(Context cx) returns error? {
-    scopeFn(cx);
+    check scopeFn(cx);
 }

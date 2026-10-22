@@ -3,7 +3,7 @@ import ballerina/http;
 public listener http:Listener CallerConnection = new (9090, {host: "localhost"});
 
 service on CallerConnection {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
@@ -12,7 +12,7 @@ service on CallerConnection {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_Caller_process(cx);
+        check start_Processes_Caller_process(cx);
         xml response = cx.result;
         return response;
     }

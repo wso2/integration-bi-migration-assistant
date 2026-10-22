@@ -5,7 +5,7 @@ function extActivity(Context cx) returns error? {
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = transform(var2);
     addToContext(cx, "Start", var3);
-    start_placeholder_TargetProcess(cx);
+    check start_placeholder_TargetProcess(cx);
     xml var4 = cx.result;
     xml var5 = xml`<root>${var4}</root>`;
     addToContext(cx, "OutputVariable", var5);
