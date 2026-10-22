@@ -681,10 +681,10 @@ final class ActivityConverter {
                 new XMLTemplate(
                         """
                                 <ns:ErrorReport xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-                                    <StackTrace>${stackTrace}</StackTrace>
+                                    <StackTrace>${%s}</StackTrace>
                                     ${%s/*}
                                 </ns:ErrorReport>""".formatted(
-                                input)));
+                                stackTrace.ref(), input)));
         body.add(result);
 
         // Add the result to context with $_error key only
