@@ -184,21 +184,15 @@ public class ProjectConverter {
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process5 process) {
-        List<BallerinaModel.Service> startService;
-        Optional<BallerinaModel.Function> mainFn;
         if (isLifecycleProcess(process)) {
-            startService = List.of();
-            mainFn = Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process));
-        } else {
-            // Check if the group has a start activity before attempting to convert it
-            startService = process.transitionGroup().startActivity()
-                    .map(startActivity -> ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                            process.transitionGroup()))
-                    .map(List::of)
-                    .orElse(List.of());
-            mainFn = Optional.empty();
+            return new ProcessResult(process, new ProcessConverter.TypeConversionResult(List.of(),
+                    Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process))));
         }
-        return new ProcessResult(process, new ProcessConverter.TypeConversionResult(startService, mainFn));
+        // Check if the group has a start activity before attempting to convert it
+        return new ProcessResult(process, process.transitionGroup().startActivity()
+                .map(startActivity -> ProcessConverter.convertStartActivity(cx.getProcessContext(process),
+                        process.transitionGroup()))
+                .orElseGet(() -> new ProcessConverter.TypeConversionResult(List.of(), Optional.empty())));
     }
 
     private static boolean isLifecycleProcess(Process5 process) {

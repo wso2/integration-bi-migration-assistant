@@ -80,16 +80,38 @@ public class ProcessConverter {
     private ProcessConverter() {
     }
 
-    static @NotNull BallerinaModel.Service convertStartActivityService(
-            ProcessContext cx, ExplicitTransitionGroup group) {
-        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity().get();
+    static @NotNull TypeConversionResult convertStartActivity(ProcessContext cx, ExplicitTransitionGroup group) {
+        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity().orElseThrow();
         return switch (startActivity) {
-            case HttpEventSource httpEventSource -> createHTTPServiceForStartActivity(cx, group, httpEventSource);
-            case FileEventSource fileEventSource -> createFileEventServiceForStartActivity(cx, group, fileEventSource);
+            case HttpEventSource httpEventSource ->
+                    serviceResult(createHTTPServiceForStartActivity(cx, group, httpEventSource));
+            case FileEventSource fileEventSource ->
+                    serviceResult(createFileEventServiceForStartActivity(cx, group, fileEventSource));
             case ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource ->
-                    createJMSListenerServiceForStartActivity(cx, group, jmsQueueEventSource);
-            default -> createFallbackServices(cx, startActivity);
+                    serviceResult(createJMSListenerServiceForStartActivity(cx, group, jmsQueueEventSource));
+            // A service needs a listener; without one the generated `service ... on {` does not parse
+            default -> new TypeConversionResult(List.of(),
+                    Optional.of(createFallbackStarterFunction(cx, startActivity)));
         };
+    }
+
+    private static TypeConversionResult serviceResult(BallerinaModel.Service service) {
+        return new TypeConversionResult(List.of(service), Optional.empty());
+    }
+
+    private static BallerinaModel.Function createFallbackStarterFunction(
+            ProcessContext cx, ExplicitTransitionGroup.InlineActivity startActivity) {
+        cx.log(LoggingUtils.Level.WARN,
+                "Unsupported start activity %s generating fallback function".formatted(startActivity.name()));
+        List<Statement> body = List.of(
+                new Statement.Comment("FIXME: unsupported start activity: %s".formatted(startActivity.name())),
+                new Statement.Comment(("FIXME: replace this function with a listener and service that builds "
+                        + "a Context via %s and calls %s").formatted(cx.getInitContextFn(),
+                        cx.getProcessStartFunction().name()))
+        );
+        return new BallerinaModel.Function(Optional.empty(),
+                ConversionUtils.sanitizes("unsupported_" + cx.process.name() + "_" + startActivity.name()),
+                List.of(), Optional.empty(), new BallerinaModel.BlockFunctionBody(body));
     }
 
     private static BallerinaModel.Service createFileEventServiceForStartActivity(ProcessContext cx,
@@ -157,24 +179,6 @@ public class ProcessConverter {
                 new BallerinaModel.Listener.FileListener(name, new StringConstant(filePath), true);
         cx.projectContext.addListnerDeclartion(name, listener, List.of(), List.of(FILE));
         return new VariableReference(listener.name());
-    }
-
-    private static BallerinaModel.Service createFallbackServices(ProcessContext cx,
-                                                                 ExplicitTransitionGroup.InlineActivity startActivity) {
-        cx.log(LoggingUtils.Level.WARN,
-                "Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
-        List<Statement> body = List.of(
-                new Statement.Comment("FIXME: service for start activity: %s".formatted(startActivity.name())),
-                new Statement.Comment(
-                        "FIXME: call %s from fixed service".formatted(cx.getProcessStartFunction().name()))
-        );
-
-        BallerinaModel.Remote remoteFn = new BallerinaModel.Remote(
-                new BallerinaModel.Function(Optional.empty(), "onStart", List.of(), Optional.empty(),
-                        new BallerinaModel.BlockFunctionBody(body)));
-
-        return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(startActivity.name()) + "\"",
-                List.of(), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn), Optional.empty());
     }
 
     private static BallerinaModel.Service createJMSListenerServiceForStartActivity(
