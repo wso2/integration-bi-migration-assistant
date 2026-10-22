@@ -1,4 +1,5 @@
 import ballerina/http;
+import ballerina/uuid;
 
 public type Vars record {|
     string customerId?;
@@ -9,6 +10,7 @@ public type Vars record {|
 public type Context record {|
     anydata payload = ();
     Vars vars = {};
+    string correlationId = uuid:createType4AsString();
 |};
 
 public function demoFlow(Context ctx) {
@@ -37,6 +39,9 @@ public function demoFlow(Context ctx) {
     map<string> queryParams = map from string key in queryParams_nilable.keys()
         where queryParams_nilable.get(key) is string
         select [key, <string>queryParams_nilable.get(key)];
+    if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+        headers["X-Correlation-ID"] = ctx.correlationId;
+    }
     http:Response clientResult0 = check http_request_config->/customers/[uriParams.get("customerId")]/orders/[uriParams.get("order-id")].get(headers, params = check queryParams.cloneWithType());
     ctx.payload = check clientResult0.getJsonPayload();
 }

@@ -31,6 +31,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -125,6 +126,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String statement = ballerinaType + " " + ctx.IDENTIFIER().getText() + " " + ctx.ASSIGN().getText() + " "
                 + valueExpr + ";";
         this.dwContext.currentScriptContext.addStatement(new BallerinaStatement(statement));
+        // The variable hides a built-in of the same name, such as correlationId
+        this.dwContext.currentScriptContext.varNames.put(ctx.IDENTIFIER().getText(), ctx.IDENTIFIER().getText());
         stats.record(DWConstruct.VARIABLE_DECLARATION, true);
         return null;
     }
@@ -738,7 +741,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.logicalOrExpression(0));
         if (ctx.DEFAULT() != null) {
             String leftExpr = dwContext.getExpression();
-            if (DWUtils.parenthesisNeeded(leftExpr)) {
+            if (leftExpr.equals(Constants.CORRELATION_ID_FIELD_ACCESS)) {
+                leftExpr = Constants.NILABLE_CORRELATION_ID;
+            } else if (DWUtils.parenthesisNeeded(leftExpr)) {
                 leftExpr = "(" + leftExpr + ")";
             }
             visit(ctx.logicalOrExpression(1));
@@ -924,6 +929,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitDoBlock(DataWeaveParser.DoBlockContext ctx) {
         String mainExpr = dwContext.getExpression();
+        // The variables of a do block hide a built-in of the same name, such as correlationId, only inside the block
+        Map<String, String> outerVarNames = dwContext.currentScriptContext.varNames;
+        dwContext.currentScriptContext.varNames = new HashMap<>(outerVarNames);
         List<String> letVariables = new ArrayList<>();
         if (ctx.header() != null) {
             for (DataWeaveParser.DirectiveContext directive : ctx.header().directive()) {
@@ -937,6 +945,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         visit(ctx.expression());
         String resultExpr = dwContext.getExpression();
+        dwContext.currentScriptContext.varNames = outerVarNames;
         dwContext.append(mainExpr);
         if (letVariables.isEmpty()) {
             dwContext.append(resultExpr);
@@ -954,6 +963,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.expression());
         String valueExpr = dwContext.getExpression();
         ballerinaType = dwType.equals(DWUtils.NUMBER) ? refineNumberType(valueExpr, ballerinaType) : ballerinaType;
+        dwContext.currentScriptContext.varNames.put(ctx.IDENTIFIER().getText(), ctx.IDENTIFIER().getText());
         stats.record(DWConstruct.VARIABLE_DECLARATION, true);
         return ballerinaType + " " + ctx.IDENTIFIER().getText() + " = " + valueExpr;
     }
@@ -1349,6 +1359,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         if (this.dwContext.currentScriptContext.varNames.containsKey(identifier)) {
             this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(identifier));
+            return null;
+        }
+        if (identifier.equals(Constants.CORRELATION_ID_REF)) {
+            this.dwContext.append(Constants.CORRELATION_ID_FIELD_ACCESS);
             return null;
         }
         if (identifier.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {

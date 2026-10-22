@@ -483,6 +483,30 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record JavaInvoke(String className, String methodName, boolean staticMethod,
+                                      String returnType, List<Parameter> parameters)
+                            implements ActivityExtension.Config {
+
+                        public JavaInvoke {
+                            assert !className.isEmpty();
+                            assert !methodName.isEmpty();
+                            parameters = List.copyOf(parameters);
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.JAVA_INVOKE;
+                        }
+
+                        public record Parameter(String name, String type) {
+
+                            public Parameter {
+                                assert !name.isEmpty();
+                                assert !type.isEmpty();
+                            }
+                        }
+                    }
+
                     record Log() implements ActivityExtension.Config {
 
                         @Override
@@ -649,6 +673,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         SFTP_GET,
                         SFTP_PUT,
                         SFTP_RENAME_FILE,
+                        JAVA_INVOKE,
                         PARSE_DATA,
                         RENDER_DATA,
                         MAPPER,
@@ -671,6 +696,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.sftp.dir" -> SFTP_DIR;
                                 case "bw.sftp.get" -> SFTP_GET;
                                 case "bw.sftp.put" -> SFTP_PUT;
+                                case "bw.java.javamethod" -> JAVA_INVOKE;
                                 case "bw.parse.parsedata" -> PARSE_DATA;
                                 case "bw.parse.renderdata" -> RENDER_DATA;
                                 case "bw.generalactivities.log" -> LOG;
