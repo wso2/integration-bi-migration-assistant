@@ -489,6 +489,11 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return projectContext.getGetSharedVariableFn();
     }
 
+    @NotNull
+    String getXsltParamsFn() {
+        return projectContext.getXsltParamsFn();
+    }
+
     public String getPsgLogFn() {
         return projectContext.getPsgLogFn();
     }

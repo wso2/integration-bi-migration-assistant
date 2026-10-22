@@ -51,6 +51,7 @@ import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.Expression.XPath;
 import tibco.model.Type;
 import tibco.model.Variable;
+import tibco.xslt.TibcoFunctions;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -810,13 +811,17 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                                                                        VariableReference inputVariable,
                                                                        Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
-        String xsltContent = xslt.expression();
+        String xsltContent = TibcoFunctions.rewrite(xslt.expression());
 
         // Detect non-standard functions (Tibco-specific functions)
         List<String> nonStandardFunctions = ActivityConverter.detectNonStandardFunctions(xsltContent);
 
+        List<Expression> arguments = new ArrayList<>(List.of(inputVariable, new XMLTemplate(xsltContent)));
+        if (!TibcoFunctions.uuidParameters(xsltContent).isEmpty()) {
+            arguments.add(ActivityConverter.xsltParameters(cx, xsltContent, exprFrom("{}")));
+        }
         Expression expression = new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, new XMLTemplate(xsltContent))));
+                arguments));
 
         return new ActivityConverter.XsltTransformResult(expression, nonStandardFunctions);
     }
