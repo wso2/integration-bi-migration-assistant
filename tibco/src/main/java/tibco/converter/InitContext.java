@@ -24,9 +24,11 @@ public class InitContext implements ComptimeFunction {
 
     private static final String FUNCTION_NAME = "initContext";
 
+    private final ContextTypeNames typeNames;
     private final Collection<SharedVariableInfo> sharedVariables;
 
-    public InitContext(Collection<SharedVariableInfo> sharedVariables) {
+    public InitContext(ContextTypeNames typeNames, Collection<SharedVariableInfo> sharedVariables) {
+        this.typeNames = typeNames;
         this.sharedVariables = sharedVariables;
     }
 
@@ -45,9 +47,8 @@ public class InitContext implements ComptimeFunction {
             String varName = sharedVar.varName();
             String refName = sharedVar.ref().varName();
 
-            // Generate SharedVariableContext for each shared variable
             sharedVarContexts.append(String.format("""
-                    SharedVariableContext sharedVarContext%d = {
+                    %s sharedVarContext%d = {
                         getter: function() returns xml {
                             return %s;
                         },
@@ -55,7 +56,7 @@ public class InitContext implements ComptimeFunction {
                             %s = value;
                         }
                     };
-                    """, index, refName, refName));
+                    """, typeNames.sharedVariableContext(), index, refName, refName));
 
             // Generate assignment to sharedVariables map
             sharedVarAssignments.append(String.format("""
@@ -68,17 +69,18 @@ public class InitContext implements ComptimeFunction {
         return String
                 .format("""
                                 function initContext(map<xml> initVariables = {},
-                                                     map<SharedVariableContext> jobSharedVariables = {})
-                                              returns Context {
-                                    map<SharedVariableContext> sharedVariables = {};
-                                    %s
-                                    %s
+                                                     map<%1$s> jobSharedVariables = {})
+                                              returns %2$s {
+                                    map<%1$s> sharedVariables = {};
+                                    %3$s
+                                    %4$s
                                     foreach var key in jobSharedVariables.keys() {
                                         sharedVariables[key] = jobSharedVariables.get(key);
                                     }
                                     return {variables: initVariables, result: xml `<root/>`, sharedVariables};
                                 }
                                 """,
-                        sharedVarContexts, sharedVarAssignments);
+                        typeNames.sharedVariableContext(), typeNames.context(), sharedVarContexts,
+                        sharedVarAssignments);
     }
 }

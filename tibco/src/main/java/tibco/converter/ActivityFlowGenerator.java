@@ -89,8 +89,11 @@ final class ActivityFlowGenerator {
         this.analysisResult = cx.getAnalysisResult();
         this.callHandler = callHandler;
         this.activitiesInFlow = new HashSet<>(activities);
-        activities.forEach(activity -> analysisResult.sources(activity)
-                .forEach(link -> linksIntoFlow.add(link.name())));
+        Set<Activity> deadEnds = deadEndEmptyActivities(activities);
+        activities.stream()
+                .filter(activity -> !deadEnds.contains(activity))
+                .forEach(activity -> analysisResult.sources(activity)
+                        .forEach(link -> linksIntoFlow.add(link.name())));
         // A local named like an activity function would shadow it for every later call in the runner.
         analysisResult.activities().forEach(activity -> usedNames.add(analysisResult.from(activity).functionName()));
     }
@@ -102,8 +105,34 @@ final class ActivityFlowGenerator {
         return generator.body;
     }
 
+    // Empty activities have no function, so one that no live activity in the flow depends on needs neither its
+    // reachability nor the links into it. Activities are ordered after their link sources, so a reverse walk sees
+    // every target before its source.
+    private Set<Activity> deadEndEmptyActivities(List<Activity> activities) {
+        Map<String, List<Activity>> targetsByLink = new HashMap<>();
+        activities.forEach(activity -> analysisResult.sources(activity).forEach(link ->
+                targetsByLink.computeIfAbsent(link.name(), ignored -> new ArrayList<>()).add(activity)));
+        Set<Activity> deadEnds = new HashSet<>();
+        for (Activity activity : activities.reversed()) {
+            if (activity instanceof Activity.Empty empty && empty.sources().stream()
+                    .flatMap(source -> targetsByLink.getOrDefault(source.linkName(), List.of()).stream())
+                    .allMatch(deadEnds::contains)) {
+                deadEnds.add(activity);
+            }
+        }
+        return deadEnds;
+    }
+
     private void generateActivity(Activity activity) {
         String functionName = analysisResult.from(activity).functionName();
+        if (activity instanceof Activity.Empty empty) {
+            boolean anchorsLinks = empty.sources().stream()
+                    .anyMatch(source -> linksIntoFlow.contains(source.linkName()));
+            addFiredLinks(activity, anchorsLinks
+                    ? reachedCondition(activity).map(condition -> materialize(functionName + "Reached", condition))
+                    : Optional.empty(), Optional.empty());
+            return;
+        }
         Optional<Expression> reached = reachedCondition(activity)
                 .map(condition -> materialize(functionName + "Reached", condition));
         FunctionCall call = new FunctionCall(functionName, List.of(context));
@@ -225,6 +254,11 @@ final class ActivityFlowGenerator {
         for (Activity.Source source : withSources.sources()) {
             Predicate predicate = source.condition().orElse(null);
             if (predicate instanceof XPath || !linksIntoFlow.contains(source.linkName())) {
+                continue;
+            }
+            // An Empty activity runs nothing, so its error links never fire.
+            if (predicate instanceof Predicate.Error && result.isEmpty()) {
+                fired.put(source.linkName(), Optional.of(exprFrom("false")));
                 continue;
             }
             // The result stays () when the source is skipped, so the type test alone already implies reached.

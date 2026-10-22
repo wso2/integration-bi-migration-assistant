@@ -48,6 +48,7 @@ public class Constants {
     public static final String MODULE_INT = "lang.'int";
     public static final String MODULE_JAVA = "jballerina.java";
     public static final String MODULE_RUNTIME = "lang.runtime";
+    public static final String MODULE_UUID = "uuid";
 
     // Context Type Def
     public static final String CONTEXT_RECORD_TYPE = "Context";
@@ -61,9 +62,13 @@ public class Constants {
     public static final String PAYLOAD_REF = "payload";
     public static final String URI_PARAMS_REF = "uriParams";
     public static final String JMS_MESSAGE_REF = "jmsMessage";
+    public static final String CORRELATION_ID_REF = "correlationId";
     public static final String VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + VARS_REF;
     public static final String ATTRIBUTES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + ATTRIBUTES_REF;
     public static final String PAYLOAD_FIELD_ACCESS = CONTEXT_REFERENCE + "." + PAYLOAD_REF;
+    public static final String CORRELATION_ID_FIELD_ACCESS = CONTEXT_REFERENCE + "." + CORRELATION_ID_REF;
+    // Ballerina rejects ?: on a string, which the correlation ID always is
+    public static final String NILABLE_CORRELATION_ID = "(<string?>" + CORRELATION_ID_FIELD_ACCESS + ")";
 
     // Variable/Func Names
     public static final String ON_FAIL_ERROR_VAR_REF = "err";
@@ -89,11 +94,18 @@ public class Constants {
     public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "route%s";
     public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteErrorIfExists";
     public static final String FUNC_JSON_PAYLOAD = "jsonPayload";
+    public static final String FUNC_GET_OPTIONAL_HEADER = "getOptionalHeader";
+    public static final String FUNC_GET_CORRELATION_ID = "getCorrelationId";
+    public static final String FUNC_GET_SHARED_CORRELATION_ID = "getSharedCorrelationId";
+    public static final String REQUEST_CONTEXT_REF = "requestContext";
+    public static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
+    public static final String SEND_CORRELATION_ID_NEVER = "NEVER";
 
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";
     public static final String HTTP_REQUEST_TYPE = "http:Request";
     public static final String HTTP_CLIENT_TYPE = "http:Client";
+    public static final String HTTP_REQUEST_CONTEXT_TYPE = "http:RequestContext";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";
     public static final String JMS_MESSAGE_TYPE = "jms:Message";
     public static final String JMS_CALLER_TYPE = "jms:Caller";

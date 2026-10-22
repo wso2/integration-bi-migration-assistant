@@ -124,6 +124,8 @@ public class MuleToBalConverter {
             Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF);
     private static final String RESPONSE_REF_EXPR = "(" + RESPONSE_EXPR + ")";
     private static final String STATUS_CODE_VAR = "statusCode";
+    private static final Parameter REQUEST_CONTEXT_PARAM = new Parameter(Constants.REQUEST_CONTEXT_REF,
+            typeFrom(Constants.HTTP_REQUEST_CONTEXT_TYPE));
 
     public static SyntaxTree convertStandaloneXMLFileToBallerina(String xmlFilePath, MuleLogger logger) {
         Context ctx = new Context(List.of(Path.of(xmlFilePath).toFile()), List.of(), logger);
@@ -250,6 +252,10 @@ public class MuleToBalConverter {
             List<ModuleTypeDef> contextTypeDefns = createContextTypeDefns(ctx);
             contextTypeDefns.addAll(ctx.currentFileCtx.balConstructs.typeDefs.values());
             typeDefs = contextTypeDefns;
+            // In a project, the file of the Context type imports it instead
+            if (ctx.projectCtx.usesCorrelationId) {
+                ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_UUID));
+            }
         } else {
             typeDefs = ctx.currentFileCtx.balConstructs.typeDefs.values().stream().toList();
         }
@@ -270,6 +276,7 @@ public class MuleToBalConverter {
     private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services,
                                         Service lastHttpService) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
         ctx.projectCtx.attributes.put(Constants.HTTP_RESPONSE_REF, HTTP_RESPONSE_TYPE);
@@ -301,6 +308,11 @@ public class MuleToBalConverter {
             uriParamsInit = uriParamsInit(resourceData.pathParams());
         }
         resourcePath = withPrefix(ctx.projectCtx.apiKitResourcePrefixes.getOrDefault(apiKit.name(), ""), resourcePath);
+        boolean sharesCorrelationId = ctx.projectCtx.usesCorrelationId && !lastHttpService.httpInterceptors().isEmpty();
+        if (sharesCorrelationId) {
+            resourceParams = new ArrayList<>(resourceParams);
+            resourceParams.add(REQUEST_CONTEXT_PARAM);
+        }
 
         // In Mule the payload of a listener flow starts as the request body
         String payloadField = specSignature.flatMap(SpecResourceSignature::payloadRef)
@@ -309,8 +321,9 @@ public class MuleToBalConverter {
                         : "%s: %s, ".formatted(Constants.PAYLOAD_REF, payloadRef))
                 .orElse("");
         List<Statement> bodyStmts = new ArrayList<>();
-        bodyStmts.add(stmtFrom("Context %s = {%s%s: %s};".formatted(Constants.CONTEXT_REFERENCE, payloadField,
-                Constants.ATTRIBUTES_REF, getAttributesInitValue(ctx, uriParamsInit))));
+        bodyStmts.add(stmtFrom("Context %s = {%s%s: %s%s};".formatted(Constants.CONTEXT_REFERENCE, payloadField,
+                Constants.ATTRIBUTES_REF, getAttributesInitValue(ctx, uriParamsInit),
+                requestCorrelationIdField(ctx, sharesCorrelationId))));
 
         bodyStmts.addAll(bodyCoreStmts);
         Optional<HttpResponse> routerResponse =
@@ -334,6 +347,71 @@ public class MuleToBalConverter {
         });
         lastHttpService.fields().addAll(ctx.serviceFields);
         ctx.resetServiceState();
+    }
+
+    // Mule adopts the caller's correlation ID. The interceptors of a request create their own Context, so a request
+    // with interceptors shares its ID through its request context.
+    private static String requestCorrelationIdField(Context ctx, boolean sharedWithInterceptors) {
+        return ctx.projectCtx.usesCorrelationId
+                ? ", %s: %s".formatted(Constants.CORRELATION_ID_REF, requestCorrelationId(ctx, sharedWithInterceptors))
+                : "";
+    }
+
+    private static String requestCorrelationId(Context ctx, boolean sharedWithInterceptors) {
+        if (!sharedWithInterceptors) {
+            addGetCorrelationIdFunction(ctx);
+            return "%s(%s)".formatted(Constants.FUNC_GET_CORRELATION_ID, Constants.HTTP_REQUEST_REF);
+        }
+        addGetSharedCorrelationIdFunction(ctx);
+        return "%s(%s, %s)".formatted(Constants.FUNC_GET_SHARED_CORRELATION_ID, Constants.REQUEST_CONTEXT_REF,
+                Constants.HTTP_REQUEST_REF);
+    }
+
+    private static String sharedCorrelationIdField(Context ctx) {
+        if (!ctx.projectCtx.usesCorrelationId) {
+            return "";
+        }
+        addGetSharedCorrelationIdFunction(ctx);
+        return ", %s: %s(%s)".formatted(Constants.CORRELATION_ID_REF, Constants.FUNC_GET_SHARED_CORRELATION_ID,
+                Constants.REQUEST_CONTEXT_REF);
+    }
+
+    private static void addGetCorrelationIdFunction(Context ctx) {
+        if (ctx.projectCtx.functionExists(Constants.FUNC_GET_CORRELATION_ID)) {
+            return;
+        }
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_UUID));
+        ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_GET_CORRELATION_ID,
+                new Function(Constants.FUNC_GET_CORRELATION_ID,
+                        List.of(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE))),
+                        Constants.BAL_STRING_TYPE,
+                        List.of(new Statement.Comment("Mule takes the caller's X-Correlation-ID, then its "
+                                        + "MULE_CORRELATION_ID, and makes an ID when neither is sent"),
+                                stmtFrom("string|http:HeaderNotFoundError id = "
+                                        + "request.getHeader(\"X-Correlation-ID\");"),
+                                stmtFrom("if id !is string { id = request.getHeader(\"MULE_CORRELATION_ID\"); }"),
+                                stmtFrom("return id is string ? id : uuid:createType4AsString();"))));
+    }
+
+    private static void addGetSharedCorrelationIdFunction(Context ctx) {
+        addGetCorrelationIdFunction(ctx);
+        if (ctx.projectCtx.functionExists(Constants.FUNC_GET_SHARED_CORRELATION_ID)) {
+            return;
+        }
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_UUID));
+        ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_GET_SHARED_CORRELATION_ID,
+                new Function(Constants.FUNC_GET_SHARED_CORRELATION_ID,
+                        List.of(REQUEST_CONTEXT_PARAM, new Parameter(Constants.HTTP_REQUEST_REF,
+                                typeFrom(Constants.HTTP_REQUEST_TYPE + "?"), Optional.of(exprFrom("()")))),
+                        Constants.BAL_STRING_TYPE,
+                        List.of(new Statement.Comment("Mule keeps one ID for a whole request, so the resource and the "
+                                        + "interceptors use the ID the first of them made"),
+                                stmtFrom("string|error id = requestContext.getWithType(\"correlationId\");"),
+                                stmtFrom("if id is string { return id; }"),
+                                stmtFrom("string newId = request is () ? uuid:createType4AsString() "
+                                        + ": getCorrelationId(request);"),
+                                stmtFrom("requestContext.set(\"correlationId\", newId);"),
+                                stmtFrom("return newId;"))));
     }
 
     private static String withPrefix(String prefix, String resourcePath) {
@@ -469,6 +547,7 @@ public class MuleToBalConverter {
     private static void genAnypointMqSource(Context ctx, Flow flow, AnypointMqSubscriber mqSubscriber,
                                             Collection<Service> services, List<Listener> listeners) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.ANYPOINT_MQ;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
         ctx.projectCtx.attributes.put(JMS_MESSAGE_REF, Constants.JMS_MESSAGE_TYPE);
 
@@ -541,6 +620,7 @@ public class MuleToBalConverter {
                                         Collection<Service> services, List<Listener> listeners) {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.PUBSUB;
 
         // Add Pub/Sub import
         ctx.addImport(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_PUBSUB));
@@ -594,6 +674,7 @@ public class MuleToBalConverter {
     private static void genFileListenerSource(Context ctx, Flow flow, FileListener fileListener,
                                               Collection<Service> services, List<Listener> listeners) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.FILE;
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         // Add file and regex imports
@@ -741,6 +822,7 @@ public class MuleToBalConverter {
     }
 
     private static void genVMListenerSource(Context ctx, Flow flow, VMListener vmListener, Set<Function> functions) {
+        ctx.attributesOrigin = Context.AttributesOrigin.VM;
         // TODO: Consider config ref usage
         String queueName = vmListener.queueName();
         String funcName = ctx.projectCtx.vmQueueNameToBalFuncMap.get(queueName);
@@ -753,6 +835,7 @@ public class MuleToBalConverter {
 
     private static void genSchedulerSource(Context ctx, Flow flow, Scheduler scheduler, Set<Function> functions,
                                            List<ClassDef> classDefs) {
+        ctx.attributesOrigin = Context.AttributesOrigin.NONE;
         String jobClassName = "Job";
         ClassDef classDef = genBalJobClass(ctx, jobClassName, flow.flowBlocks());
         classDefs.add(classDef);
@@ -800,11 +883,19 @@ public class MuleToBalConverter {
         ctx.projectCtx.attributes.put(Constants.URI_PARAMS_REF, "map<string>");
 
         HttpFlowSegments segments = splitHttpFlow(flow.flowBlocks());
-        Service service = genBalService(ctx, src, segments.serviceBlocks(), functions, policyTodo(ctx, flow));
-        if (!segments.requestInterceptorBlocks().isEmpty()) {
+        boolean hasErrorInterceptor = src.errorResponse().isPresent() || segments.errorHandler().isPresent();
+        boolean sharesCorrelationId = ctx.projectCtx.usesCorrelationId && (hasErrorInterceptor
+                || !segments.requestInterceptorBlocks().isEmpty() || !segments.responseInterceptorBlocks().isEmpty());
+        Service service = genBalService(ctx, src, segments.serviceBlocks(), functions, policyTodo(ctx, flow),
+                sharesCorrelationId);
+        // An APIkit resource binds its typed parameters before its body runs. When binding fails, the error
+        // interceptor reads the request's ID only if a request interceptor stored it first.
+        boolean storesCorrelationIdFirst = sharesCorrelationId
+                && segments.serviceBlocks().stream().anyMatch(ApiKitRouter.class::isInstance);
+        if (!segments.requestInterceptorBlocks().isEmpty() || storesCorrelationIdFirst) {
             service.httpInterceptors().add(genRequestInterceptor(ctx, segments.requestInterceptorBlocks()));
         }
-        if (src.errorResponse().isPresent() || segments.errorHandler().isPresent()) {
+        if (hasErrorInterceptor) {
             service.httpInterceptors().add(genResponseErrorInterceptor(ctx, segments.errorHandler(),
                     src.errorResponse()));
         }
@@ -865,11 +956,16 @@ public class MuleToBalConverter {
 
     private static HTTPInterceptor genRequestInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         List<Statement> body = new ArrayList<>();
-        body.add(stmtFrom("Context %s = {%s: {%s: %s, %s: new}};".formatted(
-                Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF, Constants.HTTP_REQUEST_REF,
-                Constants.HTTP_REQUEST_REF, Constants.HTTP_RESPONSE_REF)));
-        body.addAll(convertTopLevelMuleBlocks(ctx, flowBlocks));
+        if (flowBlocks.isEmpty()) {
+            body.add(stmtFrom("_ = %s;".formatted(requestCorrelationId(ctx, true))));
+        } else {
+            body.add(stmtFrom("Context %s = {%s: {%s: %s, %s: new}%s};".formatted(
+                    Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF, Constants.HTTP_REQUEST_REF,
+                    Constants.HTTP_REQUEST_REF, Constants.HTTP_RESPONSE_REF, requestCorrelationIdField(ctx, true))));
+            body.addAll(convertTopLevelMuleBlocks(ctx, flowBlocks));
+        }
         body.add(stmtFrom("return requestContext.next();"));
 
         List<Parameter> parameters = List.of(
@@ -889,9 +985,11 @@ public class MuleToBalConverter {
     // Runs the blocks after an APIkit router; the listener's http:response is applied by the resources instead
     private static HTTPInterceptor genResponseInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         List<Statement> body = new ArrayList<>();
-        body.add(stmtFrom("Context %s = {%s: {%s: %s}};".formatted(Constants.CONTEXT_REFERENCE,
-                Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_REF)));
+        body.add(stmtFrom("Context %s = {%s: {%s: %s}%s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, Constants.HTTP_RESPONSE_REF,
+                sharedCorrelationIdField(ctx))));
         body.addAll(convertTopLevelMuleBlocks(ctx, flowBlocks));
         body.add(setPayloadIfSet());
         body.add(stmtFrom("return %s;".formatted(Constants.HTTP_RESPONSE_REF)));
@@ -919,10 +1017,12 @@ public class MuleToBalConverter {
     private static HTTPInterceptor genResponseErrorInterceptor(Context ctx, Optional<ErrorHandler> errorHandler,
                                                                Optional<HttpResponse> httpErrorResponse) {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         String interceptedResponse = "interceptedResponse";
         List<Statement> body = new ArrayList<>();
-        body.add(stmtFrom("Context %s = {%s: {%s: %s}};".formatted(Constants.CONTEXT_REFERENCE,
-                Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, interceptedResponse)));
+        body.add(stmtFrom("Context %s = {%s: {%s: %s}%s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, interceptedResponse,
+                sharedCorrelationIdField(ctx))));
         errorHandler.ifPresent(handler -> body.addAll(convertErrorHandler(ctx, handler)));
         httpErrorResponse.flatMap(HttpResponse::body)
                 .ifPresent(bodyScript -> body.addAll(convertHttpResponseBody(ctx, bodyScript)));
@@ -1000,6 +1100,12 @@ public class MuleToBalConverter {
             contextTypeDefns.add(new ModuleTypeDef(Constants.ATTRIBUTES_TYPE, attributesRecord));
         }
 
+        if (ctx.projectCtx.usesCorrelationId) {
+            // Mule gives an event a new ID unless its source passes one on
+            contextRecFields.add(new RecordField(Constants.CORRELATION_ID_REF, Constants.BAL_STRING_TYPE,
+                    exprFrom("uuid:createType4AsString()")));
+        }
+
         RecordTypeDesc contextRecord = RecordTypeDesc.closedRecord(contextRecFields);
         contextTypeDefns.add(new ModuleTypeDef(Constants.CONTEXT_RECORD_TYPE, contextRecord));
         // Spec types follow the context types, whose names their generators avoid; a shared generator is written once
@@ -1014,6 +1120,7 @@ public class MuleToBalConverter {
 
     private static void genBalFuncForGlobalErrorHandler(Context ctx, ErrorHandler errorHandler,
                                                         Set<Function> functions) {
+        ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
         String name = errorHandler.name();
         String methodName = errorHandler.name().isEmpty() ? "errorHandler" :
                 convertToBalIdentifier(name); // Ideally field will not be empty
@@ -1035,6 +1142,7 @@ public class MuleToBalConverter {
 
     private static void genBalFuncForPrivateOrSubFlow(Context ctx, Set<Function> functions, String flowName,
                                                       List<MuleRecord> flowBlocks) {
+        ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
         List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
         String methodName = convertToBalIdentifier(flowName);
         Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
@@ -1054,9 +1162,11 @@ public class MuleToBalConverter {
     }
 
     private static Service genBalService(Context ctx, HttpListener httpListener, List<MuleRecord> flowBlocks,
-                                         Set<Function> functions, Optional<Statement.Comment> comment)
+                                         Set<Function> functions, Optional<Statement.Comment> comment,
+                                         boolean sharesCorrelationId)
             throws ScriptConversionException {
         ctx.inServiceGen = true;
+        ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         Optional<String> apiKitRouterRef = flowBlocks.stream()
                 .filter(ApiKitRouter.class::isInstance)
                 .map(ApiKitRouter.class::cast)
@@ -1077,11 +1187,14 @@ public class MuleToBalConverter {
         // Add services
         List<Parameter> queryPrams = new ArrayList<>();
         queryPrams.add(new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE)));
+        if (sharesCorrelationId) {
+            queryPrams.add(REQUEST_CONTEXT_PARAM);
+        }
 
         List<Statement> bodyStmts = new ArrayList<>();
         String attributesInitValue = getAttributesInitValue(ctx, uriParamsInit(pathParams));
-        bodyStmts.add(stmtFrom("Context %s = {%s: %s};".formatted(Constants.CONTEXT_REFERENCE,
-                Constants.ATTRIBUTES_REF, attributesInitValue)));
+        bodyStmts.add(stmtFrom("Context %s = {%s: %s%s};".formatted(Constants.CONTEXT_REFERENCE,
+                Constants.ATTRIBUTES_REF, attributesInitValue, requestCorrelationIdField(ctx, sharesCorrelationId))));
 
         List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
         bodyStmts.addAll(bodyCoreStmts);
@@ -1121,8 +1234,9 @@ public class MuleToBalConverter {
             // same logic is shared, thus extracting it to a function
             String invokeEndPointMethodName = String.format(Constants.FUNC_NAME_HTTP_ENDPOINT_TEMPLATE,
                     ctx.projectCtx.counters.invokeEndPointMethodCount++);
-            List<Statement> body = Collections.singletonList(stmtFrom("return %s(%s);"
-                    .formatted(invokeEndPointMethodName, Constants.HTTP_REQUEST_REF)));
+            List<Statement> body = Collections.singletonList(stmtFrom("return %s(%s);".formatted(
+                    invokeEndPointMethodName,
+                    queryPrams.stream().map(Parameter::name).collect(Collectors.joining(", ")))));
 
             for (String resourceMethodName : resourceMethodNames) {
                 resourceMethodName = resourceMethodName.toLowerCase();
@@ -1132,8 +1246,7 @@ public class MuleToBalConverter {
             }
 
             // Add body as a top level function
-            functions.add(new Function(Optional.of("public"), invokeEndPointMethodName, Collections.singletonList(
-                    new Parameter(Constants.HTTP_REQUEST_REF, typeFrom(Constants.HTTP_REQUEST_TYPE))),
+            functions.add(new Function(Optional.of("public"), invokeEndPointMethodName, queryPrams,
                     Optional.of(returnType), new BlockFunctionBody(bodyStmts)));
         } else if (resourceMethodNames.length == 1) {
             String resourceMethodName = resourceMethodNames[0].toLowerCase();

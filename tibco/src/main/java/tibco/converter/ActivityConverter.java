@@ -116,6 +116,10 @@ final class ActivityConverter {
     }
 
     public static @NotNull Optional<BallerinaModel.Function> convertActivity(ProcessContext cx, Activity activity) {
+        // Empty activities only anchor links (group start/end, joins); calls to them are skipped too.
+        if (activity instanceof Empty) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {
@@ -156,7 +160,7 @@ final class ActivityConverter {
     private static @NotNull List<Statement> tryConvertActivityBody(ActivityContext cx, Activity activity) {
         return switch (activity) {
             case ActivityExtension activityExtension -> convertActivityExtension(cx, activityExtension);
-            case Empty ignored -> convertEmptyAction(cx);
+            case Empty ignored -> throw new IllegalStateException("Empty activities have no function body");
             case ExtActivity extActivity -> convertExtActivity(cx, extActivity);
             case Invoke invoke -> convertInvoke(cx, invoke);
             case Pick pick -> convertPickAction(cx, pick);
@@ -1590,10 +1594,6 @@ final class ActivityConverter {
         return convertActivityWithScope(cx, pick);
     }
 
-    private static List<Statement> convertEmptyAction(ActivityContext cx) {
-        return List.of();
-    }
-
     private static List<Statement> convertActivityExtension(ActivityContext cx,
                                                             ActivityExtension activityExtension) {
         List<Statement> body = new ArrayList<>();
@@ -1628,6 +1628,9 @@ final class ActivityConverter {
             case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
             case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
             case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
+            case ActivityExtension.Config.JavaInvoke javaInvoke -> createJavaInvokeOperation(cx, result, javaInvoke);
+            case ActivityExtension.Config.ParseData parseData -> createParseDataOperation(cx, result, parseData);
+            case ActivityExtension.Config.RenderData renderData -> createRenderDataOperation(cx, result, renderData);
             case ActivityExtension.Config.Log log -> createLogOperation(cx, result, log);
             case ActivityExtension.Config.PsgLog psgLog -> createPsgLogOperation(cx, result, psgLog);
             case ActivityExtension.Config.ExceptionLog ignored -> createExceptionLogOperation(cx, result);
@@ -2026,6 +2029,207 @@ final class ActivityConverter {
         body.add(new Comment("WARNING: Missing SFTP connection resource '" + sftpConnection
                 + "'. Using placeholder client."));
         return declarePlaceholderClient(cx, body, "ftp:Client", Library.FTP, "sftp", sftpConnection);
+    }
+
+    private static @NotNull ActivityConversionResult createJavaInvokeOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.JavaInvoke javaInvoke) {
+        String javaMethod = javaInvoke.className() + "." + javaInvoke.methodName();
+        if (!javaInvoke.staticMethod()) {
+            throw new UnsupportedOperationException("Java Invoke of instance method " + javaMethod
+                    + " is not supported");
+        }
+        List<String> parameterNames = javaInvoke.parameters().stream()
+                .map(parameter -> common.ConversionUtils.convertToBalIdentifier(parameter.name()))
+                .toList();
+        List<JavaType> parameterTypes = javaInvoke.parameters().stream()
+                .map(parameter -> javaType(parameter.type(), javaMethod))
+                .toList();
+        Optional<JavaType> returnType = javaInvoke.returnType().equals("void") ? Optional.empty()
+                : Optional.of(javaType(javaInvoke.returnType(), javaMethod));
+        if (returnType.filter(type -> type == JavaType.STRING_ARRAY).isPresent()) {
+            throw new UnsupportedOperationException("Java Invoke return type " + javaInvoke.returnType() + " of "
+                    + javaMethod + " is not supported");
+        }
+        String function = cx.getJavaInvokeFunction(javaInvoke.className(), javaInvoke.methodName(), parameterNames,
+                parameterTypes, returnType);
+
+        List<Statement> body = new ArrayList<>();
+        List<String> arguments = new ArrayList<>();
+        for (int index = 0; index < parameterTypes.size(); index++) {
+            arguments.add(javaInvokeArgument(cx, body, result, parameterNames.get(index), parameterTypes.get(index)));
+        }
+        // Unchecked Java exceptions panic instead of returning an error, so the call is trapped to send them to
+        // the error link as TIBCO does with every exception the method raises.
+        String call = "trap %s(%s)".formatted(function, String.join(", ", arguments));
+        if (returnType.isEmpty()) {
+            body.add(new CallStatement(new Check(exprFrom(call))));
+            VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate("<root></root>"));
+            body.add(output);
+            return new ActivityConversionResult(output.ref(), body);
+        }
+        VarDeclStatment returned = new VarDeclStatment(typeFrom(returnType.get().ballerinaType),
+                cx.getAnnonVarName(), new Check(exprFrom(call)));
+        body.add(returned);
+        String returnValue = returned.ref().varName();
+        if (returnType.get() == JavaType.STRING) {
+            cx.addLibraryImport(Library.JAVA);
+            VarDeclStatment text = new VarDeclStatment(typeFrom("string?"), cx.getAnnonVarName(),
+                    exprFrom("java:toString(%s)".formatted(returnValue)));
+            body.add(text);
+            VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                    "<root>${%1$s is () ? xml `` : xml `<MethodReturnValue>${%1$s}</MethodReturnValue>`}</root>"
+                            .formatted(text.ref().varName())));
+            body.add(output);
+            return new ActivityConversionResult(output.ref(), body);
+        }
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<root><MethodReturnValue>${%s}</MethodReturnValue></root>".formatted(returnValue)));
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull JavaType javaType(String tibcoType, String javaMethod) {
+        return JavaType.fromTibcoType(tibcoType).orElseThrow(() -> new UnsupportedOperationException(
+                "Java Invoke type " + tibcoType + " of " + javaMethod + " is not supported"));
+    }
+
+    // A string parameter missing from the input is passed as null, matching how TIBCO maps an absent optional
+    // parameter; primitives have no null, so they must be present.
+    private static @NotNull String javaInvokeArgument(ActivityContext cx, List<Statement> body,
+                                                      VariableReference input, String parameterName,
+                                                      JavaType type) {
+        String element = "%s/**/<%s>".formatted(input.varName(), parameterName);
+        if (type == JavaType.STRING_ARRAY) {
+            return javaStringArrayArgument(cx, body, element);
+        }
+        String text = "(%s/*).toString()".formatted(element);
+        VarDeclStatment argument = switch (type) {
+            case STRING -> {
+                cx.addLibraryImport(Library.JAVA);
+                yield new VarDeclStatment(typeFrom("handle"), cx.getAnnonVarName(),
+                        exprFrom("(%s).length() == 0 ? java:createNull() : java:fromString(%s)"
+                                .formatted(element, text)));
+            }
+            case STRING_ARRAY -> throw new IllegalStateException("string[] arguments are built separately");
+            case INT, LONG, SHORT, BYTE -> new VarDeclStatment(typeFrom("int"), cx.getAnnonVarName(),
+                    exprFrom("check int:fromString(%s.trim())".formatted(text)));
+            case DOUBLE, FLOAT -> new VarDeclStatment(typeFrom("float"), cx.getAnnonVarName(),
+                    exprFrom("check float:fromString(%s.trim())".formatted(text)));
+            case BOOLEAN -> new VarDeclStatment(typeFrom("boolean"), cx.getAnnonVarName(),
+                    exprFrom("check boolean:fromString(%s.trim())".formatted(text)));
+        };
+        body.add(argument);
+        return argument.ref().varName();
+    }
+
+    private static @NotNull String javaStringArrayArgument(ActivityContext cx, List<Statement> body,
+                                                          String element) {
+        cx.addLibraryImport(Library.JAVA);
+        cx.addLibraryImport(Library.JAVA_ARRAYS);
+        VarDeclStatment values = new VarDeclStatment(typeFrom("string[]"), cx.getAnnonVarName(),
+                exprFrom("from xml item in %s select (item/*).toString()".formatted(element)));
+        body.add(values);
+        String array = cx.getAnnonVarName();
+        body.add(stmtFrom("handle %s = arrays:newInstance(check java:getClass(\"java.lang.String\"), %s.length());"
+                .formatted(array, values.ref().varName())));
+        body.add(stmtFrom("""
+                foreach int index in 0 ..< %1$s.length() {
+                    arrays:set(%2$s, index, java:fromString(%1$s[index]));
+                }
+                """.formatted(values.ref().varName(), array)));
+        return array;
+    }
+
+    private static @NotNull ActivityConversionResult createParseDataOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.ParseData parseData) {
+        Resource.DataFormatResource dataFormat = dataFormatResource(cx, parseData.dataFormat());
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment content = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                parseData.inputType() == ActivityExtension.Config.ParseData.InputType.FILE
+                        ? parseDataFileContent(cx, body, result, parseData.encoding())
+                        : exprFrom("(%s/**/<text>/*).toString()".formatted(result.varName())));
+        body.add(content);
+        String startRecord = "1";
+        if (parseData.manuallySpecifiedStartRecord()) {
+            VarDeclStatment startRecordDecl = new VarDeclStatment(INT, cx.getAnnonVarName(),
+                    exprFrom("check int:fromString((%s/**/<startRecord>/*).toString().trim())"
+                            .formatted(result.varName())));
+            body.add(startRecordDecl);
+            startRecord = startRecordDecl.ref().varName();
+        } else {
+            cx.log(WARN, "ParseData: parsing without a manually specified start record always starts from the "
+                    + "first record.");
+            body.add(new Comment("WARNING: Start record is not manually specified; every run parses from the "
+                    + "first record instead of continuing from where the previous iteration stopped."));
+        }
+        if (parseData.continueOnError()) {
+            cx.log(WARN, "ParseData: Continue On Error is not supported; parsing stops on the first bad record.");
+            body.add(new Comment("WARNING: Continue On Error is not supported; ErrorRows is not produced and "
+                    + "parsing stops on the first bad record."));
+        }
+        VarDeclStatment noOfRecords = new VarDeclStatment(INT, cx.getAnnonVarName(),
+                exprFrom("check int:fromString((%s/**/<noOfRecords>/*).toString().trim())"
+                        .formatted(result.varName())));
+        body.add(noOfRecords);
+        VarDeclStatment skipHeaderText = new VarDeclStatment(STRING, cx.getAnnonVarName(),
+                exprFrom("(%s/**/<SkipHeaderCharacters>/*).toString().trim()".formatted(result.varName())));
+        body.add(skipHeaderText);
+        VarDeclStatment skipHeaderCharacters = new VarDeclStatment(INT, cx.getAnnonVarName(),
+                exprFrom("%1$s == \"\" ? 0 : check int:fromString(%1$s)".formatted(skipHeaderText.ref())));
+        body.add(skipHeaderCharacters);
+        VarDeclStatment parsed = new VarDeclStatment(XML, cx.getAnnonVarName(), exprFrom(
+                "check %s(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)".formatted(
+                        cx.getParseDelimitedDataFunction(), content.ref(),
+                        dataFormatLiteral(dataFormat.columnSeparator()), dataFormatLiteral(dataFormat.lineSeparator()),
+                        dataFormatLiteral(dataFormat.rowNamespace()), dataFormatLiteral(dataFormat.rowName()),
+                        dataFormatFieldNames(dataFormat), cx.hasQualifiedDataFormatFields(dataFormat), startRecord,
+                        noOfRecords.ref(), skipHeaderCharacters.ref(), parseData.skipBlankLines())));
+        body.add(parsed);
+        return new ActivityConversionResult(parsed.ref(), body);
+    }
+
+    // The file is decoded as UTF-8, which is exact for UTF-8 and ASCII input only.
+    private static @NotNull BallerinaModel.Expression parseDataFileContent(ActivityContext cx, List<Statement> body,
+                                                                         VariableReference result, String encoding) {
+        if (!Set.of("UTF-8", "UTF8", "ASCII", "US-ASCII").contains(encoding.toUpperCase(Locale.ROOT))) {
+            cx.log(WARN, "ParseData: input encoding " + encoding + " is decoded as UTF-8.");
+            body.add(new Comment("WARNING: Input encoding " + encoding + " is decoded as UTF-8."));
+        }
+        cx.addLibraryImport(Library.IO);
+        return exprFrom("check string:fromBytes(check io:fileReadBytes((%s/**/<fileName>/*).toString().trim()))"
+                .formatted(result.varName()));
+    }
+
+    private static @NotNull ActivityConversionResult createRenderDataOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.RenderData renderData) {
+        Resource.DataFormatResource dataFormat = dataFormatResource(cx, renderData.dataFormat());
+        List<Statement> body = new ArrayList<>();
+        VarDeclStatment text = new VarDeclStatment(STRING, cx.getAnnonVarName(), exprFrom(
+                "%s(%s, %s, %s, %s, %s)".formatted(cx.getRenderDelimitedDataFunction(), result.varName(),
+                        dataFormatLiteral(dataFormat.rowName()), dataFormatLiteral(dataFormat.columnSeparator()),
+                        dataFormatLiteral(dataFormat.lineSeparator()), dataFormatFieldNames(dataFormat))));
+        body.add(text);
+        VarDeclStatment rendered = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                new XMLTemplate("<root>${%s}</root>".formatted(text.ref())));
+        body.add(rendered);
+        return new ActivityConversionResult(rendered.ref(), body);
+    }
+
+    private static @NotNull Resource.DataFormatResource dataFormatResource(ActivityContext cx,
+                                                                           String dataFormatProperty) {
+        return cx.dataFormat(dataFormatProperty).orElseThrow(() -> new IllegalStateException(
+                "Data Format shared resource not found for property " + dataFormatProperty));
+    }
+
+    private static @NotNull String dataFormatFieldNames(Resource.DataFormatResource dataFormat) {
+        return dataFormat.fieldNames().stream()
+                .map(ActivityConverter::dataFormatLiteral)
+                .collect(Collectors.joining(", ", "[", "]"));
+    }
+
+    private static @NotNull String dataFormatLiteral(String value) {
+        return "\"" + ConversionUtils.escapeString(value)
+                .replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") + "\"";
     }
 
     private static ActivityConversionResult createSQLOperation(

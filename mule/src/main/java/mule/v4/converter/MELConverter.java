@@ -22,10 +22,21 @@ import mule.v4.Context;
 import mule.v4.ConversionUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
+import static common.BallerinaModel.Function;
+import static common.BallerinaModel.Parameter;
+import static common.ConversionUtils.stmtFrom;
+import static common.ConversionUtils.typeFrom;
 import static mule.v4.ConversionUtils.getAttrVal;
 import static mule.v4.ConversionUtils.isTokenChar;
 
 public class MELConverter {
+
+    private static final Pattern UNBRACED_OBJECT_KEY =
+            Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
+    private static final Pattern DEFAULT_OPERATOR = Pattern.compile("default(?![\\w.])");
 
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
@@ -36,7 +47,12 @@ public class MELConverter {
             }
         }
         normalizedExpr = normalizedExpr.replace("Mule::p(", "p(");
-        return normalizedExpr;
+        return wrapUnbracedSingleFieldObject(normalizedExpr);
+    }
+
+    // DataWeave lets a single-field object omit its braces, e.g. #["key" : value]; Ballerina needs them.
+    private static String wrapUnbracedSingleFieldObject(String expr) {
+        return UNBRACED_OBJECT_KEY.matcher(expr).lookingAt() ? "{" + expr + "}" : expr;
     }
 
     /**
@@ -101,7 +117,7 @@ public class MELConverter {
                     // We reach here for two kinds of syntax.
                     // 1. attributes.queryParams.foo
                     // 2. attributes['queryParams'].foo
-                    i = processAttributes(melExpr, i, tokenStr, result, addToStringCalls);
+                    i = processAttributes(ctx, melExpr, i, tokenStr, result, addToStringCalls);
                     token.setLength(0);
                     continue;
                 }
@@ -159,6 +175,10 @@ public class MELConverter {
                     case "contains" -> {
                         throw new UnsupportedOperationException("query operations not supported");
                     }
+                    case Constants.CORRELATION_ID_REF -> {
+                        result.append(convertCorrelationId(melExpr.substring(i), addToStringCalls));
+                        result.append(currentChar);
+                    }
                     default -> {
                         processToken(token, result, addToStringCalls);
                         result.append(currentChar);
@@ -172,6 +192,18 @@ public class MELConverter {
         processToken(token, result, addToStringCalls);
 
         return result.toString();
+    }
+
+    // An object key keeps its name, and a default needs an optional operand
+    private static String convertCorrelationId(String rest, boolean addToStringCalls) {
+        String next = rest.stripLeading();
+        if (next.startsWith(":") && !next.startsWith("::")) {
+            return Constants.CORRELATION_ID_REF;
+        }
+        if (DEFAULT_OPERATOR.matcher(next).lookingAt()) {
+            return Constants.NILABLE_CORRELATION_ID;
+        }
+        return convertMuleTokenToBallerina(Constants.CORRELATION_ID_REF, addToStringCalls);
     }
 
     private static boolean isConditionalFieldGen(String expr) {
@@ -497,8 +529,8 @@ public class MELConverter {
         return i;
     }
 
-    private static int processAttributes(String melExpr, int startPos, String baseToken, StringBuilder result,
-                                         boolean addToStringCalls) {
+    private static int processAttributes(Context ctx, String melExpr, int startPos, String baseToken,
+                                         StringBuilder result, boolean addToStringCalls) {
         StringBuilder attributeKeyToken = new StringBuilder();
         int i = startPos;
 
@@ -522,9 +554,22 @@ public class MELConverter {
             i++; // Skip the closing bracket
         }
 
-        // Capture param access if present (e.g., attributes.uriParams.paramName)
+        // Capture param access if present (e.g., attributes.uriParams.paramName, attributes.headers.'param-name')
         StringBuilder paramAccessToken = new StringBuilder();
-        if (i < melExpr.length() && melExpr.charAt(i) == '.') {
+        if (i + 1 < melExpr.length() && (melExpr.charAt(i) == '.' || melExpr.charAt(i) == '[')
+                && isQuote(melExpr.charAt(i + 1))) {
+            boolean isBracketSelector = melExpr.charAt(i) == '[';
+            char quote = melExpr.charAt(i + 1);
+            i += 2; // Skip the selector and the opening quote
+            while (i < melExpr.length() && melExpr.charAt(i) != quote) {
+                paramAccessToken.append(melExpr.charAt(i));
+                i++;
+            }
+            i++; // Skip the closing quote
+            if (isBracketSelector && i < melExpr.length() && melExpr.charAt(i) == ']') {
+                i++; // Skip the closing bracket
+            }
+        } else if (i < melExpr.length() && melExpr.charAt(i) == '.') {
             i++; // Skip the dot
 
             while (i < melExpr.length() && isTokenChar(melExpr.charAt(i))) {
@@ -533,8 +578,11 @@ public class MELConverter {
             }
         }
 
-        String paramName = ConversionUtils.convertToBalIdentifier(paramAccessToken.toString());
-        String tokenResult = convertAttributeAccess(attributeKeyToken.toString(), paramName);
+        String attributeKey = attributeKeyToken.toString();
+        String tokenResult = attributeKey.equals("headers")
+                ? convertHeaderAccess(ctx, paramAccessToken.toString())
+                : convertAttributeAccess(attributeKey,
+                        ConversionUtils.convertToBalIdentifier(paramAccessToken.toString()));
         result.append(tokenResult);
         if (addToStringCalls) {
             result.append(".toString()");
@@ -542,6 +590,32 @@ public class MELConverter {
 
         i--; // Adjust for the next iteration
         return i;
+    }
+
+    private static String convertHeaderAccess(Context ctx, String headerName) {
+        if (ctx.attributesOrigin != Context.AttributesOrigin.HTTP_LISTENER || headerName.isEmpty()) {
+            String reason = "Unsupported attributes.headers access (header: '%s', attributes origin: %s)"
+                    .formatted(headerName, ctx.attributesOrigin);
+            ctx.logger.logWarn(reason);
+            throw new UnsupportedOperationException(reason);
+        }
+        ctx.addImport(Constants.HTTP_MODULE_IMPORT);
+        addGetOptionalHeaderFunction(ctx);
+        return "%s(<%s>%s.%s, \"%s\")".formatted(Constants.FUNC_GET_OPTIONAL_HEADER, Constants.HTTP_REQUEST_TYPE,
+                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_REQUEST_REF, headerName);
+    }
+
+    private static void addGetOptionalHeaderFunction(Context ctx) {
+        if (ctx.projectCtx.functionExists(Constants.FUNC_GET_OPTIONAL_HEADER)) {
+            return;
+        }
+        ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_GET_OPTIONAL_HEADER,
+                new Function(Constants.FUNC_GET_OPTIONAL_HEADER,
+                        List.of(new Parameter("req", typeFrom(Constants.HTTP_REQUEST_TYPE)),
+                                new Parameter("name", typeFrom("string"))),
+                        typeFrom("string?"),
+                        List.of(stmtFrom("string|http:HeaderNotFoundError value = req.getHeader(name);"),
+                                stmtFrom("return value is string ? value : ();"))));
     }
 
     private static String convertAttributeAccess(String attributeKey, String paramName) {
@@ -590,6 +664,7 @@ public class MELConverter {
         } else {
             balStr = switch (str) {
                 case "payload", "message.payload" -> "ctx.payload";
+                case Constants.CORRELATION_ID_REF -> Constants.CORRELATION_ID_FIELD_ACCESS;
                 case "message" -> "ctx";
                 case "null" -> "()";
                 case "error.description" -> "%s.message()".formatted(Constants.ON_FAIL_ERROR_VAR_REF);

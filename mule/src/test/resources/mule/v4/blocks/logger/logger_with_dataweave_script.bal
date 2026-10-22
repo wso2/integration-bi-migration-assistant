@@ -1,7 +1,9 @@
 import ballerina/log;
+import ballerina/uuid;
 
 public type Context record {|
     anydata payload = ();
+    string correlationId = uuid:createType4AsString();
 |};
 
 configurable string application_version = ?;
@@ -26,7 +28,7 @@ public function _dwMethod(Context ctx) returns json|error {
     string status = "ok";
     string msg = "Before Request Send Email";
     return CustomLogMapper::logger({
-                                      "correlationId": correlationId,
+                                      "correlationId": ctx.correlationId,
                                       "app": app,
                                       "mule": mule,
                                       "status": status,
@@ -44,7 +46,7 @@ public function _dwMethod1(Context ctx) returns json|error {
     string status = "ok";
     string msg = "After Request Send Email";
     return CustomLogMapper::logger({
-                                      "correlationId": correlationId,
+                                      "correlationId": ctx.correlationId,
                                       "app": app,
                                       "mule": mule,
                                       "status": status,

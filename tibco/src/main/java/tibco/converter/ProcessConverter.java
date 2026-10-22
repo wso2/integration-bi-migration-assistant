@@ -112,7 +112,8 @@ public class ProcessConverter {
         Parameter parameter = new Parameter("event", ConversionUtils.Constants.FILE_EVENT);
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
-                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(
+                        new TypeDesc.TypeReference(cx.projectContext.sharedVariableContextTypeName())),
                         "jobSharedVariables", exprFrom("{}"));
         body.add(jobSharedVariables);
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
@@ -190,7 +191,8 @@ public class ProcessConverter {
         Parameter parameter = new Parameter("message", ConversionUtils.Constants.JMS_MESSAGE_TYPE);
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
-                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(
+                        new TypeDesc.TypeReference(cx.projectContext.sharedVariableContextTypeName())),
                         "jobSharedVariables", exprFrom("{}"));
         body.add(jobSharedVariables);
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
@@ -260,7 +262,8 @@ public class ProcessConverter {
             ProcessContext cx, ExplicitTransitionGroup group) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
-                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(
+                        new TypeDesc.TypeReference(cx.projectContext.sharedVariableContextTypeName())),
                         "jobSharedVariables", exprFrom("{}"));
         body.add(jobSharedVariables);
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
@@ -444,7 +447,8 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     static BallerinaModel.Function createMainFunction(ProcessContext cx, Process5 process) {
         List<Statement> body = new ArrayList<>();
         VarDeclStatment jobSharedVariables =
-                new VarDeclStatment(new TypeDesc.MapTypeDesc(common.ConversionUtils.typeFrom("SharedVariableContext")),
+                new VarDeclStatment(new TypeDesc.MapTypeDesc(
+                        new TypeDesc.TypeReference(cx.projectContext.sharedVariableContextTypeName())),
                         "jobSharedVariables", exprFrom("{}"));
         body.add(jobSharedVariables);
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
@@ -561,8 +565,10 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 };
         body.add(new Statement.CallStatement(new FunctionCall(controlFlowFunctions.scopeFn(), List.of(params))));
 
-        return new BallerinaModel.Function(startFuncData.name(),
-                List.of(new Parameter(params.varName(), cx.contextType())), NIL, body);
+        return new BallerinaModel.Function(cx.isShared(process) ? Optional.of("public") : Optional.empty(),
+                startFuncData.name(),
+                List.of(new Parameter(params.varName(), cx.contextType())), Optional.of(NIL),
+                new BallerinaModel.BlockFunctionBody(body));
     }
 
     private static BallerinaModel.Function generateProcessFunction(ProcessContext cx, Process6 process) {
@@ -745,7 +751,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                     "{ getter: " + getterFunction + ", setter: " + setterFunction + " }");
 
             VarDeclStatment contextDecl = new VarDeclStatment(
-                    new BallerinaModel.TypeDesc.BallerinaType("SharedVariableContext"),
+                    new BallerinaModel.TypeDesc.TypeReference(projectContext.sharedVariableContextTypeName()),
                     contextVarName, contextExpr);
             statements.add(contextDecl);
 

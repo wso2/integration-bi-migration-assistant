@@ -13,10 +13,10 @@
   - `activityExtension`
     - `bw.internal.end`
     - `bw.http.sendHTTPRequest`
+    - `bw.http.sendHTTPResponse`
     - `bw.restjson.Rest`
     - `bw.restjson.JsonRender`
     - `bw.restjson.JsonParser`
-    - `bw.http.sendHTTPResponse`
     - `bw.file.write`
     - `bw.file.rename`
     - `bw.file.list`
@@ -25,6 +25,9 @@
     - `bw.sftp.dir`
     - `bw.sftp.get`
     - `bw.sftp.put`
+    - `bw.java.javamethod` (static methods with string, primitive and string array parameters)
+    - `bw.parse.parsedata` (delimited Data Format resources only)
+    - `bw.parse.renderdata` (delimited Data Format resources only)
     - `bw.generalactivities.log`
     - `bw.psglog.Log`
     - `bw.psglog.ExceptionLog`

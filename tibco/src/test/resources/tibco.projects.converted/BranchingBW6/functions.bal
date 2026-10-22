@@ -68,9 +68,6 @@ function FailThrow(Context cx) returns error? {
     panic var1;
 }
 
-function Join(Context cx) returns error? {
-}
-
 function MainScopeActivityRunner(Context cx) returns error? {
     check Check(cx);
     boolean CheckToOkTaken = test_branching_MainProcess_predicate_0(xml `<root></root>`, cx);
@@ -88,9 +85,6 @@ function MainScopeActivityRunner(Context cx) returns error? {
         check OkDone(cx);
     }
     boolean JoinReached = CheckToOkTaken || CheckToAltTaken;
-    if JoinReached {
-        check Join(cx);
-    }
     error? RiskyResult = ();
     if JoinReached {
         RiskyResult = trap Risky(cx);

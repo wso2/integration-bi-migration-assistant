@@ -42,6 +42,8 @@ import mule.v4.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,6 +79,8 @@ import static mule.v4.reader.MuleConfigReader.readMuleConfigFromRoot;
  * Context class to hold the state of the conversion process.
  */
 public class Context extends ContextBase {
+    // DataWeave reads the event's correlation ID as a bare correlationId, unlike vars.correlationId or a quoted key
+    private static final Pattern CORRELATION_ID_READ = Pattern.compile("(?<![\\w.'\"])correlationId(?![\\w'\"])");
     public final ProjectContext projectCtx = new ProjectContext();
     public FileContext currentFileCtx;
     private final boolean isStandaloneBalFile;
@@ -90,6 +95,7 @@ public class Context extends ContextBase {
     public Map<JMSMessageProducerLookupKey, BallerinaModel.Expression.VariableReference> messageProducers =
             new HashMap<>();
     public boolean inServiceGen = false;
+    public AttributesOrigin attributesOrigin = AttributesOrigin.UNKNOWN;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -145,6 +151,7 @@ public class Context extends ContextBase {
             File munitFile = entry.getKey();
             mule.common.MUnitModel.TestSuite testSuite = entry.getValue();
             currentFileCtx = this.fileContexts.get(munitFile);
+            attributesOrigin = AttributesOrigin.UNKNOWN;
 
             String balFileName = munitFile.getName().replace(".xml", "");
             balFileName = "tests/" + balFileName + ".bal";
@@ -202,6 +209,30 @@ public class Context extends ContextBase {
         loadApiSpecs();
         checkApiContracts();
         createApiTypeGenerators();
+        // The HTTP sources set the ID, and they are converted before the flows of other files that read it
+        if (!projectCtx.usesCorrelationId) {
+            projectCtx.usesCorrelationId = readsCorrelationId();
+        }
+    }
+
+    // The converter reads DataWeave from the XML files and from the .dwl files of the resources directory
+    private boolean readsCorrelationId() {
+        List<Path> files = new ArrayList<>(xmlFiles.stream().map(File::toPath).toList());
+        getMuleResourcesDir().filter(Files::isDirectory).ifPresent(resourcesDir -> {
+            try (Stream<Path> paths = Files.walk(resourcesDir)) {
+                paths.filter(path -> path.toString().endsWith(".dwl")).forEach(files::add);
+            } catch (IOException e) {
+                logger.logWarn("Failed to list the DataWeave files in %s".formatted(resourcesDir));
+            }
+        });
+        return files.stream().anyMatch(file -> {
+            try {
+                return CORRELATION_ID_READ.matcher(Files.readString(file)).find();
+            } catch (IOException e) {
+                logger.logWarn("Failed to read %s".formatted(file));
+                return false;
+            }
+        });
     }
 
     private Map<String, String> apiRefsByApiKitConfig() {
@@ -342,6 +373,9 @@ public class Context extends ContextBase {
         if (projectCtx.apiTypeGenerators.values().stream().anyMatch(ApiTypeGenerator::usesConstraints)) {
             contextImports.add(new Import("ballerina", "constraint"));
         }
+        if (projectCtx.usesCorrelationId) {
+            contextImports.add(new Import(Constants.ORG_BALLERINA, Constants.MODULE_UUID));
+        }
         return contextImports;
     }
 
@@ -358,6 +392,7 @@ public class Context extends ContextBase {
         this.initFunctionBody.clear();
         this.serviceFields.clear();
         this.inServiceGen = false;
+        this.attributesOrigin = AttributesOrigin.UNKNOWN;
         this.messageProducers.clear();
     }
 
@@ -412,6 +447,10 @@ public class Context extends ContextBase {
         public final Map<String, List<ApiKitFlowName>> apiKitFlows = new LinkedHashMap<>();
         // Autodiscoveries of all files, since one usually sits in a global file apart from the flow it names
         public final List<MuleModel.ApiAutodiscovery> apiAutodiscoveries = new ArrayList<>();
+        // defaultResponseTimeout of the <configuration> element, which applies to the requests of all files
+        public Optional<String> defaultResponseTimeout = Optional.empty();
+        // Whether the converted code reads or sends the event's correlation ID; known before any code is converted
+        public boolean usesCorrelationId = false;
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();
@@ -615,5 +654,22 @@ public class Context extends ContextBase {
 
     public record JMSMessageProducerLookupKey(String connectionConfig, String destination) {
 
+    }
+
+    /**
+     * What Mule's {@code attributes} holds at the point being converted. It depends on the flow source and on
+     * the operations run before that point, e.g. an {@code http:request} replaces it with the downstream response.
+     */
+    public enum AttributesOrigin {
+        HTTP_LISTENER,
+        // Inbound HTTP flow where only the response is in scope (response and error interceptors)
+        HTTP_LISTENER_RESPONSE,
+        HTTP_REQUEST,
+        ANYPOINT_MQ,
+        PUBSUB,
+        FILE,
+        VM,
+        NONE,
+        UNKNOWN
     }
 }
