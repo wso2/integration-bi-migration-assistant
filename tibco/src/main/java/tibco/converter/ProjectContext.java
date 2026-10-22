@@ -97,6 +97,7 @@ public class ProjectContext implements LoggingContext {
     private final Map<String, BallerinaModel.ModuleTypeDef> utilityTypeDefs = new HashMap<>();
     private final Set<Intrinsics> utilityIntrinsics = new HashSet<>();
     private final Set<ComptimeFunction> utilityCompTimeFunctions = new HashSet<>();
+    private final Map<String, JavaInvokeFunction> javaInvokeFunctions = new HashMap<>();
     private final Map<String, String> processClients = new HashMap<>();
 
     private String toXMLFunction = null;
@@ -120,6 +121,7 @@ public class ProjectContext implements LoggingContext {
     private final Map<Process, AnalysisResult> analysisResult;
     private Collection<Type.Schema> schemas = new ArrayList<>();
     private ContextTypeNames contextTypeNames = null;
+    private Set<String> moduleSymbolNames = null;
     private final Set<Resource.SharedVariable> sharedVariables = new HashSet<>();
     private final Set<UnhandledActivityElement> unhandledActivities = new HashSet<>();
     private final Set<PartiallySupportedActivityElement> partiallySupportedActivities = new HashSet<>();
@@ -223,7 +225,6 @@ public class ProjectContext implements LoggingContext {
         getOrCreateUtilityTypeDef(contextTypeNames.xmlResponse(), ConversionUtils.xmlResponseTypeDesc(responseTy));
         getOrCreateUtilityTypeDef(contextTypeNames.textResponse(), ConversionUtils.textResponseTypeDesc(responseTy));
 
-        // Create SharedVariableContext type
         BallerinaModel.TypeDesc getterFunctionType = new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(), XML);
         BallerinaModel.TypeDesc setterFunctionType = new BallerinaModel.TypeDesc.FunctionTypeDesc(
@@ -232,7 +233,8 @@ public class ProjectContext implements LoggingContext {
                 List.of(
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("getter", getterFunctionType),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("setter", setterFunctionType)));
-        getOrCreateUtilityTypeDef("SharedVariableContext", sharedVariableContextType);
+        BallerinaModel.TypeDesc.TypeReference sharedVariableContextTy =
+                getOrCreateUtilityTypeDef(contextTypeNames.sharedVariableContext(), sharedVariableContextType);
 
         return getOrCreateUtilityTypeDef(contextTypeNames.context(), new BallerinaModel.TypeDesc.RecordTypeDesc(
                 List.of(
@@ -241,8 +243,11 @@ public class ProjectContext implements LoggingContext {
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("result", XML),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("response", responseTy, true),
                         new BallerinaModel.TypeDesc.RecordTypeDesc.RecordField("sharedVariables",
-                                new BallerinaModel.TypeDesc.MapTypeDesc(
-                                        new BallerinaModel.TypeDesc.TypeReference("SharedVariableContext"))))));
+                                new BallerinaModel.TypeDesc.MapTypeDesc(sharedVariableContextTy)))));
+    }
+
+    String sharedVariableContextTypeName() {
+        return getContextTypeNames().sharedVariableContext();
     }
 
     private BallerinaModel.TypeDesc.TypeReference getOrCreateUtilityTypeDef(String typeName,
@@ -317,9 +322,18 @@ public class ProjectContext implements LoggingContext {
         return typeCx.serialize();
     }
 
-    FunctionData getProcessStartFunction(String processName) {
-        Process process = getProcess(processName);
-        return getProcessContext(process).getProcessStartFunction();
+    @NotNull
+    FunctionData getProcessStartFunction(String processName, Set<BallerinaModel.Import> callerImports) {
+        return findLocalProcess(processName)
+                .map(process -> getProcessContext(process).getProcessStartFunction())
+                .or(() -> getProcessFunction(processName, callerImports).map(FunctionData::new))
+                .orElseGet(() -> {
+                    log(LoggingUtils.Level.SEVERE, "WARNING: Failed to find process: " + processName
+                            + ". Returning placeholder process.");
+                    Process placeholder = new Process5("placeholder_" + processName, "/placeholder", List.of(),
+                            new Process5.ExplicitTransitionGroup());
+                    return getProcessContext(placeholder).getProcessStartFunction();
+                });
     }
 
     String getRenderJsonAsXMLFunction(String type) {
@@ -413,7 +427,7 @@ public class ProjectContext implements LoggingContext {
 
     public String getInitContextFn() {
         if (initContextFn == null) {
-            initContextFn = new InitContext(
+            initContextFn = new InitContext(getContextTypeNames(),
                     getProjectSharedVariables().map(this::addProjectSharedVariable).toList());
         }
         utilityCompTimeFunctions.add(initContextFn);
@@ -660,19 +674,11 @@ public class ProjectContext implements LoggingContext {
     }
 
     Optional<ProcessContext.DefaultClientDetails> getDefaultClientDetails(String processName) {
-        Process process = getProcess(processName);
-        return getProcessContext(process).getDefaultClient();
+        return findLocalProcess(processName).flatMap(process -> getProcessContext(process).getDefaultClient());
     }
 
-    private Process getProcess(String processName) {
-        return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName))
-                .findAny()
-                .orElseGet(() -> {
-                    log(LoggingUtils.Level.SEVERE,
-                            "WARNING: Failed to find process: " + processName + ". Returning placeholder process.");
-                    return new Process5("placeholder_" + processName, "/placeholder", List.of(),
-                            new Process5.ExplicitTransitionGroup());
-                });
+    private @NotNull Optional<Process> findLocalProcess(String processName) {
+        return processContextMap.keySet().stream().filter(proc -> proc.name().equals(processName)).findAny();
     }
 
     public String getAnonName() {
@@ -796,11 +802,11 @@ public class ProjectContext implements LoggingContext {
                 + identity.map(ActivityIdentity::name).orElse("<unnamed>"));
     }
 
-    public Optional<String> getProcessFunction(String processName) {
+    public @NotNull Optional<String> getProcessFunction(String processName, Set<BallerinaModel.Import> callerImports) {
         // The symbol comes from the resolved process, not from the reference: a reference may be
         // an absolute or partial form of the path the target's function name was derived from.
         return conversionContext.processFunction(processName).map(result -> result.importIdentifier().map(imp -> {
-            utilityFunctionImports.add(imp);
+            callerImports.add(imp);
             return imp.moduleName() + ":" + result.symbol();
         }).orElseGet(result::symbol));
     }
@@ -903,17 +909,21 @@ public class ProjectContext implements LoggingContext {
     private ContextTypeNames getContextTypeNames() {
         if (contextTypeNames == null) {
             contextTypeNames = new ContextTypeNames(
-                    getTypeName("Context"), getTypeName("Response"), getTypeName("JSONResponse"),
-                    getTypeName("XMLResponse"), getTypeName("TextResponse"));
+                    allocateModuleSymbol("Context"), allocateModuleSymbol("Response"),
+                    allocateModuleSymbol("JSONResponse"), allocateModuleSymbol("XMLResponse"),
+                    allocateModuleSymbol("TextResponse"), allocateModuleSymbol("SharedVariableContext"));
         }
         return contextTypeNames;
     }
 
-    private String getTypeName(String name) {
-        Set<String> used =
-                analysisResult.values().stream().map(AnalysisResult::getTypeNames).flatMap(Set::stream).collect(
-                        Collectors.toSet());
-        return ConversionUtils.getSanitizedUniqueName(name, used);
+    String allocateModuleSymbol(String name) {
+        if (moduleSymbolNames == null) {
+            moduleSymbolNames = analysisResult.values().stream().map(AnalysisResult::moduleSymbolNames)
+                    .flatMap(Set::stream).collect(Collectors.toCollection(HashSet::new));
+        }
+        String symbolName = ConversionUtils.getSanitizedUniqueName(name, moduleSymbolNames);
+        moduleSymbolNames.add(symbolName);
+        return symbolName;
     }
 
     public String getParseHeadersFn() {
@@ -922,8 +932,9 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getSetSharedVariableFn() {
-        utilityIntrinsics.add(Intrinsics.SET_SHARED_VARIABLE);
-        return Intrinsics.SET_SHARED_VARIABLE.name;
+        ComptimeFunction setSharedVariable = new SetSharedVariable(getContextTypeNames());
+        utilityCompTimeFunctions.add(setSharedVariable);
+        return setSharedVariable.functionName();
     }
 
     public String getPsgLogFn() {
@@ -945,8 +956,30 @@ public class ProjectContext implements LoggingContext {
     }
 
     public String getGetSharedVariableFn() {
-        utilityIntrinsics.add(Intrinsics.GET_SHARED_VARIABLE);
-        return Intrinsics.GET_SHARED_VARIABLE.name;
+        ComptimeFunction getSharedVariable = new GetSharedVariable(getContextTypeNames());
+        utilityCompTimeFunctions.add(getSharedVariable);
+        return getSharedVariable.functionName();
+    }
+
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        String signature = className + "#" + methodName + parameterTypes + "->" + returnType.map(JavaType::name)
+                .orElse("void");
+        JavaInvokeFunction function = javaInvokeFunctions.get(signature);
+        if (function == null) {
+            Set<String> takenNames = javaInvokeFunctions.values().stream()
+                    .map(JavaInvokeFunction::functionName)
+                    .collect(Collectors.toSet());
+            String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
+            function = new JavaInvokeFunction(
+                    ConversionUtils.getSanitizedUniqueName(simpleClassName + "_" + methodName, takenNames),
+                    className, methodName, parameterNames, parameterTypes, returnType);
+            javaInvokeFunctions.put(signature, function);
+            utilityCompTimeFunctions.add(function);
+            importLibraryIfNeededToUtility(Library.JAVA);
+            conversionContext.addJavaClassDependency(className);
+        }
+        return function.functionName();
     }
 
     public @NotNull String getSftpDeleteFilesFunction() {

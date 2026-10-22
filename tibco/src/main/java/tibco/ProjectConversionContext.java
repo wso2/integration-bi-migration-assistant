@@ -26,6 +26,7 @@ import tibco.model.Process;
 import tibco.model.Resource;
 import tibco.util.PathResolver;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -33,11 +34,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public final class ProjectConversionContext implements LoggingContext {
 
     private final String name;
     private final Set<TibcoToBalConverter.JavaDependencies> javaDependencies = new LinkedHashSet<>();
+    private final SortedMap<String, SortedSet<String>> javaClassesByPackage = new TreeMap<>();
     private TibcoToBalConverter.ModulePropertyDefaults modulePropertyDefaults =
             TibcoToBalConverter.ModulePropertyDefaults.NONE;
     private final ConversionContext cx;
@@ -83,6 +89,16 @@ public final class ProjectConversionContext implements LoggingContext {
 
     public void addJavaDependency(TibcoToBalConverter.JavaDependencies dependencies) {
         javaDependencies.add(dependencies);
+    }
+
+    public void addJavaClassDependency(String className) {
+        int packageEnd = className.lastIndexOf('.');
+        String packageName = packageEnd < 0 ? "java-classes" : className.substring(0, packageEnd);
+        javaClassesByPackage.computeIfAbsent(packageName, ignored -> new TreeSet<>()).add(className);
+    }
+
+    public SortedMap<String, SortedSet<String>> javaClassesByPackage() {
+        return Collections.unmodifiableSortedMap(javaClassesByPackage);
     }
 
     public void setModulePropertyDefaults(TibcoToBalConverter.ModulePropertyDefaults modulePropertyDefaults) {

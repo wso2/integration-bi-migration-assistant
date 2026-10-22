@@ -95,6 +95,7 @@ The migration tool currently supports the following Mule 4.x components:
 - [Async](docs/palette-item-mappings-v4.md#async)
 - [Choice](docs/palette-item-mappings-v4.md#choice)
 - [Config Property Access](docs/palette-item-mappings-v4.md#config-property-access)
+- [Correlation Id](docs/palette-item-mappings-v4.md#correlation-id)
 - [Database Connector](docs/palette-item-mappings-v4.md#database-connector)
 - [Error Handler](docs/palette-item-mappings-v4.md#error-handler)
 - [Expression Component](docs/palette-item-mappings-v4.md#expression-component)

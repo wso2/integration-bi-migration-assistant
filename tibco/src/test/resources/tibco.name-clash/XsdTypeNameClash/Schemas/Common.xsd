@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:tns="http://example.com/test/common"
+        targetNamespace="http://example.com/test/common"
+        elementFormDefault="qualified">
+    <element name="Response" type="tns:ResultType"/>
+    <element name="Context" type="tns:ResultType"/>
+    <element name="SharedVariableContext" type="tns:ResultType"/>
+    <element name="MainScopeActivityRunner" type="tns:ResultType"/>
+    <complexType name="ResultType">
+        <sequence>
+            <element name="Status" type="string"/>
+            <element name="Message" type="string" minOccurs="0"/>
+        </sequence>
+    </complexType>
+</schema>

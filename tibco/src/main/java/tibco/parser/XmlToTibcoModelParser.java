@@ -1333,8 +1333,18 @@ public final class XmlToTibcoModelParser {
         } else {
             expression = node.getTextContent();
         }
-        expression = unEscapeXml(expression);
+        expression = unEscapeXslt(expression);
         return new Flow.Activity.Expression.XSLT(expression);
+    }
+
+    // The stylesheet is itself XML, so &quot; must stay an entity: decoding it would break attribute values
+    // and the XPath string literals inside them.
+    private static String unEscapeXslt(String escapedXslt) {
+        return escapedXslt.replace("&amp;", "&")
+                .replace("&apos;", "'")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&#xa;", "\n");
     }
 
     private static @NotNull Flow.Activity.Expression.XPath parseXPathExpressionNode(Element node) {
@@ -1343,22 +1353,7 @@ public final class XmlToTibcoModelParser {
     }
 
     private static String unEscapeXml(String escapedXml) {
-        // Process in specific order to avoid double processing issues
-        // First handle &amp; to avoid affecting other replacements
-        String result = escapedXml.replaceAll("&amp;", "&");
-
-        // Handle nested quotes: &quot; inside XML should become single quotes to avoid
-        // double-escaping
-        result = result.replaceAll("&quot;", "'");
-        result = result.replaceAll("&apos;", "'");
-
-        // Handle other XML entities
-        result = result.replaceAll("&lt;", "<");
-        result = result.replaceAll("&gt;", ">");
-
-        result = result.replaceAll("&#xa;", "\n");
-
-        return result;
+        return unEscapeXslt(escapedXml).replace("&quot;", "\"");
     }
 
     private static Flow.Activity parseExtensionActivity(ProcessContext cx, Element element) {
@@ -1483,6 +1478,7 @@ public final class XmlToTibcoModelParser {
             case SFTP_DIR -> parseSFTPDir(activity);
             case SFTP_GET -> parseSFTPGet(activity);
             case SFTP_PUT -> parseSFTPPut(activity);
+            case JAVA_INVOKE -> parseJavaInvoke(activity);
             case PARSE_DATA -> parseParseData(activity);
             case RENDER_DATA -> parseRenderData(activity);
             case HTTP_SEND -> parseHTTPSend(activity);
@@ -1544,6 +1540,19 @@ public final class XmlToTibcoModelParser {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
         return getFirstChildWithTag(properties, "value");
+    }
+
+    private static Config.@NotNull JavaInvoke parseJavaInvoke(Element activity) {
+        Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
+        Element properties = getFirstChildWithTag(activityConfig, "properties");
+        Element value = getFirstChildWithTag(properties, "value");
+        List<Config.JavaInvoke.Parameter> parameters = getChildrenWithTag(value, "methodParameter")
+                .map(parameter -> new Config.JavaInvoke.Parameter(parameter.getAttribute("paramName"),
+                        parameter.getAttribute("paramType")))
+                .toList();
+        return new Config.JavaInvoke(value.getAttribute("className"), value.getAttribute("methodName"),
+                Boolean.parseBoolean(value.getAttribute("isStaticMethod")),
+                parseOptionalAttribute(value, "methodReturn").orElse("void"), parameters);
     }
 
     private static Config.@NotNull ParseData parseParseData(Element activity) {

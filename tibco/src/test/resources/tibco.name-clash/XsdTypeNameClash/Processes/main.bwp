@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.nameclash.MainProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/nameclash"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:tns="http://xmlns.example.com/test/nameclash">
+    <bpws:scope name="MainScope">
+        <bpws:faultHandlers>
+            <bpws:catchAll>
+                <bpws:scope name="FallbackScope">
+                    <bpws:flow name="fallbackFlow">
+                        <bpws:throw faultName="tns:OtherFault" name="Context"/>
+                    </bpws:flow>
+                </bpws:scope>
+            </bpws:catchAll>
+        </bpws:faultHandlers>
+        <bpws:flow name="mainFlow">
+            <bpws:throw faultName="tns:TestFault" name="Response"/>
+            <bpws:throw faultName="tns:TestFault" name="InlineShape"/>
+            <bpws:throw faultName="tns:TestFault" name="SequenceGroup"/>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

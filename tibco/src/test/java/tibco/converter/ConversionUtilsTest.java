@@ -313,6 +313,18 @@ public class ConversionUtilsTest {
                 3, "three different uris colliding on the same raw prefix must each get a distinct prefix");
     }
 
+    @Test
+    public void testJavaInvokeFunctionPerReturnType() {
+        ProjectContext projectContext = newProjectContext("JavaInvokeReturnTypes");
+        String voidFn = projectContext.getJavaInvokeFunction("com.example.Util", "run", List.of(), List.of(),
+                Optional.empty());
+        String intFn = projectContext.getJavaInvokeFunction("com.example.Util", "run", List.of(), List.of(),
+                Optional.of(JavaType.INT));
+        Assert.assertNotEquals(voidFn, intFn);
+        Assert.assertEquals(projectContext.getJavaInvokeFunction("com.example.Util", "run", List.of(), List.of(),
+                Optional.of(JavaType.INT)), intFn);
+    }
+
     private static ProjectContext newProjectContext(String projectName) {
         ProjectConversionContext conversionContext = TestUtils.createTestProjectConversionContext("test", projectName);
         return new ProjectContext(conversionContext, Map.<Process, AnalysisResult>of());
