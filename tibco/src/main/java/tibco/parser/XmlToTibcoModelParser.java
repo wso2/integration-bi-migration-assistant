@@ -1064,10 +1064,24 @@ public final class XmlToTibcoModelParser {
             Flow.Activity result = parseActivityInner(cx, element);
             return result;
         } catch (Exception ex) {
-            cx.registerUnhandledActivity(element, name, getTagNameWithoutNameSpace(element), cx.fileName());
-            cx.log(SEVERE, "Exception while parsing activity: " + name + ". " + ex.getMessage());
-            return parseUnhandledActivity(cx, element, ex.getMessage());
+            Element activity = unwrapExtensionActivity(element);
+            String activityName = activity.hasAttribute("name") ? activity.getAttribute("name") : name;
+            String type = tryGetFirstChildWithTag(activity, "config")
+                    .flatMap(config -> tryGetFirstChildWithTag(config, "BWActivity"))
+                    .map(bwActivity -> bwActivity.getAttribute("activityTypeID"))
+                    .orElse(tag);
+            cx.registerUnhandledActivity(element, activityName, type, cx.fileName());
+            cx.log(SEVERE, "Exception while parsing activity: " + activityName + ". " + ex.getMessage());
+            return parseUnhandledActivity(cx, activity, element, "Unsupported activity %s: %s".formatted(activityName,
+                    String.valueOf(ex.getMessage()).lines().findFirst().orElse("")));
         }
+    }
+
+    // A BW6 extensionActivity wraps the actual activity, which carries the name and the links.
+    private static @NotNull Element unwrapExtensionActivity(Element element) {
+        List<Element> children = ElementIterable.of(element).stream().toList();
+        return getTagNameWithoutNameSpace(element).equals("extensionActivity") && children.size() == 1
+                ? children.getFirst() : element;
     }
 
     private static Flow.Activity parseActivityInner(ProcessContext cx, Element element) {
@@ -1202,21 +1216,32 @@ public final class XmlToTibcoModelParser {
 
     }
 
-    private static Flow.Activity parseUnhandledActivity(ProcessContext cx, Element element, String reason) {
+    private static @NotNull Flow.Activity parseUnhandledActivity(ProcessContext cx, Element activity,
+                                                                 Element element, String reason) {
         Collection<Flow.Activity.Target> targets = new ArrayList<>();
         List<Flow.Activity.Source> sources = new ArrayList<>();
 
-        for (Element child : ElementIterable.of(element)) {
+        for (Element child : ElementIterable.of(activity)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
                 case "targets" -> targets.addAll(parseTargets(child));
-                case "sources" -> sources.addAll(parseSources(child));
+                case "sources" -> ElementIterable.of(child).forEach(
+                        source -> sources.add(parseSourceKeepingLink(source)));
                 default -> {
                 }
             }
         }
 
-        return new Flow.Activity.UnhandledActivity(" FIXME: " + reason, sources, targets, element, cx.fileName());
+        return new Flow.Activity.UnhandledActivity(reason, sources, targets, element, cx.fileName());
+    }
+
+    // The transition condition may be what made the activity unparsable; the link itself must survive regardless.
+    private static @NotNull Flow.Activity.Source parseSourceKeepingLink(Element source) {
+        try {
+            return parseSource(source);
+        } catch (ParserException ex) {
+            return new Flow.Activity.Source(source.getAttribute("linkName"));
+        }
     }
 
     private static Flow.Activity.Reply parseReply(ProcessContext cx, Element element) {
