@@ -32,8 +32,16 @@ import common.CodeGenerator;
 import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.ConstantDeclarationNode;
 import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
+import io.ballerina.compiler.syntax.tree.EnumMemberNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.NodeFactory;
+import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TreeModifier;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
@@ -41,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import tibco.LoggingContext;
+import tibco.analyzer.ProjectAnalysisContext;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
 import tibco.model.Type.WSDLDefinition.PortType.Operation;
@@ -56,6 +65,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -68,10 +78,57 @@ public final class TypeConverter {
     }
 
     public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
-        return generateNodes(schemas.stream()
+        NodeResponse response = generateNodes(schemas.stream()
                 .map(schema -> withoutDuplicateEnumerations(schema.element()))
                 .map(ConversionUtils::elementToString)
                 .toArray(String[]::new));
+        return new NodeResponse(withUniqueEnumMemberNames(response.types()), response.diagnostics(),
+                response.nodeContext());
+    }
+
+    // Enum members are module-level constants, so they share a namespace with types, functions and the members
+    // of other enums. A clashing member is renamed and keeps its original value, so data binding is unaffected.
+    private static @NotNull ModulePartNode withUniqueEnumMemberNames(ModulePartNode types) {
+        assert types != null : "types must not be null";
+        Set<String> declaredSymbols = new HashSet<>(ProjectAnalysisContext.GENERATED_MODULE_SYMBOLS);
+        types.members().stream().map(TypeConverter::declaredName).flatMap(Optional::stream)
+                .forEach(declaredSymbols::add);
+        TreeModifier modifier = new TreeModifier() {
+            @Override
+            public EnumMemberNode transform(EnumMemberNode member) {
+                IdentifierToken identifier = member.identifier();
+                if (declaredSymbols.add(identifier.text())) {
+                    return member;
+                }
+                String renamed = uniqueEnumMemberName(identifier.text(), declaredSymbols);
+                declaredSymbols.add(renamed);
+                return member.modify()
+                        .withIdentifier(NodeFactory.createIdentifierToken(renamed, identifier.leadingMinutiae(),
+                                identifier.trailingMinutiae()))
+                        .withEqualToken(member.equalToken()
+                                .orElseGet(() -> NodeFactory.createToken(SyntaxKind.EQUAL_TOKEN)))
+                        .withConstExprNode(member.constExprNode()
+                                .orElseGet(() -> enumMemberValue(identifier.text())))
+                        .apply();
+            }
+        };
+        return (ModulePartNode) types.apply(modifier);
+    }
+
+    private static @NotNull String uniqueEnumMemberName(String name, Set<String> declaredSymbols) {
+        String candidate = name + "_";
+        int suffix = 1;
+        while (declaredSymbols.contains(candidate)) {
+            candidate = name + "_" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    // A member without an explicit value takes its own name as the value, so the renamed member must spell it out.
+    private static @NotNull ExpressionNode enumMemberValue(String name) {
+        return NodeParser.parseExpression("\"%s\"".formatted(
+                ConversionUtils.escapeString(name.startsWith("'") ? name.substring(1) : name)));
     }
 
     // xsd-core emits one enum member per xs:enumeration, so a repeated value becomes a redeclared member.
@@ -107,9 +164,17 @@ public final class TypeConverter {
 
     public static @NotNull Set<String> declaredNames(NodeResponse response) {
         return response.types().members().stream()
-                .map(TypeConverter::declaredName)
-                .flatMap(Optional::stream)
+                .flatMap(member -> Stream.concat(declaredName(member).stream(), enumMemberNames(member)))
                 .collect(Collectors.toSet());
+    }
+
+    private static Stream<String> enumMemberNames(ModuleMemberDeclarationNode member) {
+        if (!(member instanceof EnumDeclarationNode enumDeclaration)) {
+            return Stream.empty();
+        }
+        return enumDeclaration.enumMemberList().stream()
+                .flatMap(node -> node instanceof EnumMemberNode enumMember ? Stream.of(enumMember) : Stream.empty())
+                .map(enumMember -> enumMember.identifier().text());
     }
 
     private static Optional<String> declaredName(ModuleMemberDeclarationNode member) {
