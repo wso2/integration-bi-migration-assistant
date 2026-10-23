@@ -38,6 +38,8 @@ import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import tibco.LoggingContext;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
@@ -47,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -65,8 +68,41 @@ public final class TypeConverter {
     }
 
     public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
-        return generateNodes(schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
+        return generateNodes(schemas.stream()
+                .map(schema -> withoutDuplicateEnumerations(schema.element()))
+                .map(ConversionUtils::elementToString)
                 .toArray(String[]::new));
+    }
+
+    // xsd-core emits one enum member per xs:enumeration, so a repeated value becomes a redeclared member.
+    private static @NotNull Element withoutDuplicateEnumerations(Element schema) {
+        assert schema != null : "schema must not be null";
+        Element copy = (Element) schema.cloneNode(true);
+        removeDuplicateEnumerations(copy);
+        return copy;
+    }
+
+    private static void removeDuplicateEnumerations(Element parent) {
+        Set<String> enumerationValues = new HashSet<>();
+        for (Element child : childElements(parent)) {
+            if (ConversionUtils.stripNamespace(child.getTagName()).equals("enumeration")
+                    && !enumerationValues.add(child.getAttribute("value"))) {
+                parent.removeChild(child);
+            } else {
+                removeDuplicateEnumerations(child);
+            }
+        }
+    }
+
+    private static @NotNull List<Element> childElements(Element parent) {
+        NodeList children = parent.getChildNodes();
+        List<Element> elements = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (children.item(i) instanceof Element child) {
+                elements.add(child);
+            }
+        }
+        return elements;
     }
 
     public static @NotNull Set<String> declaredNames(NodeResponse response) {
