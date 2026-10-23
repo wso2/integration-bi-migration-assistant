@@ -144,3 +144,8 @@ public enum DocKind {
 public enum Outcome {
     Failure_ = "Failure", Pending
 };
+
+@xmldata:Namespace {uri: "http://xmlns.example.com/test/codes"}
+public enum Protocol {
+    http_ = "http", https
+};

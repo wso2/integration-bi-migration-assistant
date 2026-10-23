@@ -100,6 +100,12 @@
                     <xs:enumeration value="Pending"/>
                 </xs:restriction>
             </xs:simpleType>
+            <xs:simpleType name="Protocol">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="http"/>
+                    <xs:enumeration value="https"/>
+                </xs:restriction>
+            </xs:simpleType>
         </xs:schema>
         <wsdl:definitions
             targetNamespace="http://xmlns.example.com/test/api/wsdl"
