@@ -99,7 +99,10 @@ public final class TypeConverter {
                 response.nodeContext());
     }
 
-    private static Element withValidIdentifierNames(Element schema, Map<String, String> renamedRootElements) {
+    private static @NotNull Element withValidIdentifierNames(Element schema,
+                                                             Map<String, String> renamedRootElements) {
+        assert schema != null : "schema must not be null";
+        assert renamedRootElements != null : "renamedRootElements must not be null";
         Element copy = (Element) schema.cloneNode(true);
         for (Element child : childElements(copy)) {
             if (componentKind(child).equals("element") && child.hasAttribute("name")) {
@@ -139,7 +142,7 @@ public final class TypeConverter {
         }
     }
 
-    private static List<Element> childElements(Element parent) {
+    private static @NotNull List<Element> childElements(Element parent) {
         org.w3c.dom.NodeList children = parent.getChildNodes();
         List<Element> elements = new ArrayList<>();
         for (int i = 0; i < children.getLength(); i++) {
@@ -150,7 +153,7 @@ public final class TypeConverter {
         return elements;
     }
 
-    private static String componentKind(Element component) {
+    private static @NotNull String componentKind(Element component) {
         return XmlToTibcoModelParser.getTagNameWithoutNameSpace(component.getTagName());
     }
 
@@ -160,13 +163,13 @@ public final class TypeConverter {
         }
     }
 
-    private static String toValidQName(String qName) {
+    private static @NotNull String toValidQName(String qName) {
         int localNameStart = qName.lastIndexOf(':') + 1;
         return qName.substring(0, localNameStart) + toValidIdentifier(qName.substring(localNameStart));
     }
 
     // A quoted identifier is not a valid XSD name, and xsd-core already quotes keywords such as `type` itself.
-    private static String toValidIdentifier(String name) {
+    private static @NotNull String toValidIdentifier(String name) {
         String sanitized = ConversionUtils.sanitizes(name);
         return sanitized.startsWith("'") ? name : sanitized;
     }
@@ -174,7 +177,10 @@ public final class TypeConverter {
     // A renamed root element would otherwise be serialized and matched under its sanitized name. When the element
     // shares its name with a type, xsd-core suffixes the element's record and names it with @xmldata:Name, so that
     // annotation is updated instead of annotating the type.
-    private static ModulePartNode withXmlNames(ModulePartNode types, Map<String, String> renamedRootElements) {
+    private static @NotNull ModulePartNode withXmlNames(ModulePartNode types,
+                                                        Map<String, String> renamedRootElements) {
+        assert types != null : "types must not be null";
+        assert renamedRootElements != null : "renamedRootElements must not be null";
         Set<String> namedByAnnotation = types.members().stream()
                 .flatMap(member -> member instanceof TypeDefinitionNode typeDefinition ?
                         xmlName(typeDefinition).stream() : Stream.empty())
@@ -189,9 +195,9 @@ public final class TypeConverter {
                 .apply();
     }
 
-    private static ModuleMemberDeclarationNode withXmlName(TypeDefinitionNode typeDefinition,
-                                                           Map<String, String> renamedRootElements,
-                                                           Set<String> namedByAnnotation) {
+    private static @NotNull ModuleMemberDeclarationNode withXmlName(TypeDefinitionNode typeDefinition,
+                                                                    Map<String, String> renamedRootElements,
+                                                                    Set<String> namedByAnnotation) {
         Optional<String> elementName = xmlName(typeDefinition).or(() ->
                 Optional.of(typeDefinition.typeName().text()).filter(name -> !namedByAnnotation.contains(name)));
         Optional<String> originalName = elementName.map(renamedRootElements::get);
@@ -226,14 +232,15 @@ public final class TypeConverter {
         return annotation.annotReference().toSourceCode().trim().equals("xmldata:Name");
     }
 
-    private static AnnotationNode xmlNameAnnotation(String name) {
+    private static @NotNull AnnotationNode xmlNameAnnotation(String name) {
         return NodeFactory.createAnnotationNode(NodeFactory.createToken(SyntaxKind.AT_TOKEN),
                 NodeParser.parseTypeDescriptor("xmldata:Name"),
                 (MappingConstructorExpressionNode) NodeParser.parseExpression(
                         "{value: \"%s\"}".formatted(ConversionUtils.escapeString(name))));
     }
 
-    private static NodeList<ImportDeclarationNode> withXmldataImport(NodeList<ImportDeclarationNode> imports) {
+    private static @NotNull NodeList<ImportDeclarationNode> withXmldataImport(
+            NodeList<ImportDeclarationNode> imports) {
         boolean hasXmldataImport = imports.stream()
                 .anyMatch(importNode -> importNode.toSourceCode().contains("ballerina/data.xmldata"));
         return hasXmldataImport ? imports :
