@@ -188,7 +188,6 @@ public class ProjectConverter {
             return new ProcessResult(process, new ProcessConverter.TypeConversionResult(List.of(),
                     Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process))));
         }
-        // Check if the group has a start activity before attempting to convert it
         return new ProcessResult(process, process.transitionGroup().startActivity()
                 .map(startActivity -> ProcessConverter.convertStartActivity(cx.getProcessContext(process),
                         process.transitionGroup()))

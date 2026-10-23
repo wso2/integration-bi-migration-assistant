@@ -95,12 +95,15 @@ public class ProcessConverter {
         };
     }
 
-    private static TypeConversionResult serviceResult(BallerinaModel.Service service) {
+    private static @NotNull TypeConversionResult serviceResult(BallerinaModel.Service service) {
+        assert service != null : "Service cannot be null";
         return new TypeConversionResult(List.of(service), Optional.empty());
     }
 
-    private static BallerinaModel.Function createFallbackStarterFunction(
+    private static BallerinaModel.@NotNull Function createFallbackStarterFunction(
             ProcessContext cx, ExplicitTransitionGroup.InlineActivity startActivity) {
+        assert cx != null : "Process context cannot be null";
+        assert startActivity != null : "Start activity cannot be null";
         cx.log(LoggingUtils.Level.WARN,
                 "Unsupported start activity %s generating fallback function".formatted(startActivity.name()));
         List<Statement> body = List.of(
