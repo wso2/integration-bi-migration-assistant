@@ -30,20 +30,33 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.MapTypeDesc;
 import common.CodeGenerator;
 import common.LoggingUtils;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ConstantDeclarationNode;
 import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.ModulePartNode;
+import io.ballerina.compiler.syntax.tree.NodeFactory;
+import io.ballerina.compiler.syntax.tree.NodeList;
+import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
 import tibco.LoggingContext;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
 import tibco.model.Type.WSDLDefinition.PortType.Operation;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +66,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.ERROR;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
@@ -61,12 +75,176 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 public final class TypeConverter {
 
+    private static final Set<String> NAMED_SCHEMA_COMPONENTS =
+            Set.of("element", "complexType", "simpleType", "group", "attributeGroup");
+    private static final Set<String> QNAME_REFERENCE_ATTRIBUTES =
+            Set.of("type", "base", "itemType", "substitutionGroup");
+
     private TypeConverter() {
     }
 
+    // xsd-core uses schema component names verbatim as Ballerina identifiers, so a name such as `E-MailType`
+    // produces uncompilable types. Names are sanitized up front with the same rule getTypeByName uses, so the
+    // generated types match the references in the converted processes.
     public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
-        return generateNodes(schemas.stream().map(Type.Schema::element).map(ConversionUtils::elementToString)
+        Map<String, String> renamedRootElements = new HashMap<>();
+        NodeResponse response = generateNodes(schemas.stream()
+                .map(schema -> withValidIdentifierNames(schema.element(), renamedRootElements))
+                .map(ConversionUtils::elementToString)
                 .toArray(String[]::new));
+        if (renamedRootElements.isEmpty()) {
+            return response;
+        }
+        return new NodeResponse(withXmlNames(response.types(), renamedRootElements), response.diagnostics(),
+                response.nodeContext());
+    }
+
+    private static @NotNull Element withValidIdentifierNames(Element schema,
+                                                             Map<String, String> renamedRootElements) {
+        assert schema != null : "schema must not be null";
+        assert renamedRootElements != null : "renamedRootElements must not be null";
+        Element copy = (Element) schema.cloneNode(true);
+        for (Element child : childElements(copy)) {
+            if (componentKind(child).equals("element") && child.hasAttribute("name")) {
+                String name = child.getAttribute("name");
+                String identifier = toValidIdentifier(name);
+                if (!identifier.equals(name)) {
+                    renamedRootElements.put(identifier, name);
+                }
+            }
+        }
+        renameComponents(copy);
+        return copy;
+    }
+
+    private static void renameComponents(Element parent) {
+        for (Element component : childElements(parent)) {
+            String kind = componentKind(component);
+            // Annotations hold documentation and vendor metadata whose attributes are not schema names.
+            if (kind.equals("annotation")) {
+                continue;
+            }
+            if (NAMED_SCHEMA_COMPONENTS.contains(kind)) {
+                renameQName(component, "name");
+            }
+            QNAME_REFERENCE_ATTRIBUTES.forEach(attribute -> renameQName(component, attribute));
+            // Attributes are not renamed, so references to them must keep the original name.
+            if (!kind.equals("attribute")) {
+                renameQName(component, "ref");
+            }
+            if (component.hasAttribute("memberTypes")) {
+                component.setAttribute("memberTypes", Arrays.stream(component.getAttribute("memberTypes").split("\\s+"))
+                        .filter(memberType -> !memberType.isEmpty())
+                        .map(TypeConverter::toValidQName)
+                        .collect(Collectors.joining(" ")));
+            }
+            renameComponents(component);
+        }
+    }
+
+    private static @NotNull List<Element> childElements(Element parent) {
+        org.w3c.dom.NodeList children = parent.getChildNodes();
+        List<Element> elements = new ArrayList<>();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (children.item(i) instanceof Element child) {
+                elements.add(child);
+            }
+        }
+        return elements;
+    }
+
+    private static @NotNull String componentKind(Element component) {
+        return XmlToTibcoModelParser.getTagNameWithoutNameSpace(component.getTagName());
+    }
+
+    private static void renameQName(Element component, String attribute) {
+        if (component.hasAttribute(attribute)) {
+            component.setAttribute(attribute, toValidQName(component.getAttribute(attribute)));
+        }
+    }
+
+    private static @NotNull String toValidQName(String qName) {
+        int localNameStart = qName.lastIndexOf(':') + 1;
+        return qName.substring(0, localNameStart) + toValidIdentifier(qName.substring(localNameStart));
+    }
+
+    // A quoted identifier is not a valid XSD name, and xsd-core already quotes keywords such as `type` itself.
+    private static @NotNull String toValidIdentifier(String name) {
+        String sanitized = ConversionUtils.sanitizes(name);
+        return sanitized.startsWith("'") ? name : sanitized;
+    }
+
+    // A renamed root element would otherwise be serialized and matched under its sanitized name. When the element
+    // shares its name with a type, xsd-core suffixes the element's record and names it with @xmldata:Name, so that
+    // annotation is updated instead of annotating the type.
+    private static @NotNull ModulePartNode withXmlNames(ModulePartNode types,
+                                                        Map<String, String> renamedRootElements) {
+        assert types != null : "types must not be null";
+        assert renamedRootElements != null : "renamedRootElements must not be null";
+        Set<String> namedByAnnotation = types.members().stream()
+                .flatMap(member -> member instanceof TypeDefinitionNode typeDefinition ?
+                        xmlName(typeDefinition).stream() : Stream.empty())
+                .collect(Collectors.toSet());
+        List<ModuleMemberDeclarationNode> members = types.members().stream()
+                .map(member -> member instanceof TypeDefinitionNode typeDefinition ?
+                        withXmlName(typeDefinition, renamedRootElements, namedByAnnotation) : member)
+                .toList();
+        return types.modify()
+                .withImports(withXmldataImport(types.imports()))
+                .withMembers(NodeFactory.createNodeList(members))
+                .apply();
+    }
+
+    private static @NotNull ModuleMemberDeclarationNode withXmlName(TypeDefinitionNode typeDefinition,
+                                                                    Map<String, String> renamedRootElements,
+                                                                    Set<String> namedByAnnotation) {
+        Optional<String> elementName = xmlName(typeDefinition).or(() ->
+                Optional.of(typeDefinition.typeName().text()).filter(name -> !namedByAnnotation.contains(name)));
+        Optional<String> originalName = elementName.map(renamedRootElements::get);
+        if (originalName.isEmpty()) {
+            return typeDefinition;
+        }
+        MetadataNode metadata = typeDefinition.metadata()
+                .orElseGet(() -> NodeFactory.createMetadataNode(null, NodeFactory.createEmptyNodeList()));
+        List<AnnotationNode> annotations = Stream.concat(Stream.of(xmlNameAnnotation(originalName.get())),
+                metadata.annotations().stream().filter(annotation -> !isXmlNameAnnotation(annotation))).toList();
+        return typeDefinition.modify()
+                .withMetadata(metadata.modify().withAnnotations(NodeFactory.createNodeList(annotations)).apply())
+                .apply();
+    }
+
+    private static Optional<String> xmlName(TypeDefinitionNode typeDefinition) {
+        return typeDefinition.metadata().stream()
+                .flatMap(metadata -> metadata.annotations().stream())
+                .filter(TypeConverter::isXmlNameAnnotation)
+                .flatMap(annotation -> annotation.annotValue().stream())
+                .flatMap(mapping -> mapping.fields().stream())
+                .flatMap(field -> field instanceof SpecificFieldNode specificField ? Stream.of(specificField) :
+                        Stream.empty())
+                .filter(field -> field.fieldName().toSourceCode().trim().equals("value"))
+                .flatMap(field -> field.valueExpr().stream())
+                .map(value -> value.toSourceCode().trim())
+                .map(literal -> literal.substring(1, literal.length() - 1))
+                .findFirst();
+    }
+
+    private static boolean isXmlNameAnnotation(AnnotationNode annotation) {
+        return annotation.annotReference().toSourceCode().trim().equals("xmldata:Name");
+    }
+
+    private static @NotNull AnnotationNode xmlNameAnnotation(String name) {
+        return NodeFactory.createAnnotationNode(NodeFactory.createToken(SyntaxKind.AT_TOKEN),
+                NodeParser.parseTypeDescriptor("xmldata:Name"),
+                (MappingConstructorExpressionNode) NodeParser.parseExpression(
+                        "{value: \"%s\"}".formatted(ConversionUtils.escapeString(name))));
+    }
+
+    private static @NotNull NodeList<ImportDeclarationNode> withXmldataImport(
+            NodeList<ImportDeclarationNode> imports) {
+        boolean hasXmldataImport = imports.stream()
+                .anyMatch(importNode -> importNode.toSourceCode().contains("ballerina/data.xmldata"));
+        return hasXmldataImport ? imports :
+                imports.add(NodeParser.parseImportDeclaration("import ballerina/data.xmldata;"));
     }
 
     public static @NotNull Set<String> declaredNames(NodeResponse response) {
