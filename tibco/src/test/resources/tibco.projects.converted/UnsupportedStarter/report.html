@@ -337,19 +337,19 @@ table code {
                 <div class="coverage-breakdown">
                   <div>
                     <span class="breakdown-label">Total activity(s):</span>
-                    <span class="breakdown-value">2</span>
+                    <span class="breakdown-value">4</span>
                   </div>
                   <div>
                     <span class="breakdown-label">Migratable activity(s):</span>
-                    <span class="breakdown-value">1</span>
+                    <span class="breakdown-value">2</span>
                   </div>
                   <div>
                     <span class="breakdown-label">Non-migratable activity(s):</span>
-                    <span class="breakdown-value">1</span>
+                    <span class="breakdown-value">2</span>
                   </div>
                   <div>
                     <span class="breakdown-label">Lines Generated:</span>
-                    <span class="breakdown-value">118</span>
+                    <span class="breakdown-value">179</span>
                   </div>
                 </div>
               </div>
@@ -363,21 +363,21 @@ table code {
         <div class="time-estimate">
             <div class="time-label">Best Case</div>
             <div class="time-value time-best">
-                <span class="time-days">1 day</span>
+                <span class="time-days">2 days</span>
                 <span class="time-weeks">(1 week)</span>
             </div>
         </div>
         <div class="time-estimate">
             <div class="time-label">Average Case</div>
             <div class="time-value time-avg">
-                <span class="time-days">2 days</span>
+                <span class="time-days">3 days</span>
                 <span class="time-weeks">(1 week)</span>
             </div>
         </div>
         <div class="time-estimate">
             <div class="time-label">Worst Case</div>
             <div class="time-value time-worst">
-                <span class="time-days">3 days</span>
+                <span class="time-days">4 days</span>
                 <span class="time-weeks">(1 week)</span>
             </div>
         </div>
@@ -417,7 +417,7 @@ table code {
             <tr><th>Activity name</th><th>Frequency</th></tr>
         <tr>
             <td><code>com.tibco.plugin.jms.JMSTopicEventSource</code></td>
-            <td>1</td>
+            <td>2</td>
         </tr>
         </table>
         <p class="empty-message hidden" id="toolSupportEmpty">
@@ -433,6 +433,53 @@ table code {
         <div class="block-item">
             <div class="block-header">
                 <span class="block-number">Block #1</span>
+                <span class="file-name">main2.process</span>
+                <span class="block-type">com.tibco.plugin.jms.JMSTopicEventSource</span>
+            </div>
+            <pre class="block-code"><code>&lt;pd:starter name="process Topic Receiver" xmlns:pd="http://xmlns.tibco.com/bw/process/2003"&gt;
+            
+    &lt;pd:type&gt;com.tibco.plugin.jms.JMSTopicEventSource&lt;/pd:type&gt;
+            
+    &lt;pd:resourceType&gt;ae.activities.JMSTopicEventSource&lt;/pd:resourceType&gt;
+            
+    &lt;config&gt;
+                    
+        &lt;PermittedMessageType&gt;Text&lt;/PermittedMessageType&gt;
+                    
+        &lt;SessionAttributes&gt;
+                            
+            &lt;transacted&gt;false&lt;/transacted&gt;
+                            
+            &lt;acknowledgeMode&gt;1&lt;/acknowledgeMode&gt;
+                            
+            &lt;maxSessions&gt;1&lt;/maxSessions&gt;
+                            
+            &lt;destination&gt;sample.topic&lt;/destination&gt;
+                        
+        &lt;/SessionAttributes&gt;
+                    
+        &lt;ConfigurableHeaders&gt;
+                            
+            &lt;JMSDeliveryMode&gt;PERSISTENT&lt;/JMSDeliveryMode&gt;
+                            
+            &lt;JMSExpiration&gt;0&lt;/JMSExpiration&gt;
+                            
+            &lt;JMSPriority&gt;4&lt;/JMSPriority&gt;
+                        
+        &lt;/ConfigurableHeaders&gt;
+                    
+        &lt;ConnectionReference&gt;/UnsupportedStarter/SharedResources/jms.sharedjmscon&lt;/ConnectionReference&gt;
+                
+    &lt;/config&gt;
+            
+    &lt;pd:inputBindings/&gt;
+        
+&lt;/pd:starter&gt;
+</code></pre>
+        </div>
+        <div class="block-item">
+            <div class="block-header">
+                <span class="block-number">Block #2</span>
                 <span class="file-name">main.process</span>
                 <span class="block-type">com.tibco.plugin.jms.JMSTopicEventSource</span>
             </div>

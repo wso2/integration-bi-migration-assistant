@@ -113,7 +113,8 @@ public class ProcessConverter {
                         cx.getProcessStartFunction().name()))
         );
         return new BallerinaModel.Function(Optional.empty(),
-                ConversionUtils.sanitizes("unsupported_" + cx.process.name() + "_" + startActivity.name()),
+                cx.projectContext.allocateModuleSymbol(
+                        "unsupported_" + cx.process.name() + "_" + startActivity.name()),
                 List.of(), Optional.empty(), new BallerinaModel.BlockFunctionBody(body));
     }
 
