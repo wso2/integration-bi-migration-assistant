@@ -63,6 +63,9 @@
             <xs:simpleType name="Priority-Code">
                 <xs:restriction base="xs:string"/>
             </xs:simpleType>
+            <xs:simpleType name="Priority_Code">
+                <xs:restriction base="xs:int"/>
+            </xs:simpleType>
             <xs:simpleType name="Priority-Level">
                 <xs:union memberTypes="
                     xs:int tns:Priority-Code"/>

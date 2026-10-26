@@ -78,10 +78,13 @@ public type Test_RequestType record {|
 |};
 
 @xmldata:Namespace {uri: "http://xmlns.example.com/test/api"}
-public type Priority_Code string;
+public type Priority_Code_1 string;
 
 @xmldata:Namespace {uri: "http://xmlns.example.com/test/api"}
-public type Priority_Level int|Priority_Code;
+public type Priority_Code int;
+
+@xmldata:Namespace {uri: "http://xmlns.example.com/test/api"}
+public type Priority_Level int|Priority_Code_1;
 
 @xmldata:Namespace {uri: "http://xmlns.example.com/test/api"}
 public type Test_Response record {|

@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,13 +84,16 @@ public final class TypeConverter {
     private TypeConverter() {
     }
 
-    // xsd-core uses schema component names verbatim as Ballerina identifiers, so a name such as `E-MailType`
-    // produces uncompilable types. Names are sanitized up front with the same rule getTypeByName uses, so the
-    // generated types match the references in the converted processes.
+    // xsd-core uses names verbatim as identifiers, so `E-Mail` would not compile. Names are sanitized like
+    // getTypeByName does; colliding ones (`E-Mail` vs `E_Mail`) get a suffix that getTypeByName doesn't know.
     public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
+        List<Element> copies = schemas.stream()
+                .map(schema -> (Element) schema.element().cloneNode(true))
+                .toList();
+        Map<String, String> identifiers = componentIdentifiers(copies);
         Map<String, String> renamedRootElements = new HashMap<>();
-        NodeResponse response = generateNodes(schemas.stream()
-                .map(schema -> withValidIdentifierNames(schema.element(), renamedRootElements))
+        NodeResponse response = generateNodes(copies.stream()
+                .map(schema -> withValidIdentifierNames(schema, identifiers, renamedRootElements))
                 .map(ConversionUtils::elementToString)
                 .toArray(String[]::new));
         if (renamedRootElements.isEmpty()) {
@@ -99,46 +103,71 @@ public final class TypeConverter {
                 response.nodeContext());
     }
 
-    private static @NotNull Element withValidIdentifierNames(Element schema,
+    private static @NotNull Map<String, String> componentIdentifiers(List<Element> schemas) {
+        assert schemas != null : "schemas must not be null";
+        List<String> names = schemas.stream()
+                .flatMap(schema -> childElements(schema).stream())
+                .filter(component -> NAMED_SCHEMA_COMPONENTS.contains(componentKind(component)))
+                .filter(component -> component.hasAttribute("name"))
+                .map(component -> component.getAttribute("name"))
+                .distinct()
+                .toList();
+        Map<String, String> identifiers = new HashMap<>();
+        Set<String> allocated = new HashSet<>();
+        names.stream().filter(name -> toValidIdentifier(name).equals(name)).forEach(name -> {
+            identifiers.put(name, name);
+            allocated.add(name);
+        });
+        names.stream().filter(name -> !identifiers.containsKey(name)).forEach(name -> {
+            String identifier = ConversionUtils.getSanitizedUniqueName(name, allocated);
+            identifiers.put(name, identifier);
+            allocated.add(identifier);
+        });
+        return identifiers;
+    }
+
+    private static @NotNull Element withValidIdentifierNames(Element schema, Map<String, String> identifiers,
                                                              Map<String, String> renamedRootElements) {
         assert schema != null : "schema must not be null";
+        assert identifiers != null : "identifiers must not be null";
         assert renamedRootElements != null : "renamedRootElements must not be null";
-        Element copy = (Element) schema.cloneNode(true);
-        for (Element child : childElements(copy)) {
+        for (Element child : childElements(schema)) {
             if (componentKind(child).equals("element") && child.hasAttribute("name")) {
                 String name = child.getAttribute("name");
-                String identifier = toValidIdentifier(name);
+                String identifier = identifiers.get(name);
                 if (!identifier.equals(name)) {
                     renamedRootElements.put(identifier, name);
                 }
             }
         }
-        renameComponents(copy);
-        return copy;
+        renameComponents(schema, identifiers, true);
+        return schema;
     }
 
-    private static void renameComponents(Element parent) {
+    private static void renameComponents(Element parent, Map<String, String> identifiers, boolean topLevel) {
         for (Element component : childElements(parent)) {
             String kind = componentKind(component);
-            // Annotations hold documentation and vendor metadata whose attributes are not schema names.
+            // Annotation attributes are metadata, not schema names.
             if (kind.equals("annotation")) {
                 continue;
             }
-            if (NAMED_SCHEMA_COMPONENTS.contains(kind)) {
-                renameQName(component, "name");
+            // Local declarations become fields, not types, so they can't collide.
+            if (NAMED_SCHEMA_COMPONENTS.contains(kind) && component.hasAttribute("name")) {
+                String name = component.getAttribute("name");
+                component.setAttribute("name", topLevel ? identifiers.get(name) : toValidIdentifier(name));
             }
-            QNAME_REFERENCE_ATTRIBUTES.forEach(attribute -> renameQName(component, attribute));
-            // Attributes are not renamed, so references to them must keep the original name.
+            QNAME_REFERENCE_ATTRIBUTES.forEach(attribute -> renameQName(component, attribute, identifiers));
+            // Attributes keep their names, so refs to them must too.
             if (!kind.equals("attribute")) {
-                renameQName(component, "ref");
+                renameQName(component, "ref", identifiers);
             }
             if (component.hasAttribute("memberTypes")) {
                 component.setAttribute("memberTypes", Arrays.stream(component.getAttribute("memberTypes").split("\\s+"))
                         .filter(memberType -> !memberType.isEmpty())
-                        .map(TypeConverter::toValidQName)
+                        .map(memberType -> toValidQName(memberType, identifiers))
                         .collect(Collectors.joining(" ")));
             }
-            renameComponents(component);
+            renameComponents(component, identifiers, false);
         }
     }
 
@@ -157,26 +186,27 @@ public final class TypeConverter {
         return XmlToTibcoModelParser.getTagNameWithoutNameSpace(component.getTagName());
     }
 
-    private static void renameQName(Element component, String attribute) {
+    private static void renameQName(Element component, String attribute, Map<String, String> identifiers) {
         if (component.hasAttribute(attribute)) {
-            component.setAttribute(attribute, toValidQName(component.getAttribute(attribute)));
+            component.setAttribute(attribute, toValidQName(component.getAttribute(attribute), identifiers));
         }
     }
 
-    private static @NotNull String toValidQName(String qName) {
+    private static @NotNull String toValidQName(String qName, Map<String, String> identifiers) {
         int localNameStart = qName.lastIndexOf(':') + 1;
-        return qName.substring(0, localNameStart) + toValidIdentifier(qName.substring(localNameStart));
+        String localName = qName.substring(localNameStart);
+        return qName.substring(0, localNameStart) +
+                identifiers.getOrDefault(localName, toValidIdentifier(localName));
     }
 
-    // A quoted identifier is not a valid XSD name, and xsd-core already quotes keywords such as `type` itself.
+    // Quoted identifiers aren't valid XSD names; xsd-core quotes keywords itself.
     private static @NotNull String toValidIdentifier(String name) {
         String sanitized = ConversionUtils.sanitizes(name);
         return sanitized.startsWith("'") ? name : sanitized;
     }
 
-    // A renamed root element would otherwise be serialized and matched under its sanitized name. When the element
-    // shares its name with a type, xsd-core suffixes the element's record and names it with @xmldata:Name, so that
-    // annotation is updated instead of annotating the type.
+    // Keeps renamed root elements serialized under their original name. If xsd-core already added @xmldata:Name
+    // (element sharing a type's name), that annotation is replaced instead.
     private static @NotNull ModulePartNode withXmlNames(ModulePartNode types,
                                                         Map<String, String> renamedRootElements) {
         assert types != null : "types must not be null";
