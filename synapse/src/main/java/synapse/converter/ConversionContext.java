@@ -23,6 +23,7 @@ import common.BallerinaModel.Listener;
 import common.BallerinaModel.ModuleTypeDef;
 import common.BallerinaModel.ModuleVar;
 import common.BallerinaModel.Service;
+import common.BallerinaModel.Statement;
 import org.jetbrains.annotations.NotNull;
 import synapse.converter.bir.mediators.classmediator.source.JavaSourceResolver;
 import synapse.model.DependencyGraph;
@@ -67,6 +68,7 @@ public class ConversionContext {
     private final List<ModuleTypeDef> records = new ArrayList<>();
     private final List<Listener> listeners = new ArrayList<>();
     private final List<ModuleVar> moduleVars = new ArrayList<>();
+    private final List<Statement> moduleInitStatements = new ArrayList<>();
 
     private final Map<String, SequenceMetadata> sequenceMetadata = new HashMap<>();
     private final Map<String, Set<Import>> importsByFile = new HashMap<>();
@@ -188,6 +190,23 @@ public class ConversionContext {
 
     public List<Function> functions() {
         return functions;
+    }
+
+    /**
+     * Registers statements to append to the module's combined {@code init()} function — for a
+     * converter that needs a one-time startup action (e.g. a file inbound endpoint's initial
+     * directory scan for pre-existing files) that no per-artifact function alone can express.
+     * Cross-artifact, like {@link #converterFunctions()}: preserved across
+     * {@link #clearArtifactOutput()} and assembled into a single generated {@code init()} function
+     * once, at the very end of the run.
+     */
+    public void addModuleInitStatements(List<Statement> statements) {
+        moduleInitStatements.addAll(statements);
+    }
+
+    @NotNull
+    public List<Statement> moduleInitStatements() {
+        return moduleInitStatements;
     }
 
     /**
