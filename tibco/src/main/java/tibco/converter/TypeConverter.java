@@ -50,6 +50,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import tibco.LoggingContext;
 import tibco.analyzer.ProjectAnalysisContext;
+import tibco.model.Process;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
 import tibco.model.Type.WSDLDefinition.PortType.Operation;
@@ -83,12 +84,13 @@ public final class TypeConverter {
     private TypeConverter() {
     }
 
-    public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
+    public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas,
+                                                      Collection<Process> processes) {
         NodeResponse response = generateNodes(schemas.stream()
                 .map(schema -> withoutDuplicateEnumerations(schema.element()))
                 .map(ConversionUtils::elementToString)
                 .toArray(String[]::new));
-        return new NodeResponse(withUniqueEnumMemberNames(response.types()), response.diagnostics(),
+        return new NodeResponse(withUniqueEnumMemberNames(response.types(), processes), response.diagnostics(),
                 response.nodeContext());
     }
 
@@ -127,10 +129,18 @@ public final class TypeConverter {
     // and the members of other enums. A clashing member is renamed and keeps its original value, so data binding
     // is unaffected. Every original member name is held back from the new names, so a rename never takes the name
     // of a member that did not clash.
-    private static @NotNull ModulePartNode withUniqueEnumMemberNames(ModulePartNode types) {
+    private static @NotNull ModulePartNode withUniqueEnumMemberNames(ModulePartNode types,
+                                                                     Collection<Process> processes) {
         assert types != null : "types must not be null";
+        assert processes != null : "processes must not be null";
         Set<String> moduleSymbols = new HashSet<>(ProjectAnalysisContext.GENERATED_MODULE_SYMBOLS);
         moduleSymbols.addAll(IMPORT_PREFIXES);
+        processes.forEach(process -> {
+            String processName = ConversionUtils.sanitizes(process.name());
+            moduleSymbols.add(ConversionUtils.processFunctionName(process));
+            moduleSymbols.add(processName + "_listener");
+            moduleSymbols.add(processName + "_client");
+        });
         types.members().stream().map(TypeConverter::declaredName).flatMap(Optional::stream)
                 .forEach(moduleSymbols::add);
         Set<String> originalMemberNames = types.members().stream().flatMap(TypeConverter::enumMemberNames)
@@ -138,7 +148,7 @@ public final class TypeConverter {
         Set<String> claimedMemberNames = new HashSet<>();
         TreeModifier modifier = new TreeModifier() {
             @Override
-            public EnumMemberNode transform(EnumMemberNode member) {
+            public @NotNull EnumMemberNode transform(EnumMemberNode member) {
                 IdentifierToken identifier = member.identifier();
                 if (!moduleSymbols.contains(identifier.text()) && claimedMemberNames.add(identifier.text())) {
                     return member;
@@ -200,13 +210,13 @@ public final class TypeConverter {
     }
 
     static @NotNull SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas,
-                                              Optional<NodeResponse> pregenerated) {
+                                              Collection<Process> processes, Optional<NodeResponse> pregenerated) {
         cx.logState("Converting XSD schemas to Ballerina types");
         for (int i = 0; i < schemas.size(); i++) {
             cx.getProjectContext().incrementTypeCount();
         }
         try {
-            NodeResponse response = pregenerated.orElseGet(() -> generateTypes(schemas));
+            NodeResponse response = pregenerated.orElseGet(() -> generateTypes(schemas, processes));
             logTypeConversionErrors(cx, response);
             SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
             syntaxTree = syntaxTree.modifyWith(response.types());
