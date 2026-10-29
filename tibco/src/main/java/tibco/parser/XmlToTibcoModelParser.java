@@ -1284,7 +1284,7 @@ public final class XmlToTibcoModelParser {
                 }
                 case "sources" -> {
                     for (Element source : ElementIterable.of(each)) {
-                        sources.add(new Flow.Activity.Source(source.getAttribute("linkName")));
+                        sources.add(parseSource(source));
                     }
                 }
                 default -> throw new ParserException("Unsupported invoke element tag: " + tag, element);
@@ -1779,16 +1779,20 @@ public final class XmlToTibcoModelParser {
         String linkName = element.getAttribute("linkName");
         Optional<Flow.Activity.Source.Predicate> predicate = tryGetFirstChildWithTag(element,
                 "transitionCondition").map(XmlToTibcoModelParser::parseCondition);
-        return new Flow.Activity.ReceiveEvent.Source(linkName, predicate);
+        return new Flow.Activity.Source(linkName, predicate,
+                tryGetAttributeIgnoringNamespace(element, "faultDetailsVar"),
+                tryGetAttributeIgnoringNamespace(element, "faultNameVar"));
     }
 
     private static Flow.Activity.Source.Predicate parseCondition(Element cond) {
         String body = cond.getTextContent();
         if (body.contains("##otherwise##")) {
             return new Flow.Activity.Source.Predicate.Else();
-        } else {
-            return parseXPath(cond);
         }
+        if (body.contains("##error##")) {
+            return new Flow.Activity.Source.Predicate.Error();
+        }
+        return parseXPath(cond);
     }
 
     private static Flow.Activity.Expression.XPath parseXPath(Element element) {
