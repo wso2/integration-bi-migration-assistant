@@ -539,7 +539,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     private static BallerinaModel.Function generateExplicitTransitionBlockActivityFunction(
             ProcessContext cx, ExplicitTransitionGroup group) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
-        List<Activity> activities = sortedActivitiesOrEmpty(cx, analysisResult, group);
+        List<Activity> activities = withoutMisplacedRethrows(cx, sortedActivitiesOrEmpty(cx, analysisResult, group));
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(group).activityRunner();
         TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx);
         List<Parameter> parameters = activityFnType.parameters();
@@ -549,6 +549,16 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 activityFnType.returnType(), Check::new, parameters);
     }
 
+    private static List<Activity> withoutMisplacedRethrows(ProcessContext cx, List<Activity> activities) {
+        activities.stream()
+                .filter(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)
+                .forEach(rethrow -> cx.log(LoggingUtils.Level.SEVERE, "Rethrow activity \""
+                        + ((ExplicitTransitionGroup.InlineActivity.Rethrow) rethrow).name()
+                        + "\" is not reachable from a catch, so there is no error to rethrow. Skipping it."));
+        return activities.stream()
+                .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
+                .toList();
+    }
 
     private static List<Activity> sortedActivitiesOrEmpty(ProcessContext cx, AnalysisResult analysisResult,
             ExplicitTransitionGroup group) {
@@ -579,16 +589,29 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             return defaultErrorHandlerFunction(cx, errorHandlerFunction);
         }
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
-        return generateActivityFlowFunctionInner(cx, activities, errorHandlerFunction,
-                errorFlowFnType.returnType(), CheckPanic::new, errorFlowFnType.parameters());
+        List<Statement> body = new ArrayList<>();
+        generateActivityFlowFunctionInner(cx, activities.stream()
+                        .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
+                        .toList(),
+                CheckPanic::new, body, new VariableReference("input"));
+        // Statements after a panic are unreachable, so a rethrow runs once every other handler activity has.
+        if (activities.stream().anyMatch(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)) {
+            body.add(panicWithCaughtError());
+        }
+        return new BallerinaModel.Function(errorHandlerFunction, errorFlowFnType.parameters(),
+                errorFlowFnType.returnType(), body);
     }
 
     private static BallerinaModel.@NotNull Function defaultErrorHandlerFunction(ProcessContext cx,
                                                                                 String errorHandlerFunction) {
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         List<Parameter> parameters = errorFlowFnType.parameters();
-        List<Statement> body = List.of(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
+        List<Statement> body = List.of(panicWithCaughtError());
         return new BallerinaModel.Function(errorHandlerFunction, parameters, errorFlowFnType.returnType(), body);
+    }
+
+    private static Statement panicWithCaughtError() {
+        return stmtFrom(new Panic(new VariableReference("err")) + ";\n");
     }
 
     private static BallerinaModel.Function generateStartFunction(ProcessContext cx) {
@@ -752,7 +775,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         // Reachable only when no fault handler unconditionally handles every fault (i.e. no trailing
         // catchAll): re-panic rather than silently swallowing a fault nothing matched.
         if (!lastHandlerAlwaysReturns) {
-            body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
+            body.add(panicWithCaughtError());
         }
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(scope).errorHandler();
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);

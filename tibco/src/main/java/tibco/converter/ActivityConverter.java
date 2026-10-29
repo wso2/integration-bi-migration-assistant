@@ -120,6 +120,10 @@ final class ActivityConverter {
         if (activity instanceof Empty) {
             return Optional.empty();
         }
+        // The fault handler panics with the caught error in place of calling a Rethrow function.
+        if (activity instanceof InlineActivity.Rethrow) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {
@@ -236,6 +240,8 @@ final class ActivityConverter {
             case InlineActivity.ListFilesActivity listFilesActivity ->
                     convertListFilesActivity(cx, result, listFilesActivity);
             case InlineActivity.GenerateError generateError -> convertGenerateError(cx, result, generateError);
+            case InlineActivity.Rethrow ignored ->
+                    throw new IllegalStateException("Rethrow activities have no function body");
             case InlineActivity.JDBCQuery jdbcQuery -> convertJDBCQuery(cx, result, jdbcQuery);
             case InlineActivity.JDBCUpdate jdbcUpdate -> convertJDBCUpdate(cx, result, jdbcUpdate);
         };
