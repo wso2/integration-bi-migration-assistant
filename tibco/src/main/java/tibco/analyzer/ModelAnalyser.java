@@ -56,15 +56,15 @@ public class ModelAnalyser {
         moduleSchemas.stream().map(Type.Schema::xsdTypes).flatMap(Collection::stream).forEachOrdered(each -> {
             context.addXsdType(each.name(), each.type());
         });
-        reserveGeneratedTypeNames(context, moduleSchemas, activitySchemas.isEmpty());
+        reserveGeneratedTypeNames(context, moduleSchemas, processes, activitySchemas.isEmpty());
         return analyseProcesses(context, processes);
     }
 
     private static void reserveGeneratedTypeNames(ProjectAnalysisContext context, List<Type.Schema> moduleSchemas,
-                                                  boolean conversionUsesSameSchemas) {
+                                                  Collection<Process> processes, boolean conversionUsesSameSchemas) {
         NodeResponse generatedTypes;
         try {
-            generatedTypes = TypeConverter.generateTypes(moduleSchemas);
+            generatedTypes = TypeConverter.generateTypes(moduleSchemas, processes);
         } catch (RuntimeException e) {
             // Type conversion reports this failure itself when it regenerates the types.
             return;

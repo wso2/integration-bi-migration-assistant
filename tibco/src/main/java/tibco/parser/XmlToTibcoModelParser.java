@@ -1736,7 +1736,43 @@ public final class XmlToTibcoModelParser {
                 .map(XmlToTibcoModelParser::parseSource).toList();
 
         return new Flow.Activity.ReceiveEvent(createInstance, eventTimeout, variable, sources,
-                activity, cx.fileName());
+                parseTimerEventSource(activity), activity, cx.fileName());
+    }
+
+    private static @NotNull Optional<Flow.Activity.ReceiveEvent.TimerEventSource> parseTimerEventSource(
+            Element receiveEvent) {
+        Optional<Element> timerActivity = tryGetFirstChildWithTag(receiveEvent, "eventSource")
+                .flatMap(eventSource -> tryGetFirstChildWithTag(eventSource, "BWActivity"))
+                .filter(activity -> activity.getAttribute("activityTypeID").equals("bw.generalactivities.timer"));
+        if (timerActivity.isEmpty()) {
+            return Optional.empty();
+        }
+        Element timer = timerActivity.get();
+        Map<String, String> propertyBindings = new HashMap<>();
+        for (Element binding : ElementIterable.of(timer)) {
+            if (getTagNameWithoutNameSpace(binding).equals("attributeBindings")
+                    && !binding.getAttribute("processProperty").isEmpty()) {
+                propertyBindings.put(binding.getAttribute("eAttributeName"), binding.getAttribute("processProperty"));
+            }
+        }
+        Optional<Element> config = tryGetFirstChildWithTag(timer, "activityConfig")
+                .flatMap(activityConfig -> tryGetFirstChildWithTag(activityConfig, "properties"))
+                .flatMap(properties -> tryGetFirstChildWithTag(properties, "value"));
+        return Optional.of(new Flow.Activity.ReceiveEvent.TimerEventSource(receiveEvent.getAttribute("name"),
+                timerValue(config, propertyBindings, "startTime"), timerValue(config, propertyBindings, "timeInterval"),
+                config.map(value -> value.getAttribute("intervalUnit")).orElse(""),
+                config.map(value -> value.getAttribute("runOnce").equals("true")).orElse(false)));
+    }
+
+    private static @NotNull Optional<Flow.Activity.ReceiveEvent.TimerValue> timerValue(Optional<Element> config,
+            Map<String, String> propertyBindings, String attribute) {
+        if (propertyBindings.containsKey(attribute)) {
+            return Optional.of(new Flow.Activity.ReceiveEvent.TimerValue.ProcessProperty(
+                    propertyBindings.get(attribute)));
+        }
+        return config.map(value -> value.getAttribute(attribute))
+                .filter(value -> !value.isBlank())
+                .map(Flow.Activity.ReceiveEvent.TimerValue.Literal::new);
     }
 
     private static Flow.Activity.Source parseSource(Element element) {

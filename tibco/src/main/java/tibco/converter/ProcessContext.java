@@ -245,6 +245,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         nameSpaces.add(resolved);
     }
 
+    void addModuleDeclaration(String declaration) {
+        intrinsics.add(declaration);
+    }
+
     ProjectContext.FunctionData getProcessStartFunction() {
         return new ProjectContext.FunctionData(getProcessStartFunctionName());
     }
