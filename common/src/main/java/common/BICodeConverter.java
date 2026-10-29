@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class BICodeConverter {
@@ -172,7 +173,10 @@ public final class BICodeConverter {
         // TODO: we can do this better by visiting tree and figure out types and
         //  function calls. But should be good enough for now
         SyntaxTree st = new CodeGenerator(doc).generateSyntaxTree();
-        String content = st.toSourceCode();
+        // Comments can quote source configs (e.g. `xsi:type="java:JavaMethod"`), which would pull in unused imports.
+        String content = st.toSourceCode().lines()
+                .filter(line -> !line.stripLeading().startsWith("//"))
+                .collect(Collectors.joining("\n"));
         Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
 
         // Find all matches in content
@@ -210,6 +214,7 @@ public final class BICodeConverter {
             case "regexp" -> List.of(new BallerinaModel.Import("ballerina", "lang.regexp"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "time" -> List.of(new BallerinaModel.Import("ballerina", "time"));
+            case "task" -> List.of(new BallerinaModel.Import("ballerina", "task"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
             case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));
             case "mysql" -> List.of(

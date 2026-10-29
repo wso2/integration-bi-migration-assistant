@@ -52,7 +52,7 @@ public class ProjectAnalysisContext implements LoggingContext {
 
     private static final Pattern DECLARED_SYMBOL =
             Pattern.compile("^\\s*(?:function|type)\\s+([A-Za-z_][A-Za-z0-9_]*)", Pattern.MULTILINE);
-    private static final Set<String> GENERATED_MODULE_SYMBOLS = Stream.concat(
+    public static final Set<String> GENERATED_MODULE_SYMBOLS = Stream.concat(
             Stream.of("main", "init", "toXML", "initContext", "addToContext", "getFromContext",
                     "responseFromContext", "setJSONResponse", "setXMLResponse", "setTextResponse",
                     "setSharedVariable", "getSharedVariable",
