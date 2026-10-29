@@ -2231,8 +2231,7 @@ final class ActivityConverter {
     }
 
     private static @NotNull String dataFormatLiteral(String value) {
-        return "\"" + ConversionUtils.escapeString(value)
-                .replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") + "\"";
+        return "\"" + ConversionUtils.escapeStringLiteral(value) + "\"";
     }
 
     private static ActivityConversionResult createSQLOperation(

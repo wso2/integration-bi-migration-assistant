@@ -130,6 +130,36 @@ public final class ConversionUtils {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    // A Ballerina string literal cannot hold a raw line break; other control characters are escaped too so the
+    // generated literal stays readable.
+    public static @NotNull String escapeStringLiteral(String value) {
+        StringBuilder escaped = new StringBuilder();
+        escapeString(value).codePoints().forEach(codePoint -> {
+            switch (codePoint) {
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (Character.isISOControl(codePoint) || codePoint == 0x2028 || codePoint == 0x2029) {
+                        escaped.append("\\u{").append(Integer.toHexString(codePoint).toUpperCase()).append('}');
+                    } else {
+                        escaped.appendCodePoint(codePoint);
+                    }
+                }
+            }
+        });
+        return escaped.toString();
+    }
+
+    // Ballerina's int is 64-bit, so a value beyond Java's int range is still a valid literal.
+    public static @NotNull Optional<Expression> intLiteral(String value) {
+        try {
+            return Optional.of(new Expression.BallerinaExpression(Long.toString(Long.parseLong(value.trim()))));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
     private static final Set<String> BALLERINA_KEYWORDS = Set.of(
             "any", "anydata", "as", "boolean", "break", "byte", "check", "checkpanic", "client", "const",
             "continue", "decimal", "do", "else", "enum", "error", "fail", "false", "final", "float", "foreach",

@@ -43,7 +43,7 @@
 		</globalVariable>
 		<globalVariable>
 			<name>/DB/Other/url</name>
-			<value>jdbc:sqlserver://localhost:1433;databaseName=demo</value>
+			<value>jdbc:sqlserver://localhost:1433;databaseName=demo;password=demo-secret</value>
 			<deploymentSettable>false</deploymentSettable>
 			<serviceSettable>false</serviceSettable>
 			<type>String</type>
@@ -51,10 +51,10 @@
 		</globalVariable>
 		<globalVariable>
 			<name>/DB/Other/user</name>
-			<value>demo</value>
+			<value>#!b2JmdXNjYXRlZA==</value>
 			<deploymentSettable>false</deploymentSettable>
 			<serviceSettable>false</serviceSettable>
-			<type>String</type>
+			<type>Password</type>
 			<isOverride>false</isOverride>
 		</globalVariable>
 		<globalVariable>
@@ -76,6 +76,14 @@
 		<globalVariable>
 			<name>/DB/Ledger/url</name>
 			<value>jdbc:db2://localhost:50000/demo</value>
+			<deploymentSettable>false</deploymentSettable>
+			<serviceSettable>false</serviceSettable>
+			<type>String</type>
+			<isOverride>false</isOverride>
+		</globalVariable>
+		<globalVariable>
+			<name>/DB/Ledger/user</name>
+			<value>ledger</value>
 			<deploymentSettable>false</deploymentSettable>
 			<serviceSettable>false</serviceSettable>
 			<type>String</type>

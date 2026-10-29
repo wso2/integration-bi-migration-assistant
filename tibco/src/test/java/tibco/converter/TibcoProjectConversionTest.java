@@ -837,20 +837,8 @@ public class TibcoProjectConversionTest {
 
     @Test(groups = {"tibco", "converter"})
     public void testJdbcDriverResolvedFromSubstitutionBindings() {
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("orgName", "testOrg");
-        parameters.put("projectName", "JdbcSubstvarBW6");
-        parameters.put("sourcePath",
-                Path.of("src", "test", "resources", "jdbc-substvar", "JdbcSubstvarBW6").toString());
-        parameters.put("stateCallback", (java.util.function.Consumer<String>) s -> {
-        });
         List<String> logs = new ArrayList<>();
-        parameters.put("logCallback", (java.util.function.Consumer<String>) logs::add);
-
-        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
-        Assert.assertNull(result.get("error"), "Conversion failed with error: " + result.get("error"));
-        @SuppressWarnings("unchecked")
-        var textEdits = (Map<String, String>) result.get("textEdits");
+        Map<String, String> textEdits = migrateJdbcSubstvarProject(logs);
 
         String ballerinaToml = textEdits.get("Ballerina.toml");
         Assert.assertEquals(ballerinaToml.split("\\[\\[platform\\.java17\\.dependency]]", -1).length - 1, 5,
@@ -887,6 +875,49 @@ public class TibcoProjectConversionTest {
         Assert.assertTrue(connections.contains(
                 "jdbc:Client reportingDb = checkpanic new (DB_Main_url, DB_Main_user, DB_Main_password);"),
                 "Resources bound to the same module property should share its configurable: " + connections);
+    }
+
+    @Test(groups = {"tibco", "converter"})
+    public void testConfigurableDefaults() {
+        Map<String, String> textEdits = migrateJdbcSubstvarProject(new ArrayList<>());
+        String configs = textEdits.get("configs.bal");
+
+        Assert.assertTrue(configs.contains(
+                        "configurable string DB_Main_url = \"jdbc:postgresql://localhost:5432/demo\";"),
+                "A default.substvar value should become the configurable's default: " + configs);
+        Assert.assertTrue(configs.contains("configurable string DB_Main_user = \"demo\";"), configs);
+        Assert.assertTrue(configs.contains("configurable string DB_Analytics_url = ?;"),
+                "A value only the deployment profiles agree on must not become a default: " + configs);
+        Assert.assertTrue(configs.contains("configurable string DB_Other_user = ?;"),
+                "A Password-typed property must stay required even when bound to a plain field: " + configs);
+        Assert.assertTrue(configs.contains("configurable string DB_Other_url = ?;"),
+                "A URL carrying a password must stay required: " + configs);
+        Assert.assertTrue(configs.contains("configurable string DB_Ledger_user = ?;"),
+                "A property also bound to a password field must stay required, whichever binding comes first: "
+                        + configs);
+        Assert.assertTrue(configs.contains("configurable string inventoryDb_password = ?;"),
+                "A literal JDBC password should become a required configurable: " + configs);
+        Assert.assertFalse(configs.contains("demo-secret"), configs);
+
+        String connections = textEdits.get("connections.bal");
+        Assert.assertTrue(connections.contains("inventoryDb_password"), connections);
+    }
+
+    private static Map<String, String> migrateJdbcSubstvarProject(List<String> logs) {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("orgName", "testOrg");
+        parameters.put("projectName", "JdbcSubstvarBW6");
+        parameters.put("sourcePath",
+                Path.of("src", "test", "resources", "jdbc-substvar", "JdbcSubstvarBW6").toString());
+        parameters.put("stateCallback", (java.util.function.Consumer<String>) s -> {
+        });
+        parameters.put("logCallback", (java.util.function.Consumer<String>) logs::add);
+
+        var result = tibco.TibcoToBalConverter.migrateTIBCO(parameters);
+        Assert.assertNull(result.get("error"), "Conversion failed with error: " + result.get("error"));
+        @SuppressWarnings("unchecked")
+        var textEdits = (Map<String, String>) result.get("textEdits");
+        return textEdits;
     }
 
     @DataProvider
