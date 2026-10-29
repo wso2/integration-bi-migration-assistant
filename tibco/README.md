@@ -10,6 +10,7 @@
 - `repeatUntil`
 - `extensionActivity`
   - `receiveEvent`
+    - `bw.generalactivities.timer` (converted to a scheduled `TimerListener`)
   - `activityExtension`
     - `bw.internal.end`
     - `bw.http.sendHTTPRequest`

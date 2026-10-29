@@ -33,6 +33,9 @@ import common.LoggingUtils;
 import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ConstantDeclarationNode;
 import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
+import io.ballerina.compiler.syntax.tree.EnumMemberNode;
+import io.ballerina.compiler.syntax.tree.ExpressionNode;
+import io.ballerina.compiler.syntax.tree.IdentifierToken;
 import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
 import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
 import io.ballerina.compiler.syntax.tree.MetadataNode;
@@ -44,12 +47,15 @@ import io.ballerina.compiler.syntax.tree.NodeParser;
 import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.TreeModifier;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import tibco.LoggingContext;
+import tibco.analyzer.ProjectAnalysisContext;
+import tibco.model.Process;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
 import tibco.model.Type.WSDLDefinition.PortType.Operation;
@@ -66,6 +72,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,15 +87,19 @@ public final class TypeConverter {
             Set.of("element", "complexType", "simpleType", "group", "attributeGroup");
     private static final Set<String> QNAME_REFERENCE_ATTRIBUTES =
             Set.of("type", "base", "itemType", "substitutionGroup");
+    private static final Set<String> IMPORT_PREFIXES = Arrays.stream(Library.values())
+            .map(library -> library.moduleName.substring(library.moduleName.lastIndexOf('.') + 1))
+            .collect(Collectors.toUnmodifiableSet());
 
     private TypeConverter() {
     }
 
     // xsd-core uses names verbatim as identifiers, so `E-Mail` would not compile. Names are sanitized like
     // getTypeByName does; colliding ones (`E-Mail` vs `E_Mail`) get a suffix that getTypeByName doesn't know.
-    public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas) {
+    public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas,
+                                                      Collection<Process> processes) {
         List<Element> copies = schemas.stream()
-                .map(schema -> (Element) schema.element().cloneNode(true))
+                .map(schema -> withoutDuplicateEnumerations(schema.element()))
                 .toList();
         Map<String, String> identifiers = componentIdentifiers(copies);
         Map<String, String> renamedRootElements = new HashMap<>();
@@ -96,11 +107,30 @@ public final class TypeConverter {
                 .map(schema -> withValidIdentifierNames(schema, identifiers, renamedRootElements))
                 .map(ConversionUtils::elementToString)
                 .toArray(String[]::new));
-        if (renamedRootElements.isEmpty()) {
-            return response;
-        }
-        return new NodeResponse(withXmlNames(response.types(), renamedRootElements), response.diagnostics(),
+        ModulePartNode types = renamedRootElements.isEmpty() ? response.types() :
+                withXmlNames(response.types(), renamedRootElements);
+        return new NodeResponse(withUniqueEnumMemberNames(types, processes), response.diagnostics(),
                 response.nodeContext());
+    }
+
+    // xsd-core emits one enum member per xs:enumeration, so a repeated value becomes a redeclared member.
+    private static @NotNull Element withoutDuplicateEnumerations(Element schema) {
+        assert schema != null : "schema must not be null";
+        Element copy = (Element) schema.cloneNode(true);
+        removeDuplicateEnumerations(copy);
+        return copy;
+    }
+
+    private static void removeDuplicateEnumerations(Element parent) {
+        Set<String> enumerationValues = new HashSet<>();
+        for (Element child : childElements(parent)) {
+            if (ConversionUtils.stripNamespace(child.getTagName()).equals("enumeration")
+                    && !enumerationValues.add(child.getAttribute("value"))) {
+                parent.removeChild(child);
+            } else {
+                removeDuplicateEnumerations(child);
+            }
+        }
     }
 
     private static @NotNull Map<String, String> componentIdentifiers(List<Element> schemas) {
@@ -277,11 +307,79 @@ public final class TypeConverter {
                 imports.add(NodeParser.parseImportDeclaration("import ballerina/data.xmldata;"));
     }
 
+    // Enum members are module-level constants, so they share a namespace with types, functions, import prefixes
+    // and the members of other enums. A clashing member is renamed and keeps its original value, so data binding
+    // is unaffected. Every original member name is held back from the new names, so a rename never takes the name
+    // of a member that did not clash.
+    private static @NotNull ModulePartNode withUniqueEnumMemberNames(ModulePartNode types,
+                                                                     Collection<Process> processes) {
+        assert types != null : "types must not be null";
+        assert processes != null : "processes must not be null";
+        Set<String> moduleSymbols = new HashSet<>(ProjectAnalysisContext.GENERATED_MODULE_SYMBOLS);
+        moduleSymbols.addAll(IMPORT_PREFIXES);
+        processes.forEach(process -> {
+            String processName = ConversionUtils.sanitizes(process.name());
+            moduleSymbols.add(ConversionUtils.processFunctionName(process));
+            moduleSymbols.add(processName + "_listener");
+            moduleSymbols.add(processName + "_client");
+        });
+        types.members().stream().map(TypeConverter::declaredName).flatMap(Optional::stream)
+                .forEach(moduleSymbols::add);
+        Set<String> originalMemberNames = types.members().stream().flatMap(TypeConverter::enumMemberNames)
+                .collect(Collectors.toSet());
+        Set<String> claimedMemberNames = new HashSet<>();
+        TreeModifier modifier = new TreeModifier() {
+            @Override
+            public @NotNull EnumMemberNode transform(EnumMemberNode member) {
+                IdentifierToken identifier = member.identifier();
+                if (!moduleSymbols.contains(identifier.text()) && claimedMemberNames.add(identifier.text())) {
+                    return member;
+                }
+                String renamed = uniqueEnumMemberName(identifier.text(), name -> moduleSymbols.contains(name)
+                        || originalMemberNames.contains(name) || claimedMemberNames.contains(name));
+                claimedMemberNames.add(renamed);
+                return member.modify()
+                        .withIdentifier(NodeFactory.createIdentifierToken(renamed, identifier.leadingMinutiae(),
+                                identifier.trailingMinutiae()))
+                        .withEqualToken(member.equalToken()
+                                .orElseGet(() -> NodeFactory.createToken(SyntaxKind.EQUAL_TOKEN)))
+                        .withConstExprNode(member.constExprNode()
+                                .orElseGet(() -> enumMemberValue(identifier.text())))
+                        .apply();
+            }
+        };
+        return (ModulePartNode) types.apply(modifier);
+    }
+
+    private static @NotNull String uniqueEnumMemberName(String name, Predicate<String> isTaken) {
+        String candidate = name + "_";
+        int suffix = 1;
+        while (isTaken.test(candidate)) {
+            candidate = name + "_" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    // A member without an explicit value takes its own name as the value, so the renamed member must spell it out.
+    private static @NotNull ExpressionNode enumMemberValue(String name) {
+        return NodeParser.parseExpression("\"%s\"".formatted(
+                ConversionUtils.escapeString(name.startsWith("'") ? name.substring(1) : name)));
+    }
+
     public static @NotNull Set<String> declaredNames(NodeResponse response) {
         return response.types().members().stream()
-                .map(TypeConverter::declaredName)
-                .flatMap(Optional::stream)
+                .flatMap(member -> Stream.concat(declaredName(member).stream(), enumMemberNames(member)))
                 .collect(Collectors.toSet());
+    }
+
+    private static @NotNull Stream<String> enumMemberNames(ModuleMemberDeclarationNode member) {
+        if (!(member instanceof EnumDeclarationNode enumDeclaration)) {
+            return Stream.empty();
+        }
+        return enumDeclaration.enumMemberList().stream()
+                .flatMap(node -> node instanceof EnumMemberNode enumMember ? Stream.of(enumMember) : Stream.empty())
+                .map(enumMember -> enumMember.identifier().text());
     }
 
     private static Optional<String> declaredName(ModuleMemberDeclarationNode member) {
@@ -294,13 +392,13 @@ public final class TypeConverter {
     }
 
     static @NotNull SyntaxTree convertSchemas(ContextWithFile cx, Collection<Type.Schema> schemas,
-                                              Optional<NodeResponse> pregenerated) {
+                                              Collection<Process> processes, Optional<NodeResponse> pregenerated) {
         cx.logState("Converting XSD schemas to Ballerina types");
         for (int i = 0; i < schemas.size(); i++) {
             cx.getProjectContext().incrementTypeCount();
         }
         try {
-            NodeResponse response = pregenerated.orElseGet(() -> generateTypes(schemas));
+            NodeResponse response = pregenerated.orElseGet(() -> generateTypes(schemas, processes));
             logTypeConversionErrors(cx, response);
             SyntaxTree syntaxTree = SyntaxTree.from(TextDocuments.from(""));
             syntaxTree = syntaxTree.modifyWith(response.types());
