@@ -177,7 +177,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 SET_SHARED_VARIABLE,
                 FILE_EVENT_SOURCE,
                 ON_STARTUP,
-                LIST_FILES;
+                LIST_FILES,
+                RETHROW;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -217,7 +218,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                                     new LookUpData("JDBCUpdateActivity", JDBC_UPDATE),
                                     new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
                                     new LookUpData("OnStartupEventSource", ON_STARTUP),
-                                    new LookUpData("ListFilesActivity", LIST_FILES))
+                                    new LookUpData("ListFilesActivity", LIST_FILES),
+                                    new LookUpData("RethrowActivity", RETHROW))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
@@ -257,6 +259,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                         case FILE_EVENT_SOURCE -> "com.tibco.plugin.file.FileEventSource";
                         case ON_STARTUP -> "com.tibco.pe.core.OnStartupEventSource";
                         case LIST_FILES -> "com.tibco.plugin.file.ListFilesActivity";
+                        case RETHROW -> "com.tibco.pe.core.RethrowActivity";
                         case UNHANDLED -> "UNHANDLED";
                     };
                 }
@@ -1008,6 +1011,20 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 @Override
                 public boolean hasInputBinding() {
                     return true;
+                }
+            }
+
+            record Rethrow(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.RETHROW;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
                 }
             }
 

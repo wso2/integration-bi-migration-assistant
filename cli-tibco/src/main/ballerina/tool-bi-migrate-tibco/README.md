@@ -230,6 +230,7 @@ This will create a Ballerina package with organization name `myorg` and project 
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.plugin.jms.JMSTopicPublishActivity`
 - `com.tibco.pe.core.GenerateErrorActivity`
+- `com.tibco.pe.core.RethrowActivity`
 - `com.tibco.plugin.timer.NullActivity`
 - `com.tibco.plugin.timer.SleepActivity`
 - `com.tibco.pe.core.GetSharedVariableActivity`
