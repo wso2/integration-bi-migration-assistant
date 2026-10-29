@@ -25,7 +25,7 @@ function Generate_Error(Context cx) returns error? {
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     string var3 = runtime:getStackTrace().toString();
     xml var4 = xml`<ns:ErrorReport xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-    <StackTrace>${stackTrace}</StackTrace>
+    <StackTrace>${var3}</StackTrace>
     ${var2/*}
 </ns:ErrorReport>`;
     addToContext(cx, "$_error", var4);

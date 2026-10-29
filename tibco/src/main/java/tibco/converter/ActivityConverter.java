@@ -686,10 +686,10 @@ final class ActivityConverter {
                 new XMLTemplate(
                         """
                                 <ns:ErrorReport xmlns:ns="http://www.tibco.com/pe/EngineTypes">
-                                    <StackTrace>${stackTrace}</StackTrace>
+                                    <StackTrace>${%s}</StackTrace>
                                     ${%s/*}
                                 </ns:ErrorReport>""".formatted(
-                                input)));
+                                stackTrace.ref(), input)));
         body.add(result);
 
         // Add the result to context with $_error key only
@@ -1578,7 +1578,10 @@ final class ActivityConverter {
 
     private static List<Statement> convertUnhandledActivity(ActivityContext cx,
                                                             UnhandledActivity unhandledActivity) {
-        return List.of(new Comment(unhandledActivity.reason()), elementAsComment(unhandledActivity.element()));
+        String reason = unhandledActivity.reason();
+        return List.of(new Comment("FIXME: " + reason), elementAsComment(unhandledActivity.element()),
+                stmtFrom("return error(\"%s\");".formatted(reason.replace("\\", "\\\\").replace("\"", "\\\"")
+                        .replace("\r", "\\r").replace("\n", "\\n"))));
     }
 
     private static Comment elementAsComment(Element element) {
