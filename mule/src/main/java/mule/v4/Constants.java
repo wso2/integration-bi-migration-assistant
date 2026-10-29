@@ -104,6 +104,8 @@ public class Constants {
     // Types
     public static final String HTTP_RESPONSE_TYPE = "http:Response";
     public static final String HTTP_REQUEST_TYPE = "http:Request";
+    public static final String HTTP_REQUEST_ACCESS =
+            "(<" + HTTP_REQUEST_TYPE + ">" + ATTRIBUTES_FIELD_ACCESS + "." + HTTP_REQUEST_REF + ")";
     public static final String HTTP_CLIENT_TYPE = "http:Client";
     public static final String HTTP_REQUEST_CONTEXT_TYPE = "http:RequestContext";
     public static final String HTTP_RESOURCE_RETURN_TYPE_DEFAULT = HTTP_RESPONSE_TYPE + "|error";

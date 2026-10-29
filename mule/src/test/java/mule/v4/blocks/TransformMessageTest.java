@@ -40,6 +40,18 @@ public class TransformMessageTest extends AbstractBlockTest {
                 "transform-message/transform_message_with_dw_parsing_failure.bal");
     }
 
+    @Test
+    public void testTransformMessageWithQuotedAttributeNames() {
+        testMule4ToBal("transform-message/transform_message_with_quoted_attribute_names.xml",
+                "transform-message/transform_message_with_quoted_attribute_names.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithOptionalHeader() {
+        testMule4ToBal("transform-message/transform_message_with_optional_header.xml",
+                "transform-message/transform_message_with_optional_header.bal");
+    }
+
     @Test(enabled = false)
     public void testTransformMessageWithUnsupportedComponents() {
         testMule4ToBal("transform-message/transform_message_with_unsupported_components.xml",

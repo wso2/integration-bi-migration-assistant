@@ -22,7 +22,7 @@ service / on HTTP_Listener_config {
 
     resource function default test(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
-        if ctx.attributes.request.getQueryParamValue("age") < 16 {
+        if (<http:Request>ctx.attributes.request).getQueryParamValue("age") < 16 {
             fail error PRECONDITIONS__INCORRECT_AGE("Minimum age of 16 required to drive");
         } else {
             log:printInfo("User age above 16 years. Allowed to drive");

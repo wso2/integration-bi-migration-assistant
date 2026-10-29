@@ -1266,7 +1266,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (headerAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
-            exprBuilder.append(": error(\"no such header\"))");
+            exprBuilder.append(": ())");
         } else if (uriParamAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
@@ -1299,7 +1299,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitKeySelector(DataWeaveParser.KeySelectorContext ctx) {
         assert dwContext.inKeyAccess;
-        dwContext.append(ctx.STRING().getText());
+        String quotedKey = ctx.STRING().getText();
+        dwContext.append(quotedKey.substring(1, quotedKey.length() - 1));
         dwContext.addCheckExpr();
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;

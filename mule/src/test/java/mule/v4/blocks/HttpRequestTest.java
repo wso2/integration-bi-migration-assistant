@@ -57,6 +57,18 @@ public class HttpRequestTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testHttpRequestWithInboundQueryParams() {
+        testMule4ToBal("http-request/http_request_with_inbound_query_params.xml",
+                "http-request/http_request_with_inbound_query_params.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithSpecialParamNames() {
+        testMule4ToBal("http-request/http_request_with_special_param_names.xml",
+                "http-request/http_request_with_special_param_names.bal");
+    }
+
+    @Test
     public void testHttpRequestWithUriAndQueryParams() {
         testMule4ToBal("http-request/http_request_with_uri_and_query_params.xml",
                 "http-request/http_request_with_uri_and_query_params.bal");
