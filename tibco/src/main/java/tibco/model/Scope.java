@@ -24,6 +24,7 @@ import org.w3c.dom.Element;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public record Scope(String name, Collection<Flow> flows, Collection<Sequence> sequence,
                     Collection<FaultHandler> faultHandlers) {
@@ -505,6 +506,21 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         }
                     }
 
+                    record SAPInvoke(String sapConnection, String functionName, Set<String> tableParameters,
+                                     Set<String> importTableParameters, String schemaPath, boolean schemaResolved)
+                            implements ActivityExtension.Config {
+
+                        public SAPInvoke {
+                            assert !sapConnection.isEmpty();
+                            assert !functionName.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.SAP_INVOKE;
+                        }
+                    }
+
                     record JavaInvoke(String className, String methodName, boolean staticMethod,
                                       String returnType, List<Parameter> parameters)
                             implements ActivityExtension.Config {
@@ -695,6 +711,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         SFTP_GET,
                         SFTP_PUT,
                         SFTP_RENAME_FILE,
+                        SAP_INVOKE,
                         JAVA_INVOKE,
                         PARSE_DATA,
                         RENDER_DATA,
@@ -718,6 +735,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.sftp.dir" -> SFTP_DIR;
                                 case "bw.sftp.get" -> SFTP_GET;
                                 case "bw.sftp.put" -> SFTP_PUT;
+                                case "bw.sap.InvokeRequestResponse" -> SAP_INVOKE;
                                 case "bw.java.javamethod" -> JAVA_INVOKE;
                                 case "bw.parse.parsedata" -> PARSE_DATA;
                                 case "bw.parse.renderdata" -> RENDER_DATA;

@@ -1628,6 +1628,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
             case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
             case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
+            case ActivityExtension.Config.SAPInvoke sapInvoke -> createSAPInvokeOperation(cx, result, sapInvoke);
             case ActivityExtension.Config.JavaInvoke javaInvoke -> createJavaInvokeOperation(cx, result, javaInvoke);
             case ActivityExtension.Config.ParseData parseData -> createParseDataOperation(cx, result, parseData);
             case ActivityExtension.Config.RenderData renderData -> createRenderDataOperation(cx, result, renderData);
@@ -2029,6 +2030,52 @@ final class ActivityConverter {
         body.add(new Comment("WARNING: Missing SFTP connection resource '" + sftpConnection
                 + "'. Using placeholder client."));
         return declarePlaceholderClient(cx, body, "ftp:Client", Library.FTP, "sftp", sftpConnection);
+    }
+
+    private static @NotNull ActivityConversionResult createSAPInvokeOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SAPInvoke sapInvoke) {
+        List<Statement> body = new ArrayList<>();
+        cx.addLibraryImport(Library.SAP_JCO);
+        VariableReference client = sapClient(cx, body, sapInvoke.sapConnection());
+        if (!sapInvoke.schemaResolved()) {
+            body.add(new Comment("WARNING: SAP RFC schema '" + sapInvoke.schemaPath()
+                    + "' not found; table parameters are passed as import parameters."));
+        }
+        VarDeclStatment parameters = new VarDeclStatment(typeFrom("jco:RfcParameters"), cx.getAnnonVarName(),
+                new FunctionCall(cx.getSapRfcParametersFunction(), List.of(result,
+                        sapNameList(sapInvoke.tableParameters()), sapInvoke.schemaResolved()
+                                ? sapNameList(sapInvoke.importTableParameters()) : exprFrom("()"))));
+        body.add(parameters);
+        VarDeclStatment response = new VarDeclStatment(typeFrom("jco:RfcRecord"), cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "execute",
+                        List.of(new StringConstant(ConversionUtils.escapeString(sapInvoke.functionName())),
+                                parameters.ref()))));
+        body.add(response);
+        // The root wrapper stands in for the activity's RequestOutputType element, so downstream XPath reaches the
+        // export and table parameters through RfcResponse as in TIBCO.
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<root><RfcResponse>${%s(%s)}</RfcResponse></root>"
+                        .formatted(cx.getSapRfcToXmlFunction(), response.ref())));
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull BallerinaModel.Expression sapNameList(Collection<String> names) {
+        return exprFrom(names.stream()
+                .map(name -> "\"" + ConversionUtils.escapeString(name) + "\"")
+                .collect(Collectors.joining(", ", "[", "]")));
+    }
+
+    private static @NotNull VariableReference sapClient(ActivityContext cx, List<Statement> body,
+                                                       String sapConnection) {
+        Optional<VariableReference> client = cx.client(sapConnection);
+        if (client.isPresent()) {
+            return client.get();
+        }
+        cx.log(SEVERE, "WARNING: Failed to find SAP client for " + sapConnection + ". Creating placeholder client.");
+        body.add(new Comment("WARNING: Missing SAP connection resource '" + sapConnection
+                + "'. Using placeholder client."));
+        return declarePlaceholderClient(cx, body, "jco:Client", Library.SAP_JCO, "sap", sapConnection);
     }
 
     private static @NotNull ActivityConversionResult createJavaInvokeOperation(

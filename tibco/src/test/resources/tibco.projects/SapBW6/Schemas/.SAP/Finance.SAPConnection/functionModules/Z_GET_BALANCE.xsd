@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xsd:schema xmlns:tns="http://www.tibco.com/xmlns/sap/Finance.SAPConnection/Z_GET_BALANCE" elementFormDefault="unqualified" targetNamespace="http://www.tibco.com/xmlns/sap/Finance.SAPConnection/Z_GET_BALANCE" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:element name="RequestInputType" type="tns:RequestInputTypeParam"/>
+    <xsd:complexType name="RequestInputTypeParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="sessionID" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="timeout" type="xsd:long"/>
+            <xsd:element name="RfcRequest" type="tns:Z_GET_BALANCE_RequestParam"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="RfcRequest" type="tns:Z_GET_BALANCE_RequestParam"/>
+    <xsd:complexType name="Z_GET_BALANCE_RequestParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="1" name="I_COMPANY" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="RfcResponse" type="tns:Z_GET_BALANCE_ResponseParam"/>
+    <xsd:complexType name="Z_GET_BALANCE_ResponseParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="E_BALANCE" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>

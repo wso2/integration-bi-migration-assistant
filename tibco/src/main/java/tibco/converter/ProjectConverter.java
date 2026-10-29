@@ -48,6 +48,7 @@ public class ProjectConverter {
             Collection<Resource.JDBCSharedResource> jdbcSharedResource,
             Collection<Resource.JMSSharedResource> jmsSharedResource,
             Collection<Resource.SFTPResource> sftpResources,
+            Collection<Resource.SAPConnectionResource> sapConnectionResources,
             Collection<Resource.DataFormatResource> dataFormatResources,
             Collection<Resource.SharedVariable> sharedVariables
     ) {
@@ -66,6 +67,7 @@ public class ProjectConverter {
                     jdbcSharedResource,
                     jmsSharedResource,
                     sftpResources,
+                    sapConnectionResources,
                     dataFormatResources,
                     sharedVariables).flatMap(Collection::stream);
         }
@@ -87,6 +89,7 @@ public class ProjectConverter {
                     mergeCollections(first.jdbcSharedResource, second.jdbcSharedResource),
                     mergeCollections(first.jmsSharedResource, second.jmsSharedResource),
                     mergeCollections(first.sftpResources, second.sftpResources),
+                    mergeCollections(first.sapConnectionResources, second.sapConnectionResources),
                     mergeCollections(first.dataFormatResources, second.dataFormatResources),
                     mergeCollections(first.sharedVariables, second.sharedVariables));
         }
@@ -254,6 +257,9 @@ public class ProjectConverter {
         }
         for (Resource.SFTPResource resource : projectResources.sftpResources) {
             ResourceConvertor.convertSftpResource(cx, resource);
+        }
+        for (Resource.SAPConnectionResource resource : projectResources.sapConnectionResources) {
+            ResourceConvertor.convertSapConnectionResource(cx, resource);
         }
         for (Resource.DataFormatResource resource : projectResources.dataFormatResources) {
             cx.addDataFormatResource(resource, hasQualifiedFields(resource, schemas));
