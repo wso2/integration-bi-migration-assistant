@@ -130,7 +130,7 @@ public class ProjectConverter {
         // Schemas added while converting activities were not part of the analysis-time generation.
         Optional<NodeResponse> reusableTypes = cx.getXSDSchemas().isEmpty() ? generatedTypes : Optional.empty();
         schemas.addAll(cx.getXSDSchemas());
-        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas, reusableTypes);
+        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas, processes, reusableTypes);
         cx.logState("CodeGeneration completed for project");
         cx.logState("Generating analysis report for project");
         TibcoAnalysisReport parserReport = new TibcoAnalysisReport(
@@ -281,8 +281,8 @@ public class ProjectConverter {
     }
 
     static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas,
-                                   Optional<NodeResponse> pregenerated) {
+                                   Collection<Process> processes, Optional<NodeResponse> pregenerated) {
         ContextWithFile typeContext = cx.getTypeContext();
-        return TypeConverter.convertSchemas(typeContext, schemas, pregenerated);
+        return TypeConverter.convertSchemas(typeContext, schemas, processes, pregenerated);
     }
 }

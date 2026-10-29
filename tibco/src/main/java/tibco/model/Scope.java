@@ -238,15 +238,37 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
-                                List<Flow.Activity.Source> sources, Element element, String fileName) 
+                                List<Flow.Activity.Source> sources, Optional<TimerEventSource> timer,
+                                Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithSources {
 
                 public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                    List<Source> sources, Element element, String fileName) {
+                                    List<Source> sources, Optional<TimerEventSource> timer, Element element,
+                                    String fileName) {
                     this(createInstance, eventTimeout,
-                            variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element, fileName);
+                            variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, timer, element,
+                            fileName);
                 }
 
+                public record TimerEventSource(String name, Optional<TimerValue> startTime,
+                                               Optional<TimerValue> timeInterval, String intervalUnit,
+                                               boolean runOnce) {
+
+                    public TimerEventSource {
+                        assert name != null && intervalUnit != null;
+                    }
+                }
+
+                public sealed interface TimerValue {
+
+                    record Literal(String value) implements TimerValue {
+
+                    }
+
+                    record ProcessProperty(String propertyName) implements TimerValue {
+
+                    }
+                }
             }
 
             record ExtActivity(Optional<Flow.Activity.Expression> expression, String inputVariable,
