@@ -64,6 +64,7 @@ import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
 import tibco.xslt.ReplaceVariableReference;
+import tibco.xslt.TibcoFunctions;
 import tibco.xslt.TransformPipeline;
 
 import java.util.ArrayList;
@@ -112,6 +113,7 @@ final class ActivityConverter {
         xsltTransformer.append(new ReplaceVariableReference());
         xsltTransformer.append(new ReplaceDotAccessWithXPath());
         xsltTransformer.append(new IgnoreRootWrapper());
+        xsltTransformer.append(new TibcoFunctions());
         return xsltTransformer;
     }
 
@@ -1369,12 +1371,13 @@ final class ActivityConverter {
             return new ActivityConversionResult(input, body);
         } else {
             cx.addLibraryImport(Library.XSLT);
+            addNonStandardXsltWarning(detectNonStandardFunctions(xsltContent), body);
             VarDeclStatment styleSheetDecl = parseStyleSheet(cx, xsltContent);
             body.add(styleSheetDecl);
             VarDeclStatment transformResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
                     new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                            List.of(input, styleSheetDecl.ref(),
-                                    cx.contextVarRef()))));
+                            List.of(input, styleSheetDecl.ref(), xsltParameters(cx.processContext, xsltContent,
+                                    new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))))));
             body.add(transformResult);
             return new ActivityConversionResult(transformResult.ref(), body);
         }
@@ -2700,10 +2703,23 @@ final class ActivityConverter {
 
         VarDeclStatment styleSheetDecl = parseStyleSheet(cx, styleSheet);
         BallerinaModel.Expression expression = new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, styleSheetDecl.ref(),
-                        new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))));
+                List.of(inputVariable, styleSheetDecl.ref(), xsltParameters(cx.processContext, styleSheet,
+                        new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables")))));
 
         return new XsltTransformResult(List.of(styleSheetDecl), expression, nonStandardFunctions);
+    }
+
+    @NotNull
+    static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
+                                                    BallerinaModel.Expression variables) {
+        List<String> uuidParameters = TibcoFunctions.uuidParameters(styleSheet);
+        if (uuidParameters.isEmpty()) {
+            return variables;
+        }
+        cx.addLibraryImport(Library.UUID);
+        return new FunctionCall(cx.getXsltParamsFn(), List.of(variables, exprFrom(uuidParameters.stream()
+                .map(name -> "\"%s\": uuid:createType4AsString()".formatted(name))
+                .collect(Collectors.joining(", ", "{", "}")))));
     }
 
     // An inline xml literal expands into compiler AST nodes at build time, and that expansion grows exponentially
@@ -2726,7 +2742,8 @@ final class ActivityConverter {
 
         while (matcher.find()) {
             String function = matcher.group().replaceAll("\\s*\\($", "");
-            if (!nonStandardFunctions.contains(function)) {
+            if (!nonStandardFunctions.contains(function)
+                    && !TibcoFunctions.isDefined(xsltContent, function.substring(function.indexOf(':') + 1))) {
                 nonStandardFunctions.add(function);
             }
         }
