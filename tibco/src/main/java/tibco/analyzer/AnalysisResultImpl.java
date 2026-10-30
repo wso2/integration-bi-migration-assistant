@@ -35,7 +35,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class AnalysisResultImpl implements AnalysisResult {
@@ -55,6 +54,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
     private final Map<String, XSD.XSDType> xsdTypes;
+    private final Set<String> reservedTypeNames;
     private final Set<Process> calledProcesses;
     TibcoAnalysisReport report;
 
@@ -72,7 +72,8 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<String, Scope.Flow.Activity> activityByName,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
                        Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions,
-                       Map<String, XSD.XSDType> xsdTypes, Set<Process> calledProcesses, TibcoAnalysisReport report) {
+                       Map<String, XSD.XSDType> xsdTypes, Set<String> reservedTypeNames,
+                       Set<Process> calledProcesses, TibcoAnalysisReport report) {
         this.destinationMap = destinationMap;
         this.sourceMap = sourceMap;
         this.activityData = activityData;
@@ -88,6 +89,7 @@ final class AnalysisResultImpl implements AnalysisResult {
         this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
         this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
         this.xsdTypes = xsdTypes;
+        this.reservedTypeNames = reservedTypeNames;
         this.calledProcesses = calledProcesses;
         this.report = report;
     }
@@ -278,7 +280,9 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
                         other.explicitTransitionGroupControlFlowFunctions),
-                combineMap(this.xsdTypes, other.xsdTypes), combineSet(this.calledProcesses, other.calledProcesses), 
+                combineMap(this.xsdTypes, other.xsdTypes),
+                combineSet(this.reservedTypeNames, other.reservedTypeNames),
+                combineSet(this.calledProcesses, other.calledProcesses),
                 combineReports(other)
         );
     }
@@ -310,9 +314,15 @@ final class AnalysisResultImpl implements AnalysisResult {
     }
 
     @Override
-    public Set<String> getTypeNames() {
-        return xsdTypes.values().stream().map(XSD.XSDType::names).flatMap(Collection::stream)
-                .collect(Collectors.toSet());
+    public Set<String> moduleSymbolNames() {
+        Set<String> names = ProjectAnalysisContext.moduleTypeNames(xsdTypes, reservedTypeNames);
+        activityData.values().stream().map(ActivityData::functionName).forEach(names::add);
+        Stream.concat(controlFlowFunctions.values().stream(),
+                        explicitTransitionGroupControlFlowFunctions.values().stream())
+                .flatMap(functions -> Stream.of(functions.scopeFn(), functions.activityRunner(),
+                        functions.errorHandler()))
+                .forEach(names::add);
+        return names;
     }
 
     @Override

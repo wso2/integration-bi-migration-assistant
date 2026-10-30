@@ -92,6 +92,11 @@ public class TestConverter {
         assertProjectConversion("apiKitSpecProject", true, "apiKitSpecProject_check_responses_ballerina");
     }
 
+    @Test(description = "Test converting a project whose correlation ID is read only by a .dwl file of a sub-flow")
+    public void testCorrelationIdProjectConversion() throws IOException {
+        assertProjectConversion("correlationIdProject");
+    }
+
     private void assertProjectConversion(String projectName) throws IOException {
         assertProjectConversion(projectName, false, projectName + "_ballerina");
     }

@@ -237,15 +237,37 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
             }
 
             record ReceiveEvent(boolean createInstance, float eventTimeout, Optional<String> variable,
-                                List<Flow.Activity.Source> sources, Element element, String fileName) 
+                                List<Flow.Activity.Source> sources, Optional<TimerEventSource> timer,
+                                Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithSources {
 
                 public ReceiveEvent(boolean createInstance, float eventTimeout, String variable,
-                                    List<Source> sources, Element element, String fileName) {
+                                    List<Source> sources, Optional<TimerEventSource> timer, Element element,
+                                    String fileName) {
                     this(createInstance, eventTimeout,
-                            variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, element, fileName);
+                            variable.isEmpty() ? Optional.empty() : Optional.of(variable), sources, timer, element,
+                            fileName);
                 }
 
+                public record TimerEventSource(String name, Optional<TimerValue> startTime,
+                                               Optional<TimerValue> timeInterval, String intervalUnit,
+                                               boolean runOnce) {
+
+                    public TimerEventSource {
+                        assert name != null && intervalUnit != null;
+                    }
+                }
+
+                public sealed interface TimerValue {
+
+                    record Literal(String value) implements TimerValue {
+
+                    }
+
+                    record ProcessProperty(String propertyName) implements TimerValue {
+
+                    }
+                }
             }
 
             record ExtActivity(Optional<Flow.Activity.Expression> expression, String inputVariable,
@@ -441,6 +463,71 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                             return ExtensionKind.SFTP_PUT;
                         }
                     }
+                  
+                    record ParseData(String dataFormat, InputType inputType, String encoding,
+                                     boolean skipBlankLines, boolean manuallySpecifiedStartRecord,
+                                     boolean continueOnError) implements ActivityExtension.Config {
+
+                        public ParseData {
+                            assert !dataFormat.isEmpty();
+                            assert inputType != null;
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.PARSE_DATA;
+                        }
+
+                        public enum InputType {
+                            FILE,
+                            STRING;
+
+                            public static @NotNull InputType from(String inputType) {
+                                return switch (inputType) {
+                                    case "File" -> FILE;
+                                    case "String", "" -> STRING;
+                                    default -> throw new IllegalArgumentException(
+                                            "Unknown Parse Data input type: " + inputType);
+                                };
+                            }
+                        }
+                    }
+
+                    record RenderData(String dataFormat) implements ActivityExtension.Config {
+
+                        public RenderData {
+                            assert !dataFormat.isEmpty();
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.RENDER_DATA;
+                        }
+                    }
+
+                    record JavaInvoke(String className, String methodName, boolean staticMethod,
+                                      String returnType, List<Parameter> parameters)
+                            implements ActivityExtension.Config {
+
+                        public JavaInvoke {
+                            assert !className.isEmpty();
+                            assert !methodName.isEmpty();
+                            parameters = List.copyOf(parameters);
+                        }
+
+                        @Override
+                        public @NotNull ExtensionKind kind() {
+                            return ExtensionKind.JAVA_INVOKE;
+                        }
+
+                        public record Parameter(String name, String type) {
+
+                            public Parameter {
+                                assert !name.isEmpty();
+                                assert !type.isEmpty();
+                            }
+                        }
+                    }
 
                     record Log() implements ActivityExtension.Config {
 
@@ -608,6 +695,9 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                         SFTP_GET,
                         SFTP_PUT,
                         SFTP_RENAME_FILE,
+                        JAVA_INVOKE,
+                        PARSE_DATA,
+                        RENDER_DATA,
                         MAPPER,
                         BW_ASSIGN,
                         SQL;
@@ -628,6 +718,9 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                                 case "bw.sftp.dir" -> SFTP_DIR;
                                 case "bw.sftp.get" -> SFTP_GET;
                                 case "bw.sftp.put" -> SFTP_PUT;
+                                case "bw.java.javamethod" -> JAVA_INVOKE;
+                                case "bw.parse.parsedata" -> PARSE_DATA;
+                                case "bw.parse.renderdata" -> RENDER_DATA;
                                 case "bw.generalactivities.log" -> LOG;
                                 case "bw.psglog.Log" -> PSG_LOG;
                                 case "bw.psglog.ExceptionLog" -> PSG_EXCEPTION_LOG;

@@ -19,6 +19,8 @@
 package tibco.analyzer;
 
 import common.LoggingUtils;
+import io.ballerina.xsd.core.response.NodeResponse;
+import org.jetbrains.annotations.NotNull;
 import tibco.LoggingContext;
 import tibco.ProjectConversionContext;
 import tibco.converter.ConversionUtils;
@@ -41,6 +43,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,10 +52,11 @@ public class ProjectAnalysisContext implements LoggingContext {
 
     private static final Pattern DECLARED_SYMBOL =
             Pattern.compile("^\\s*(?:function|type)\\s+([A-Za-z_][A-Za-z0-9_]*)", Pattern.MULTILINE);
-    private static final Set<String> GENERATED_MODULE_SYMBOLS = Stream.concat(
+    public static final Set<String> GENERATED_MODULE_SYMBOLS = Stream.concat(
             Stream.of("main", "init", "toXML", "initContext", "addToContext", "getFromContext",
                     "responseFromContext", "setJSONResponse", "setXMLResponse", "setTextResponse",
-                    "Context", "Response", "JSONResponse", "XMLResponse", "TextResponse"),
+                    "setSharedVariable", "getSharedVariable",
+                    "Context", "Response", "JSONResponse", "XMLResponse", "TextResponse", "SharedVariableContext"),
             Arrays.stream(Intrinsics.values()).flatMap(ProjectAnalysisContext::declaredSymbols))
             .collect(Collectors.toUnmodifiableSet());
 
@@ -60,9 +64,12 @@ public class ProjectAnalysisContext implements LoggingContext {
     private final Map<Scope.Flow.Activity, String> activityFunctionNames =
             new ConcurrentHashMap<>();
     private final Map<String, XSD.XSDType> xsdTypes = new ConcurrentHashMap<>();
+    private final Set<String> reservedTypeNames = ConcurrentHashMap.newKeySet();
+    private NodeResponse reusableGeneratedTypes;
     private final ProjectConversionContext cx;
     private final ProjectResources projectResources;
     private final ProjectResources capturedResources = new ProjectResources(
+            new HashSet<>(),
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>(),
@@ -101,11 +108,39 @@ public class ProjectAnalysisContext implements LoggingContext {
             names.add(base + "ActivityRunner");
             names.add(base + "FaultHandler");
         });
-        xsdTypes.values().stream().map(XSD.XSDType::names).flatMap(Collection::stream).forEach(typeName -> {
-            names.add(typeName);
-            names.add(ConversionUtils.sanitizes(typeName));
+        names.addAll(moduleTypeNames(xsdTypes, reservedTypeNames));
+        currentProcesses.forEach(process -> {
+            String processName = ConversionUtils.sanitizes(process.name());
+            names.add(ConversionUtils.processFunctionName(process));
+            names.add(processName + "_listener");
+            names.add(processName + "_client");
         });
         return names;
+    }
+
+    static @NotNull Set<String> moduleTypeNames(Map<String, XSD.XSDType> xsdTypes, Set<String> reservedTypeNames) {
+        return Stream.of(xsdTypes.keySet().stream(),
+                        xsdTypes.values().stream().map(XSD.XSDType::names).flatMap(Collection::stream),
+                        reservedTypeNames.stream())
+                .flatMap(Function.identity())
+                .flatMap(name -> Stream.of(name, ConversionUtils.sanitizes(name)))
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    Set<String> reservedTypeNames() {
+        return reservedTypeNames;
+    }
+
+    void reserveTypeNames(Collection<String> names) {
+        reservedTypeNames.addAll(names);
+    }
+
+    public Optional<NodeResponse> generatedTypes() {
+        return Optional.ofNullable(reusableGeneratedTypes);
+    }
+
+    void setReusableGeneratedTypes(NodeResponse generatedTypes) {
+        reusableGeneratedTypes = generatedTypes;
     }
 
     private static Stream<String> declaredSymbols(Intrinsics intrinsic) {
@@ -182,6 +217,8 @@ public class ProjectAnalysisContext implements LoggingContext {
                 capturedResources.jmsSharedResource().add(jmsSharedResource);
             case Resource.SFTPResource sftpResource ->
                 capturedResources.sftpResources().add(sftpResource);
+            case Resource.DataFormatResource dataFormatResource ->
+                capturedResources.dataFormatResources().add(dataFormatResource);
             case Resource.SharedVariable sharedVariable ->
                 capturedResources.sharedVariables().add(sharedVariable);
         }

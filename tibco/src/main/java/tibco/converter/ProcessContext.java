@@ -109,7 +109,9 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         // form is preferred, since it disambiguates resources that share a bare file name.
         List<String> qualifiedMatches = new ArrayList<>();
         List<String> bareMatches = new ArrayList<>();
-        for (String resourcePath : projectContext.getGeneratedResourceKeys()) {
+        List<String> candidatePaths = new ArrayList<>(projectContext.getGeneratedResourceKeys());
+        candidatePaths.addAll(projectContext.getDataFormatResourceKeys());
+        for (String resourcePath : candidatePaths) {
             String name = tibco.converter.ConversionUtils.resourceNameFromPath(resourcePath);
             String qualifiedName = tibco.converter.ConversionUtils.qualifiedResourceNameFromPath(resourcePath, name);
             if (qualifiedName.equals(resourceName)) {
@@ -166,12 +168,11 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     String declareConstant(String name, String valueRepr, String type) {
-        name = ConversionUtils.sanitizes(name);
         BallerinaModel.TypeDesc td = getTypeByName(type);
         assert td == STRING;
-        String expr = "\"" + valueRepr + "\"";
-        constants.put(name, BallerinaModel.ModuleVar.constant(name, td, exprFrom(expr)));
-        return name;
+        return constants.computeIfAbsent(ConversionUtils.sanitizes(name),
+                key -> BallerinaModel.ModuleVar.constant(projectContext.allocateModuleSymbol(key), td,
+                        exprFrom("\"" + valueRepr + "\""))).name();
     }
 
     void declareModuleVar(String name, BallerinaModel.ModuleVar var) {
@@ -193,7 +194,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     @Override
     public boolean hasConstantWithName(String name) {
-        return constants.containsKey(name);
+        return constants.containsKey(name)
+                || constants.values().stream().anyMatch(constant -> constant.name().equals(name));
     }
 
     @Override
@@ -243,6 +245,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         nameSpaces.add(resolved);
     }
 
+    void addModuleDeclaration(String declaration) {
+        intrinsics.add(declaration);
+    }
+
     ProjectContext.FunctionData getProcessStartFunction() {
         return new ProjectContext.FunctionData(getProcessStartFunctionName());
     }
@@ -256,7 +262,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     ProjectContext.FunctionData getProcessStartFunction(String processName) {
-        return projectContext.getProcessStartFunction(processName);
+        return projectContext.getProcessStartFunction(processName, imports);
     }
 
     String getJsonToXMLFunction() {
@@ -274,6 +280,23 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
             return Optional.empty();
         }
         return projectContext.dbClient(resourceRef);
+    }
+
+    Optional<Resource.DataFormatResource> dataFormat(String dataFormatPropertyName) {
+        return Optional.ofNullable(propertyVariableToResourceMap.get(dataFormatPropertyName))
+                .flatMap(projectContext::getDataFormatResource);
+    }
+
+    boolean hasQualifiedDataFormatFields(Resource.DataFormatResource dataFormat) {
+        return projectContext.hasQualifiedDataFormatFields(dataFormat.path());
+    }
+
+    String getParseDelimitedDataFunction() {
+        return projectContext.getParseDelimitedDataFunction();
+    }
+
+    String getRenderDelimitedDataFunction() {
+        return projectContext.getRenderDelimitedDataFunction();
     }
 
     String getAddToContextFn() {
@@ -419,7 +442,7 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     public Optional<String> getProcessFunction(String processName) {
-        return projectContext.getProcessFunction(processName);
+        return projectContext.getProcessFunction(processName, imports);
     }
 
     static final class DefaultClientDetails {
@@ -507,6 +530,12 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     public String getFilesInPathFunction() {
         return projectContext.getFilesInPathFunction();
+    }
+
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        return projectContext.getJavaInvokeFunction(className, methodName, parameterNames, parameterTypes,
+                returnType);
     }
 
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {

@@ -31,8 +31,11 @@ enum Library {
     LOG("ballerina", "log"),
     FILE("ballerina", "file"),
     FTP("ballerina", "ftp"),
+    JAVA("ballerina", "jballerina.java"),
+    JAVA_ARRAYS("ballerina", "jballerina.java.arrays"),
     SOAP("ballerina", "soap.soap11"),
     SQL("ballerina", "sql"),
+    TASK("ballerina", "task"),
     UUID("ballerina", "uuid"),
     TIME("ballerina", "time");
 

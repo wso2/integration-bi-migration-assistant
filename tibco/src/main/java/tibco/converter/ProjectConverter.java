@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import tibco.ProjectConversionContext;
 import tibco.analyzer.AnalysisResult;
@@ -47,6 +48,7 @@ public class ProjectConverter {
             Collection<Resource.JDBCSharedResource> jdbcSharedResource,
             Collection<Resource.JMSSharedResource> jmsSharedResource,
             Collection<Resource.SFTPResource> sftpResources,
+            Collection<Resource.DataFormatResource> dataFormatResources,
             Collection<Resource.SharedVariable> sharedVariables
     ) {
 
@@ -64,6 +66,7 @@ public class ProjectConverter {
                     jdbcSharedResource,
                     jmsSharedResource,
                     sftpResources,
+                    dataFormatResources,
                     sharedVariables).flatMap(Collection::stream);
         }
 
@@ -84,6 +87,7 @@ public class ProjectConverter {
                     mergeCollections(first.jdbcSharedResource, second.jdbcSharedResource),
                     mergeCollections(first.jmsSharedResource, second.jmsSharedResource),
                     mergeCollections(first.sftpResources, second.sftpResources),
+                    mergeCollections(first.dataFormatResources, second.dataFormatResources),
                     mergeCollections(first.sharedVariables, second.sharedVariables));
         }
 
@@ -102,21 +106,17 @@ public class ProjectConverter {
     public static @NotNull ConversionResult convertProject(
             ProjectConversionContext conversionContext,
             Map<Process, AnalysisResult> analysisResult, Collection<Process> processes, Collection<Type.Schema> types,
-            ProjectResources projectResources, tibco.parser.ProjectContext parserContext) {
+            ProjectResources projectResources, tibco.parser.ProjectContext parserContext,
+            Optional<NodeResponse> generatedTypes) {
         ProjectContext cx = new ProjectContext(conversionContext, analysisResult);
         cx.logState("CodeGeneration started for project");
-        convertResources(cx, projectResources);
+        convertResources(cx, projectResources, types);
 
         List<ProcessResult> results =
                 processes.stream()
                         .map(process -> convertServices(cx, process))
                         .toList();
-        List<Type.Schema> schemas = new ArrayList<>(types);
-        for (Process each : processes) {
-            if (each instanceof Process6 process6) {
-                accumSchemas(process6, schemas);
-            }
-        }
+        List<Type.Schema> schemas = collectSchemas(types, processes);
         List<BallerinaModel.TextDocument> textDocuments = results.stream()
                 .map(result -> {
                     Process process = result.process();
@@ -124,8 +124,10 @@ public class ProjectConverter {
                     conversionContext.registerProcessTextDocument(process, textdocument);
                     return textdocument;
                 }).toList();
+        // Schemas added while converting activities were not part of the analysis-time generation.
+        Optional<NodeResponse> reusableTypes = cx.getXSDSchemas().isEmpty() ? generatedTypes : Optional.empty();
         schemas.addAll(cx.getXSDSchemas());
-        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas);
+        SyntaxTree typeSyntaxTree = convertTypes(cx, schemas, processes, reusableTypes);
         cx.logState("CodeGeneration completed for project");
         cx.logState("Generating analysis report for project");
         TibcoAnalysisReport parserReport = new TibcoAnalysisReport(
@@ -211,6 +213,17 @@ public class ProjectConverter {
         return new ProcessResult(process, ProcessConverter.convertTypes(cx.getProcessContext(process), process));
     }
 
+    public static @NotNull List<Type.Schema> collectSchemas(Collection<Type.Schema> types,
+                                                            Collection<Process> processes) {
+        List<Type.Schema> schemas = new ArrayList<>(types);
+        for (Process each : processes) {
+            if (each instanceof Process6 process6) {
+                accumSchemas(process6, schemas);
+            }
+        }
+        return schemas;
+    }
+
     private static void accumSchemas(Process6 process, Collection<Type.Schema> accum) {
         for (Type each : process.types()) {
             if (each instanceof Type.Schema schema) {
@@ -219,7 +232,8 @@ public class ProjectConverter {
         }
     }
 
-    private static void convertResources(ProjectContext cx, ProjectResources projectResources) {
+    private static void convertResources(ProjectContext cx, ProjectResources projectResources,
+                                         Collection<Type.Schema> schemas) {
         for (Resource.JDBCResource resource : projectResources.jdbcResources) {
             ResourceConvertor.convertJDBCResource(cx, resource);
         }
@@ -241,13 +255,28 @@ public class ProjectConverter {
         for (Resource.SFTPResource resource : projectResources.sftpResources) {
             ResourceConvertor.convertSftpResource(cx, resource);
         }
+        for (Resource.DataFormatResource resource : projectResources.dataFormatResources) {
+            cx.addDataFormatResource(resource, hasQualifiedFields(resource, schemas));
+        }
         for (Resource.SharedVariable resource : projectResources.sharedVariables) {
             cx.addSharedVariable(resource);
         }
     }
 
-    static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas) {
+    // Field elements follow their schema's elementFormDefault. TIBCO generates data format schemas as qualified, so
+    // that is assumed when no schema declares the row namespace.
+    private static boolean hasQualifiedFields(Resource.DataFormatResource resource, Collection<Type.Schema> schemas) {
+        return schemas.stream()
+                .map(Type.Schema::element)
+                .filter(schema -> schema.getAttribute("targetNamespace").equals(resource.rowNamespace()))
+                .findFirst()
+                .map(schema -> schema.getAttribute("elementFormDefault").equals("qualified"))
+                .orElse(true);
+    }
+
+    static SyntaxTree convertTypes(ProjectContext cx, Collection<Type.Schema> schemas,
+                                   Collection<Process> processes, Optional<NodeResponse> pregenerated) {
         ContextWithFile typeContext = cx.getTypeContext();
-        return TypeConverter.convertSchemas(typeContext, schemas);
+        return TypeConverter.convertSchemas(typeContext, schemas, processes, pregenerated);
     }
 }

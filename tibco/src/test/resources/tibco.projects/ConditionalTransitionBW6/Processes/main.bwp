@@ -20,11 +20,11 @@
                                 </bpws:source>
                             </bpws:sources>
                         </bpws:empty>
-                        <bpws:empty name="Recover">
+                        <bpws:throw faultName="tns:RetryFault" name="Recover">
                             <bpws:targets>
                                 <bpws:target linkName="CheckToRecover"/>
                             </bpws:targets>
-                        </bpws:empty>
+                        </bpws:throw>
                     </bpws:flow>
                 </bpws:scope>
             </bpws:catchAll>

@@ -1,0 +1,33 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="ParseOrderText-input"
+                             name="ParseOrderText"
+                             outputVariable="ParseOrderText"
+                             tibex:xpdlId="8a42c0e1-6f3d-4b57-a1e9-2c7d5f0b9e84"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="ReadOrdersToParseOrderText"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="ParseOrderTextToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://tns.tibco.com/bw/activity/parse/xsd/+8a42c0e1-6f3d-4b57-a1e9-2c7d5f0b9e84+input&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;ReadOrders&quot;/>&lt;xsl:template name=&quot;ParseOrderText-input&quot; match=&quot;/&quot;>&lt;tns1:Input>&lt;text>&lt;xsl:value-of select=&quot;$ReadOrders/fileContent/textContent&quot;/>&lt;/text>&lt;noOfRecords>&lt;xsl:value-of select=&quot;-1&quot;/>&lt;/noOfRecords>&lt;SkipHeaderCharacters>&lt;xsl:value-of select=&quot;12&quot;/>&lt;/SkipHeaderCharacters>&lt;/tns1:Input>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.parse.parsedata"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:parse="http://ns.tibco.com/bw/palette/parse"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/parse#//ParseData"/>
+                        <value continueOnError="true" dataFormat="orderFormat" inputType="String"
+                               skipBlankLines="true" xsi:type="parse:ParseData"/>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

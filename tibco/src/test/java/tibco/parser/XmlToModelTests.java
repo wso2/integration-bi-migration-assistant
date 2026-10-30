@@ -18,6 +18,8 @@
 
 package tibco.parser;
 
+import com.google.gson.JsonParser;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.w3c.dom.Element;
 
@@ -26,6 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+
+import javax.xml.xpath.XPathFactory;
 
 import common.LoggingUtils;
 import tibco.ConversionContext;
@@ -40,6 +44,7 @@ import tibco.model.XSD;
 import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static tibco.converter.TibcoConverter.createVerboseLogger;
 
@@ -79,6 +84,105 @@ public class XmlToModelTests {
         assertEquals(resource.name(), "test");
         assertEquals(resource.host().get(), "localhost");
         assertEquals(resource.port().get(), 9090);
+    }
+
+    @Test
+    public void testParseDataFormat() throws Exception {
+        Resource.DataFormatResource resource = XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated",
+                                "Carriage Return/Line Feed (windows)", "|", "orders:order")))
+                .orElseThrow();
+        assertEquals(resource.name(), "Orders.OrderFormat");
+        assertEquals(resource.columnSeparator(), "|");
+        assertEquals(resource.lineSeparator(), "\r\n");
+        assertEquals(resource.rowNamespace(), "http://example.com/xsd/orders");
+        assertEquals(resource.rowName(), "order");
+        assertEquals(resource.fieldNames(), List.of("orderId", "customer", "amount"));
+    }
+
+    @Test
+    public void testParseDataFormatFixedFormat() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Fixed Format", "New Line", "|", "orders:order")))
+                .isEmpty());
+    }
+
+    @Test
+    public void testParseDataFormatUnknownLineSeparator() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "Form Feed", "|",
+                                "orders:order")))
+                .isEmpty());
+    }
+
+    @Test
+    public void testParseDataFormatNoColumnSeparator() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", "",
+                                "orders:order")))
+                .isEmpty());
+    }
+
+    @Test
+    public void testSpaceSeparator() throws Exception {
+        assertEquals(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", " ",
+                                "orders:order")))
+                .orElseThrow().columnSeparator(), " ");
+    }
+
+    @Test
+    public void testGlobalVarSeparator() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", "%%Separator%%",
+                                "orders:order")))
+                .isEmpty());
+    }
+
+    @Test
+    public void testBoundSeparator() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", "|",
+                                "orders:order").replace("<fieldOffsets name=\"orderId\"/>",
+                                "<substitutionBindings template=\"colSeparator\" propName=\"Separator\"/>"
+                                        + "<fieldOffsets name=\"orderId\"/>")))
+                .isEmpty());
+    }
+
+    @Test
+    public void testParseDataFormatUndeclaredPrefix() throws Exception {
+        assertTrue(XmlToTibcoModelParser
+                .parseDataFormatResource(new ResourceContext(projectContext, "OrderFormat.dataFormatResource"),
+                        TestUtils.stringToElement(dataFormatXml("Delimiter separated", "New Line", "|",
+                                "missing:order")))
+                .isEmpty());
+    }
+
+    private static String dataFormatXml(String formatType, String lineSeparator, String columnSeparator,
+                                        String schemaElementQName) {
+        return """
+                <jndi:namedResource xmlns:xmi="http://www.omg.org/XMI"
+                        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xmlns:dataformat="http://ns.tibco.com/bw/palette/dataformat"
+                        xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi"
+                        xmlns:orders="http://example.com/xsd/orders"
+                        name="Orders.OrderFormat" type="dataformat:DataFormat">
+                    <jndi:configuration xsi:type="dataformat:DataFormat" formatType="%s" colSeparator="%s"
+                            colSeparatorParseRule="Treat all characters as entered as a single column separator string"
+                            lineSeparator="%s" fillCharacter="Space" schemaElementQName="%s">
+                        <fieldOffsets name="orderId"/>
+                        <fieldOffsets name="customer"/>
+                        <fieldOffsets name="amount"/>
+                    </jndi:configuration>
+                </jndi:namedResource>
+                """.formatted(formatType, columnSeparator, lineSeparator, schemaElementQName);
     }
 
     @Test
@@ -279,6 +383,44 @@ public class XmlToModelTests {
         Scope.Flow.Activity actual = XmlToTibcoModelParser.parseActivity(getProcessContext(),
                 TestUtils.stringToElement(activityXml)).get();
         assertEquals(((Scope.Flow.Activity.Throw) actual).faultName(), "ns:SomeFault");
+    }
+
+    @DataProvider
+    public Object[][] jsonLiteralPayloads() {
+        return new Object[][]{
+                {"reason", "archive-complete"},
+                {"event", "orders-archived"}
+        };
+    }
+
+    @Test(dataProvider = "jsonLiteralPayloads")
+    public void testXsltKeepsJsonQuotes(String key, String value) throws Exception {
+        String activityXml = """
+                <bpws:throw faultName="ns:SomeFault" name="Throw"
+                        xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:inputBindings xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <tibex:inputBinding expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"
+                                expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;\
+                &lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; version=&quot;2.0&quot;&gt;\
+                &lt;xsl:template name=&quot;Throw-input&quot; match=&quot;/&quot;&gt;&lt;asciiContent&gt;\
+                &lt;xsl:value-of select=&quot;'{&amp;quot;%1$s&amp;quot;: &amp;quot;%2$s&amp;quot;}'&quot;/&gt;\
+                &lt;/asciiContent&gt;&lt;/xsl:template&gt;&lt;/xsl:stylesheet&gt;"/>
+                    </tibex:inputBindings>
+                </bpws:throw>
+                """.formatted(key, value);
+        Scope.Flow.Activity.Throw activity = (Scope.Flow.Activity.Throw) XmlToTibcoModelParser.parseActivity(
+                getProcessContext(), TestUtils.stringToElement(activityXml)).get();
+        Scope.Flow.Activity.InputBinding.CompleteBinding binding =
+                (Scope.Flow.Activity.InputBinding.CompleteBinding) activity.inputBindings().get(0);
+        String styleSheet = ((Scope.Flow.Activity.Expression.XSLT) binding.expression()).expression();
+
+        Element valueOf = (Element) TestUtils.stringToElement(styleSheet)
+                .getElementsByTagName("xsl:value-of").item(0);
+        String payload = XPathFactory.newInstance().newXPath()
+                .evaluate(valueOf.getAttribute("select"), valueOf.getOwnerDocument());
+
+        assertEquals(payload, "{\"" + key + "\": \"" + value + "\"}");
+        assertEquals(JsonParser.parseString(payload).getAsJsonObject().get(key).getAsString(), value);
     }
 
     @Test
@@ -657,6 +799,81 @@ public class XmlToModelTests {
                 TestUtils.stringToElement(soapSendReceiveOverJms("Minutes"))).get();
         assertTrue(actual instanceof InlineActivity.UnhandledInlineActivity);
         assertTrue(logs.stream().anyMatch(log -> log.contains("Unsupported SOAPSendReceive timeoutType: Minutes")));
+    }
+
+    @Test
+    public void testParseTimerEventSourceWithPropertyBindings() throws Exception {
+        Scope.Flow.Activity.ReceiveEvent receiveEvent = parseReceiveEvent(timerReceiveEvent("""
+                <attributeBindings bindingType="moduleProperty" eAttributeName="startTime"
+                    processProperty="StartTime"/>
+                <attributeBindings bindingType="moduleProperty" eAttributeName="timeInterval"
+                    processProperty="TimeInterval"/>
+                """, "endTime=\"2021-01-01T00:00:00.000+0100\" intervalUnit=\"Minute\""));
+        Scope.Flow.Activity.ReceiveEvent.TimerEventSource timer = receiveEvent.timer().orElseThrow();
+        assertEquals(timer.name(), "Timer");
+        assertEquals(timer.startTime().orElseThrow(),
+                new Scope.Flow.Activity.ReceiveEvent.TimerValue.ProcessProperty("StartTime"));
+        assertEquals(timer.timeInterval().orElseThrow(),
+                new Scope.Flow.Activity.ReceiveEvent.TimerValue.ProcessProperty("TimeInterval"));
+        assertEquals(timer.intervalUnit(), "Minute");
+        assertFalse(timer.runOnce());
+    }
+
+    @Test
+    public void testParseTimerEventSourceWithLiterals() throws Exception {
+        Scope.Flow.Activity.ReceiveEvent receiveEvent = parseReceiveEvent(timerReceiveEvent("",
+                "runOnce=\"true\" startTime=\"2024-01-01T08:00:00Z\" timeInterval=\"2\" intervalUnit=\"Hour\""));
+        Scope.Flow.Activity.ReceiveEvent.TimerEventSource timer = receiveEvent.timer().orElseThrow();
+        assertEquals(timer.startTime().orElseThrow(),
+                new Scope.Flow.Activity.ReceiveEvent.TimerValue.Literal("2024-01-01T08:00:00Z"));
+        assertEquals(timer.timeInterval().orElseThrow(), new Scope.Flow.Activity.ReceiveEvent.TimerValue.Literal("2"));
+        assertEquals(timer.intervalUnit(), "Hour");
+        assertTrue(timer.runOnce());
+    }
+
+    @Test
+    public void testParseStartEventHasNoTimer() throws Exception {
+        Scope.Flow.Activity.ReceiveEvent receiveEvent = parseReceiveEvent("""
+                <bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Start" variable="Start"
+                        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <bpws:sources><bpws:source linkName="StartToEnd"/></bpws:sources>
+                        <tibex:eventSource><tibex:StartEvent/></tibex:eventSource>
+                    </tibex:receiveEvent>
+                </bpws:extensionActivity>
+                """);
+        assertTrue(receiveEvent.timer().isEmpty());
+    }
+
+    private static Scope.Flow.Activity.ReceiveEvent parseReceiveEvent(String xml) throws Exception {
+        return (Scope.Flow.Activity.ReceiveEvent) XmlToTibcoModelParser.parseActivity(getProcessContext(),
+                TestUtils.stringToElement(xml)).orElseThrow();
+    }
+
+    private static String timerReceiveEvent(String bindings, String configAttributes) {
+        return """
+                <bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Timer" variable="Timer"
+                        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <bpws:sources><bpws:source linkName="TimerToLog"/></bpws:sources>
+                        <tibex:eventSource>
+                            <bwext:BWActivity activityTypeID="bw.generalactivities.timer"
+                                xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                                xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                                xmlns:generalactivities="http://ns.tibco.com/bw/palette/generalactivities"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                                %s
+                                <activityConfig>
+                                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                        <type href="http://ns.tibco.com/bw/palette/generalactivities#//Timer"/>
+                                        <value %s xsi:type="generalactivities:Timer"/>
+                                    </properties>
+                                </activityConfig>
+                            </bwext:BWActivity>
+                        </tibex:eventSource>
+                    </tibex:receiveEvent>
+                </bpws:extensionActivity>
+                """.formatted(bindings, configAttributes);
     }
 
     private static String soapSendReceiveOverJms(String timeoutType) {

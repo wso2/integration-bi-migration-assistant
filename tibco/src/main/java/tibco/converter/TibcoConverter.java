@@ -24,6 +24,7 @@ import common.CodeGenerator;
 import common.LoggingUtils;
 import common.ProjectSummary;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import tibco.ConversionContext;
 import tibco.LoggingContext;
@@ -76,7 +77,8 @@ public class TibcoConverter {
     public record AnalyzedProject(Set<Process> processes, Set<Schema> types,
                                   ProjectResources resources,
                                   tibco.parser.ProjectContext parserContext,
-                                  Map<Process, tibco.analyzer.AnalysisResult> analysisResults) {
+                                  Map<Process, tibco.analyzer.AnalysisResult> analysisResults,
+                                  Optional<NodeResponse> generatedTypes) {
 
     }
 
@@ -91,6 +93,7 @@ public class TibcoConverter {
     public static @NotNull ParsedProject parseProject(ProjectConversionContext cx, String projectPath) {
         try {
             tibco.parser.ProjectContext pcx = new tibco.parser.ProjectContext(cx, projectPath);
+            cx.setModulePropertyDefaults(TibcoToBalConverter.parseModulePropertyDefaults(cx, projectPath));
             Set<Process> processes = TibcoToBalConverter.parseProcesses(pcx);
             Set<Schema> types = TibcoToBalConverter.parseTypes(pcx);
             ProjectResources resources = TibcoToBalConverter.parseResources(pcx);
@@ -122,12 +125,12 @@ public class TibcoConverter {
                 modelAnalyser.analyseProject(analysisContext, parsed.processes(), parsed.types(), parsed.resources());
         ProjectResources resources = ProjectResources.merge(parsed.resources(), analysisContext.capturedResources());
         return new AnalyzedProject(parsed.processes(), parsed.types(), resources, parsed.parserContext(),
-                analysisResults);
+                analysisResults, analysisContext.generatedTypes());
     }
 
     public static @NotNull GeneratedProject generateCode(ProjectConversionContext cx, AnalyzedProject analyzed) {
         ConversionResult result = ProjectConverter.convertProject(cx, analyzed.analysisResults(), analyzed.processes(),
-                analyzed.types(), analyzed.resources(), analyzed.parserContext());
+                analyzed.types(), analyzed.resources(), analyzed.parserContext(), analyzed.generatedTypes());
         return new GeneratedProject(result);
     }
 
@@ -570,10 +573,19 @@ public class TibcoConverter {
 
                 [build-options]
                 observabilityIncluded = true""".formatted(cx.org(), cx.name(), version, distribution));
+        if (!cx.javaDependencies().isEmpty()) {
+            tomlContent.append("\n");
+        }
         for (var each : cx.javaDependencies()) {
             tomlContent.append("\n");
             tomlContent.append(each.dependencyParam);
         }
+        cx.javaClassesByPackage().forEach((packageName, classNames) -> tomlContent.append("""
+
+                # TODO: Package the Java classes called by Java Invoke activities (%s) into this jar.
+                [[platform.java21.dependency]]
+                path = "./libs/%s.jar"
+                """.formatted(String.join(", ", classNames), packageName)));
         return tomlContent.toString();
     }
 

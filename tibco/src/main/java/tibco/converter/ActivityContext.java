@@ -27,6 +27,7 @@ import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Type;
 
+import java.util.List;
 import java.util.Optional;
 
 public class ActivityContext implements LoggingContext {
@@ -72,6 +73,22 @@ public class ActivityContext implements LoggingContext {
 
     Optional<BallerinaModel.Expression.VariableReference> client(String sharedResourcePropertyName) {
         return processContext.client(sharedResourcePropertyName);
+    }
+
+    Optional<Resource.DataFormatResource> dataFormat(String dataFormatPropertyName) {
+        return processContext.dataFormat(dataFormatPropertyName);
+    }
+
+    boolean hasQualifiedDataFormatFields(Resource.DataFormatResource dataFormat) {
+        return processContext.hasQualifiedDataFormatFields(dataFormat);
+    }
+
+    String getParseDelimitedDataFunction() {
+        return processContext.getParseDelimitedDataFunction();
+    }
+
+    String getRenderDelimitedDataFunction() {
+        return processContext.getRenderDelimitedDataFunction();
     }
 
     public String getNamespaceFixFn() {
@@ -201,6 +218,12 @@ public class ActivityContext implements LoggingContext {
 
     public String getFilesInPathFunction() {
         return processContext.getFilesInPathFunction();
+    }
+
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        return processContext.getJavaInvokeFunction(className, methodName, parameterNames, parameterTypes,
+                returnType);
     }
 
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {
