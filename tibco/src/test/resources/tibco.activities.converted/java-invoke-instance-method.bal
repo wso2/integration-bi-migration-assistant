@@ -28,4 +28,5 @@ function activityExtension(Context cx) returns error? {
 //     </tibex:config>
 // </tibex:activityExtension>
 
+    return error("Failed to codegen activity due to Java Invoke of instance method com.example.text.Formatter.format is not supported");
 }
