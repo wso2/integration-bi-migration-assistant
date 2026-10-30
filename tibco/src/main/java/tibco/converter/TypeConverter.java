@@ -44,6 +44,8 @@ import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TreeModifier;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
+import io.ballerina.xsd.core.diagnostic.DiagnosticMessage;
+import io.ballerina.xsd.core.diagnostic.XSDDiagnostic;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
@@ -81,17 +83,82 @@ public final class TypeConverter {
             .map(library -> library.moduleName.substring(library.moduleName.lastIndexOf('.') + 1))
             .collect(Collectors.toUnmodifiableSet());
 
+    private static final Set<String> GLOBAL_TYPE_DECLARATIONS = Set.of("element", "complexType", "simpleType");
+
     private TypeConverter() {
     }
 
     public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas,
                                                       Collection<Process> processes) {
-        NodeResponse response = generateNodes(schemas.stream()
+        NodeResponse response = generateNodesSkippingUnconvertibleSchemas(schemas.stream()
                 .map(schema -> withoutDuplicateEnumerations(schema.element()))
-                .map(ConversionUtils::elementToString)
-                .toArray(String[]::new));
+                .toList());
         return new NodeResponse(withUniqueEnumMemberNames(response.types(), processes), response.diagnostics(),
                 response.nodeContext());
+    }
+
+    // xsd-core converts the schemas as one batch and returns no types at all when any one of them fails, which would
+    // drop the whole project. Schemas that fail on their own are left out, and their global declarations become
+    // placeholder types so references to them still resolve.
+    private static @NotNull NodeResponse generateNodesSkippingUnconvertibleSchemas(List<Element> schemas) {
+        assert schemas != null : "schemas must not be null";
+        NodeResponse response = generateNodes(toXsdStrings(schemas));
+        if (response.types() != null) {
+            return response;
+        }
+        Map<Boolean, List<StandaloneConversion>> conversions = schemas.stream()
+                .map(schema -> new StandaloneConversion(schema, generateNodes(toXsdStrings(List.of(schema)))))
+                .collect(Collectors.partitioningBy(conversion -> conversion.response().types() != null));
+        List<Element> convertible = conversions.get(true).stream().map(StandaloneConversion::schema).toList();
+        List<Element> skipped = conversions.get(false).stream().map(StandaloneConversion::schema).toList();
+        NodeResponse retried = generateNodes(toXsdStrings(convertible));
+        List<XSDDiagnostic> diagnostics = new ArrayList<>();
+        conversions.get(false).forEach(conversion -> diagnostics.addAll(conversion.response().diagnostics()));
+        diagnostics.addAll(retried.diagnostics());
+        if (retried.types() == null) {
+            schemas.forEach(schema -> diagnostics.add(skippedSchemaDiagnostic(schema)));
+            return new NodeResponse(withPlaceholderTypes(NodeParser.parseModulePart(""), schemas), diagnostics,
+                    null);
+        }
+        skipped.forEach(schema -> diagnostics.add(skippedSchemaDiagnostic(schema)));
+        return new NodeResponse(withPlaceholderTypes(retried.types(), skipped), diagnostics,
+                retried.nodeContext());
+    }
+
+    private record StandaloneConversion(Element schema, NodeResponse response) {
+
+        StandaloneConversion {
+            assert schema != null : "schema must not be null";
+            assert response != null : "response must not be null";
+        }
+    }
+
+    private static @NotNull XSDDiagnostic skippedSchemaDiagnostic(Element schema) {
+        assert schema != null : "schema must not be null";
+        return DiagnosticMessage.xsdToBallerinaError(("Skipped XSD schema with targetNamespace \"%s\"; its global " +
+                "types are replaced with anydata placeholders").formatted(schema.getAttribute("targetNamespace")));
+    }
+
+    private static String @NotNull [] toXsdStrings(List<Element> schemas) {
+        assert schemas != null : "schemas must not be null";
+        return schemas.stream().map(ConversionUtils::elementToString).toArray(String[]::new);
+    }
+
+    private static @NotNull ModulePartNode withPlaceholderTypes(ModulePartNode types, List<Element> skippedSchemas) {
+        assert types != null : "types must not be null";
+        assert skippedSchemas != null : "skippedSchemas must not be null";
+        Set<String> declaredNames = types.members().stream().map(TypeConverter::declaredName)
+                .flatMap(Optional::stream).collect(Collectors.toCollection(HashSet::new));
+        List<ModuleMemberDeclarationNode> members = new ArrayList<>(types.members().stream().toList());
+        skippedSchemas.stream()
+                .flatMap(schema -> childElements(schema).stream())
+                .filter(declaration -> GLOBAL_TYPE_DECLARATIONS.contains(
+                        ConversionUtils.stripNamespace(declaration.getTagName())) && declaration.hasAttribute("name"))
+                .map(declaration -> ConversionUtils.sanitizes(declaration.getAttribute("name")))
+                .filter(declaredNames::add)
+                .map(name -> NodeParser.parseModuleMemberDeclaration("public type %s anydata;".formatted(name)))
+                .forEach(members::add);
+        return types.modify().withMembers(NodeFactory.createNodeList(members)).apply();
     }
 
     // xsd-core emits one enum member per xs:enumeration, so a repeated value becomes a redeclared member.
