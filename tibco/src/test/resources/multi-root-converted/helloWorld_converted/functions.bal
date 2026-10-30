@@ -23,7 +23,7 @@ function Call_shared_process(Context cx) returns error? {
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     addToContext(cx, "Start", var2);
-    lib:start_lib_Process_shared_process(cx);
+    check lib:start_lib_Process_shared_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "Call-shared-process", var3);
 }
@@ -116,18 +116,18 @@ function scope0ActivityRunner(Context cx) returns error? {
     check storeSharedVariable(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Main_process(Context cx) returns () {
+function start_Processes_Main_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 
