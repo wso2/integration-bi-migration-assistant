@@ -1,6 +1,6 @@
 function activityExtension(Context cx) returns error? {
     
-// Failed to codegen activity due to Java Invoke of instance method com.example.text.Formatter.format is not supported
+// FIXME: Failed to codegen activity due to Java Invoke of instance method com.example.text.Formatter.format is not supported
 
     
 // <tibex:activityExtension xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" inputVariable="FormatCode-input" name="FormatCode" outputVariable="FormatCode" tibex:xpdlId="e41a8c6d-0f25-4b93-9d7e-3c5b2a1f8064">
