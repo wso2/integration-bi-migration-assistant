@@ -173,14 +173,18 @@ public final class BICodeConverter {
         //  function calls. But should be good enough for now
         SyntaxTree st = new CodeGenerator(doc).generateSyntaxTree();
         String content = st.toSourceCode();
-        Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
+        // Comment lines are matched first and skipped, since commented-out source such as an unhandled activity's
+        // XML (`xmlns:java=...`) looks like a module reference and would add an unused import.
+        Pattern searchPattern = Pattern.compile("(?m)^\\s*//.*$|([a-zA-Z0-9]+):[a-zA-Z0-9]+");
 
         // Find all matches in content
         Matcher matcher = searchPattern.matcher(content);
         Set<BallerinaModel.Import> imports = new HashSet<>();
 
         while (matcher.find()) {
-            imports.addAll(prefixToImport(matcher.group(1)));
+            if (matcher.group(1) != null) {
+                imports.addAll(prefixToImport(matcher.group(1)));
+            }
         }
 
         List<BallerinaModel.Import> combinedImports = Stream.concat(doc.imports().stream(), imports.stream()).toList();
