@@ -21,8 +21,10 @@ package mule.v3.dataweave.converter;
 import common.BallerinaModel;
 import mule.v3.Constants;
 import mule.v3.Context;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -110,12 +112,18 @@ public class DWUtils {
             "'%s' OF TYPE '%s' FOUND. MANUAL CONVERSION REQUIRED.\n";
 
     public static String findBallerinaType(String mediaType) {
+        return findSupportedBallerinaType(mediaType)
+                .orElseThrow(() -> new BallerinaDWException("Invalid output directive: " + mediaType));
+    }
+
+    @NotNull
+    public static Optional<String> findSupportedBallerinaType(String mediaType) {
         return switch (mediaType) {
-            case APPLICATION_JAVA, APPLICATION_CSV, APPLICATION_DW -> "any";
-            case APPLICATION_JSON, TEXT_JSON -> "json";
-            case APPLICATION_XML, TEXT_XML -> "xml";
-            case TEXT_CSV, TEXT_PLAIN -> "string";
-            default -> throw new BallerinaDWException("Invalid output directive: " + mediaType);
+            case APPLICATION_JAVA, APPLICATION_CSV, APPLICATION_DW -> Optional.of("any");
+            case APPLICATION_JSON, TEXT_JSON -> Optional.of("json");
+            case APPLICATION_XML, TEXT_XML -> Optional.of("xml");
+            case TEXT_CSV, TEXT_PLAIN -> Optional.of("string");
+            default -> Optional.empty();
         };
     }
 
