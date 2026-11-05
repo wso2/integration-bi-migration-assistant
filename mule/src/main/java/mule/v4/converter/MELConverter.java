@@ -598,9 +598,14 @@ public class MELConverter {
     // nil map value out: Mule leaves out a null header, and listeners read the bare name Mule sends for a null query
     // param as absent.
     private static boolean keepsNil(String before, String after) {
+        String prev = before.stripTrailing();
         String next = after.stripLeading();
+        while (prev.endsWith("(") && next.startsWith(")")) {
+            prev = prev.substring(0, prev.length() - 1).stripTrailing();
+            next = next.substring(1).stripLeading();
+        }
         return DEFAULT_OPERATOR.matcher(next).lookingAt()
-                || before.stripTrailing().endsWith(":") && (next.startsWith(",") || next.startsWith("}"));
+                || prev.endsWith(":") && (next.startsWith(",") || next.startsWith("}"));
     }
 
     private static String convertHeaderAccess(Context ctx, String headerName) {

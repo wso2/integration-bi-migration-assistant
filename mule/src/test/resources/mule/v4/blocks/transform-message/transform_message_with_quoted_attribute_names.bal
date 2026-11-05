@@ -36,6 +36,6 @@ service /mule4 on listener_config {
 public function transformMessage(Context ctx) returns json|error => {
     "apiKey": check ((<http:Request>ctx.attributes.request).hasHeader("x-api-key") ? (<http:Request>ctx.attributes.request).getHeader("x-api-key") : ()),
     "orderId": check (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : error("no such uri param")),
-    "pageSize": check (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
-    "sortBy": (check (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by")) ?: "date"
+    "pageSize": (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
+    "sortBy": (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by") ?: "date"
 };

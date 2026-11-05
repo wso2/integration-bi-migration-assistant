@@ -5718,6 +5718,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 {
 	"language" : attributes.queryParams.language,
 	"currency" : attributes.queryParams.currency default "USD",
+	"page" : (attributes.queryParams.page) default "1",
 	("channel" : attributes.queryParams.channel) if(!isEmpty(attributes.queryParams.channel)),
 	"keyword" : "prefix-" ++ attributes.queryParams.keyword,
 	"source" : "web"
@@ -5731,6 +5732,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/uuid;
 
 public type Attributes record {|
     http:Request request?;
@@ -5741,6 +5743,7 @@ public type Attributes record {|
 public type Context record {|
     anydata payload = ();
     Attributes attributes;
+    string correlationId = uuid:createType4AsString();
 |};
 
 public listener http:Listener listener_config = new (8081);
@@ -5750,7 +5753,7 @@ service /mule4 on listener_config {
     }
 
     resource function get orders(http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new}};
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
         log:printInfo(string `language: ${(<http:Request>ctx.attributes.request).getQueryParamValue("language") ?: "en"}`);
 
         // set payload
@@ -5762,6 +5765,7 @@ service /mule4 on listener_config {
         map<string?> queryParams_nilable = {
             "language": (<http:Request>ctx.attributes.request).getQueryParamValue("language"),
             "currency": (<http:Request>ctx.attributes.request).getQueryParamValue("currency") ?: "USD",
+            "page": ((<http:Request>ctx.attributes.request).getQueryParamValue("page")) ?: "1",
             "channel": (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() != "" ? (<http:Request>ctx.attributes.request).getQueryParamValue("channel").toString() : (),
             "keyword": "prefix-" + (<http:Request>ctx.attributes.request).getQueryParamValue("keyword").toString(),
             "source": "web"
@@ -5769,12 +5773,21 @@ service /mule4 on listener_config {
         map<string> queryParams = map from string key in queryParams_nilable.keys()
             where queryParams_nilable.get(key) is string
             select [key, <string>queryParams_nilable.get(key)];
-        http:Response clientResult0 = check http_request_config->/orders.get(params = check queryParams.cloneWithType());
+        http:Response clientResult0 = check http_request_config->/orders.get(headers = {"X-Correlation-ID": ctx.correlationId}, params = check queryParams.cloneWithType());
         ctx.payload = check clientResult0.getJsonPayload();
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
 }
 
 ```
@@ -6128,6 +6141,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 **Output (http_request_with_special_param_names.bal):**
 ```ballerina
 import ballerina/http;
+import ballerina/uuid;
 
 public type Attributes record {|
     http:Request request?;
@@ -6138,6 +6152,7 @@ public type Attributes record {|
 public type Context record {|
     anydata payload = ();
     Attributes attributes;
+    string correlationId = uuid:createType4AsString();
 |};
 
 public listener http:Listener listener_config = new (8081);
@@ -6147,7 +6162,7 @@ service /mule4 on listener_config {
     }
 
     resource function get orders/[string order\-id]/[string 'type](http:Request request) returns http:Response|error {
-        Context ctx = {attributes: {request, response: new, uriParams: {order\-id, 'type}}};
+        Context ctx = {attributes: {request, response: new, uriParams: {order\-id, 'type}}, correlationId: getCorrelationId(request)};
 
         // http client request
         http:Client http_request_config = check new ("https://orders.example.com:80");
@@ -6166,12 +6181,21 @@ service /mule4 on listener_config {
         map<string> queryParams = map from string key in queryParams_nilable.keys()
             where queryParams_nilable.get(key) is string
             select [key, <string>queryParams_nilable.get(key)];
-        http:Response clientResult0 = check http_request_config->/orders/[uriParams.get("id")]/[uriParams.get("kind")].get(params = check queryParams.cloneWithType());
+        http:Response clientResult0 = check http_request_config->/orders/[uriParams.get("id")]/[uriParams.get("kind")].get(headers = {"X-Correlation-ID": ctx.correlationId}, params = check queryParams.cloneWithType());
         ctx.payload = check clientResult0.getJsonPayload();
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
 }
 
 ```
@@ -8877,8 +8901,8 @@ service /mule4 on listener_config {
 public function transformMessage(Context ctx) returns json|error => {
     "apiKey": check ((<http:Request>ctx.attributes.request).hasHeader("x-api-key") ? (<http:Request>ctx.attributes.request).getHeader("x-api-key") : ()),
     "orderId": check (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : error("no such uri param")),
-    "pageSize": check (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
-    "sortBy": (check (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by")) ?: "date"
+    "pageSize": (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
+    "sortBy": (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by") ?: "date"
 };
 
 ```

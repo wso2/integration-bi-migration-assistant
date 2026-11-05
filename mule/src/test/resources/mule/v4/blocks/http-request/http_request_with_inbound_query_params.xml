@@ -18,6 +18,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 {
 	"language" : attributes.queryParams.language,
 	"currency" : attributes.queryParams.currency default "USD",
+	"page" : (attributes.queryParams.page) default "1",
 	("channel" : attributes.queryParams.channel) if(!isEmpty(attributes.queryParams.channel)),
 	"keyword" : "prefix-" ++ attributes.queryParams.keyword,
 	"source" : "web"
