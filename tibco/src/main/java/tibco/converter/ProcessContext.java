@@ -523,6 +523,14 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return projectContext.getSftpPutFilesFunction();
     }
 
+    public @NotNull String getSapRfcParametersFunction() {
+        return projectContext.getSapRfcParametersFunction();
+    }
+
+    public @NotNull String getSapRfcToXmlFunction() {
+        return projectContext.getSapRfcToXmlFunction();
+    }
+
     public String getFilesInPathFunction() {
         return projectContext.getFilesInPathFunction();
     }
