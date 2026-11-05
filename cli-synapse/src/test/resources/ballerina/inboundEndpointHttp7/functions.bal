@@ -5,11 +5,6 @@ function foo(Context ctx) returns error? {
     check respond(ctx);
 }
 
-function handleError(Context ctx) returns error? {
-    ctx.payload = {"error": "failed"};
-    check respond(ctx);
-}
-
 function respond(Context ctx) returns error? {
     http:Response response = new;
     response.setPayload(ctx.payload);

@@ -4,7 +4,7 @@
 
 ## Unsupported inbound endpoint parameter (3)
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="truststore">` — inboundEndpoint.xml
 
 Inbound endpoint 'SecureInboundEndpoint' parameter 'truststore' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -14,7 +14,7 @@ Inbound endpoint 'SecureInboundEndpoint' parameter 'truststore' is not mapped to
                 wso2carbon</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="sequential">` — inboundEndpoint.xml
 
 Inbound endpoint 'SecureInboundEndpoint' parameter 'sequential' is not mapped to any Ballerina construct; manual conversion required.
 
@@ -22,7 +22,7 @@ Inbound endpoint 'SecureInboundEndpoint' parameter 'sequential' is not mapped to
 <parameter name="sequential">true</parameter>
 ```
 
-### `<parameter>` — inboundEndpoint.xml
+### `<parameter name="coordination">` — inboundEndpoint.xml
 
 Inbound endpoint 'SecureInboundEndpoint' parameter 'coordination' is not mapped to any Ballerina construct; manual conversion required.
 

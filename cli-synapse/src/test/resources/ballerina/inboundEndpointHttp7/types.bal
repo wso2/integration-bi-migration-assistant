@@ -1,7 +1,6 @@
 import ballerina/http;
 
 public type Variables record {|
-    string ERROR_MESSAGE?;
 |};
 
 public type Context record {|

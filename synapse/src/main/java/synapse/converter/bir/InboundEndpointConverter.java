@@ -39,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import synapse.converter.ConversionContext;
 import synapse.converter.ConversionContext.UnsupportedEntry;
 import synapse.converter.ResourceContext;
+import synapse.model.Synapse;
 import synapse.model.Synapse.InboundEndpoint;
 import synapse.model.Synapse.KeyStoreConfig;
 import synapse.model.Synapse.Param;
@@ -133,17 +134,29 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
         }
     }
 
+    // Exposed so DispatchFilterIndexer's pre-pass can compute the exact same listener name a
+    // dispatch.filter.pattern-matched <api> must attach to, before this endpoint has been converted.
+    @NotNull
+    public static String httpListenerName(InboundEndpoint inboundEndpoint) {
+        assert inboundEndpoint != null : "inboundEndpoint must not be null";
+        return ConversionUtils.lowerFirst(inboundEndpoint.name()) + LISTENER_SUFFIX;
+    }
+
     // https models server-authentication TLS only (keystore); mutual TLS and every other TLS parameter
     // still fall through to reportUnsupportedParameter below.
     private static void convertHttp(InboundEndpoint inboundEndpoint, ConversionContext context) {
         String baseName = ConversionUtils.lowerFirst(inboundEndpoint.name());
-        String listenerName = baseName + LISTENER_SUFFIX;
+        String listenerName = httpListenerName(inboundEndpoint);
         String port = DEFAULT_PORT;
         String host = DEFAULT_HOST;
+        boolean hasDispatchFilterPattern = false;
         for (Param parameter : inboundEndpoint.parameters()) {
             switch (parameter.name()) {
                 case HTTP_PORT_PARAM -> port = parameter.value();
                 case HTTP_HOST_PARAM -> host = parameter.value();
+                // Value consumed by DispatchFilterIndexer's pre-pass, which wires any matching <api>
+                // service onto this endpoint's listener; only its presence matters here.
+                case Synapse.DISPATCH_FILTER_PATTERN_PARAM -> hasDispatchFilterPattern = true;
                 default -> reportUnsupportedParameter(inboundEndpoint, parameter, context);
             }
         }
@@ -156,6 +169,15 @@ public class InboundEndpointConverter implements BIRConverter<ConversionContext>
                 .map(keyStore -> readKeyStoreSecureSocket(inboundEndpoint, keyStore, context));
         context.addListener(new HTTPListener(listenerName, new VariableReference(portVar),
                 Optional.of(new VariableReference(hostVar)), secureSocket));
+
+        if (hasDispatchFilterPattern) {
+            // Once dispatch.filter.pattern is set, this endpoint's own sequence becomes unreachable.
+            // Only the <api> service(s) DispatchFilterIndexer matched are exposed on this listener (via
+            // APIConverter). No catch-all resource is generated: Ballerina's listener already returns
+            // 404 for any path none of those services claim, exactly like an unregistered path on the
+            // main port would.
+            return;
+        }
 
         List<Parameter> parameters = List.of(
                 new Parameter(CALLER_PARAM, new TypeDesc.BallerinaType("http:Caller")),

@@ -1,22 +1,19 @@
 import ballerina/http;
-import ballerina/log;
 
-configurable int plainHttpInboundPort = 8085;
-configurable string plainHttpInboundHost = "0.0.0.0";
+configurable int dispatchInboundPort = 8095;
+configurable string dispatchInboundHost = "0.0.0.0";
 
-public listener http:Listener plainHttpInboundListener = new (plainHttpInboundPort, {host: plainHttpInboundHost});
+public listener http:Listener dispatchInboundListener = new (dispatchInboundPort, {host: dispatchInboundHost});
 
-service / on plainHttpInboundListener {
-    resource function 'default [string... path](http:Caller caller, http:Request request) returns error? {
+public listener http:Listener httpListener = new (8080);
+
+service /orders on httpListener, dispatchInboundListener {
+    resource function get status(http:Caller caller) returns error? {
         Context ctx = {variables: {}, caller: caller};
         do {
-            check emitPayload(ctx, request);
-            check foo(ctx);
-        } on fail error err {
-            log:printError("Unhandled error in mediation", 'error = err);
-            ctx.payload = {"error": err.message()};
-            ctx.statusCode = 500;
+            ctx.payload = {"status": "UP"};
             check respond(ctx);
+        } on fail error err {
         }
     }
 }

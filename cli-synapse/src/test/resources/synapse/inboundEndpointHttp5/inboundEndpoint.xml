@@ -1,10 +1,7 @@
-<inboundEndpoint xmlns="http://ws.apache.org/ns/synapse"
-                 name="HttpInboundEP"
-                 protocol="http"
-                 sequence="HttpInboundSeq"
-                 onError="HttpInboundFaultSeq"
-                 suspend="false">
+<?xml version="1.0" encoding="UTF-8"?>
+<inboundEndpoint name="HttpInboundUnresolvedOnError" sequence="mainFlow" onError="missingFaultSeq"
+                 protocol="http" suspend="false" xmlns="http://ws.apache.org/ns/synapse">
     <parameters>
-        <parameter name="inbound.http.port">8085</parameter>
+        <parameter name="inbound.http.port">8090</parameter>
     </parameters>
 </inboundEndpoint>
