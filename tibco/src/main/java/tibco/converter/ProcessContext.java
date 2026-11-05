@@ -59,8 +59,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     public final Process process;
 
     public final ProjectContext projectContext;
-    // Identity-keyed: Predicate.Else has no fields, so distinct Else predicates from different
-    // sources are equals()-equal but must not share a cached function name.
+    // Identity-keyed so every link condition maps to its own function, matching the one-to-one lookup done
+    // when the activity flow is generated.
     private final Map<Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
             new IdentityHashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
@@ -168,12 +168,11 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     }
 
     String declareConstant(String name, String valueRepr, String type) {
-        name = ConversionUtils.sanitizes(name);
         BallerinaModel.TypeDesc td = getTypeByName(type);
         assert td == STRING;
-        String expr = "\"" + valueRepr + "\"";
-        constants.put(name, BallerinaModel.ModuleVar.constant(name, td, exprFrom(expr)));
-        return name;
+        return constants.computeIfAbsent(ConversionUtils.sanitizes(name),
+                key -> BallerinaModel.ModuleVar.constant(projectContext.allocateModuleSymbol(key), td,
+                        exprFrom("\"" + valueRepr + "\""))).name();
     }
 
     void declareModuleVar(String name, BallerinaModel.ModuleVar var) {
@@ -195,7 +194,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     @Override
     public boolean hasConstantWithName(String name) {
-        return constants.containsKey(name);
+        return constants.containsKey(name)
+                || constants.values().stream().anyMatch(constant -> constant.name().equals(name));
     }
 
     @Override
@@ -243,6 +243,10 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         String decl = "xmlns \"%s\" as %s;".formatted(resolved.uri(), resolved.prefix().get());
         intrinsics.add(decl);
         nameSpaces.add(resolved);
+    }
+
+    void addModuleDeclaration(String declaration) {
+        intrinsics.add(declaration);
     }
 
     ProjectContext.FunctionData getProcessStartFunction() {
@@ -489,6 +493,11 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
         return projectContext.getGetSharedVariableFn();
     }
 
+    @NotNull
+    String getXsltParamsFn() {
+        return projectContext.getXsltParamsFn();
+    }
+
     public String getPsgLogFn() {
         return projectContext.getPsgLogFn();
     }
@@ -521,6 +530,12 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     public String getFilesInPathFunction() {
         return projectContext.getFilesInPathFunction();
+    }
+
+    String getJavaInvokeFunction(String className, String methodName, List<String> parameterNames,
+                                 List<JavaType> parameterTypes, Optional<JavaType> returnType) {
+        return projectContext.getJavaInvokeFunction(className, methodName, parameterNames, parameterTypes,
+                returnType);
     }
 
     public void registerUnhandledActivity(tibco.model.Scope.Flow.Activity activity, Exception e) {

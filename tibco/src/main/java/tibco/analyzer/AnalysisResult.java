@@ -46,7 +46,7 @@ public interface AnalysisResult {
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), Collections.emptySet(), TibcoAnalysisReport.empty());
+                Collections.emptyMap(), Collections.emptySet(), Collections.emptySet(), TibcoAnalysisReport.empty());
     }
 
     Collection<String> inputTypeName(Process process);
@@ -66,12 +66,6 @@ public interface AnalysisResult {
     Collection<Scope.Flow.Link> links();
 
     Collection<Scope.Flow.Link> sources(Scope.Flow.Activity activity);
-
-    Stream<TransitionData> transitionConditions(
-            Scope.Flow.Activity activity);
-
-    Stream<Scope.Flow.Activity.Source.Predicate> transitionCondition(
-            Scope.Flow.Activity activity, Scope.Flow.Link link);
 
     Stream<Scope.Flow.Activity> sortedActivities(Scope scope);
 
@@ -95,17 +89,12 @@ public interface AnalysisResult {
 
     XSD.XSDType getType(String name);
 
-    Set<String> getTypeNames();
+    Set<String> moduleSymbolNames();
 
     boolean isProcessCalled(Process process);
 
     record ActivityData(String functionName, BallerinaModel.TypeDesc argumentType,
             BallerinaModel.TypeDesc returnType) {
-
-    }
-
-    record TransitionData(Scope.Flow.Activity activity,
-            Scope.Flow.Activity.Source.Predicate predicate) {
 
     }
 

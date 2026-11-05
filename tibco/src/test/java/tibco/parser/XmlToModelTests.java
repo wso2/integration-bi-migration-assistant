@@ -44,6 +44,7 @@ import tibco.model.XSD;
 import tibco.util.TestUtils;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static tibco.converter.TibcoConverter.createVerboseLogger;
 
@@ -781,6 +782,58 @@ public class XmlToModelTests {
     }
 
     @Test
+    public void testParseLinkConditions() throws Exception {
+        String activityXml = """
+                <bpws:empty name="Split" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <bpws:sources>
+                        <bpws:source linkName="SplitToOk">
+                            <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[$mode = 'ok']]></bpws:transitionCondition>
+                        </bpws:source>
+                        <bpws:source linkName="SplitToOtherwise">
+                            <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##otherwise##]]></bpws:transitionCondition>
+                        </bpws:source>
+                        <bpws:source linkName="SplitToError">
+                            <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+                        </bpws:source>
+                        <bpws:source linkName="SplitToNext"/>
+                    </bpws:sources>
+                </bpws:empty>
+                """;
+        Scope.Flow.Activity.Empty actual = (Scope.Flow.Activity.Empty) XmlToTibcoModelParser.parseActivity(
+                getProcessContext(), TestUtils.stringToElement(activityXml)).get();
+        List<Optional<Scope.Flow.Activity.Source.Predicate>> conditions = actual.sources().stream()
+                .map(Scope.Flow.Activity.Source::condition).toList();
+        assertTrue(conditions.get(0).orElseThrow() instanceof Scope.Flow.Activity.Expression.XPath);
+        assertTrue(conditions.get(1).orElseThrow() instanceof Scope.Flow.Activity.Source.Predicate.Else);
+        assertTrue(conditions.get(2).orElseThrow() instanceof Scope.Flow.Activity.Source.Predicate.Error);
+        assertTrue(conditions.get(3).isEmpty());
+    }
+
+    @Test
+    public void testParseInvokeErrorLink() throws Exception {
+        String activityXml = """
+                <bpws:invoke inputVariable="Call-input" name="Call" operation="post" outputVariable="Call"
+                    partnerLink="orders" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="CallToNext"/>
+                        <bpws:source linkName="CallToReport" tibex:faultDetailsVar="CallFault"
+                            tibex:faultNameVar="FaultName">
+                            <bpws:transitionCondition><![CDATA[##error##]]></bpws:transitionCondition>
+                        </bpws:source>
+                    </bpws:sources>
+                </bpws:invoke>
+                """;
+        Scope.Flow.Activity.Invoke actual = (Scope.Flow.Activity.Invoke) XmlToTibcoModelParser.parseActivity(
+                getProcessContext(), TestUtils.stringToElement(activityXml)).get();
+        Scope.Flow.Activity.Source errorLink = actual.sources().get(1);
+        assertTrue(errorLink.condition().orElseThrow() instanceof Scope.Flow.Activity.Source.Predicate.Error);
+        assertEquals(errorLink.faultDetailsVar(), Optional.of("CallFault"));
+        assertEquals(errorLink.faultNameVar(), Optional.of("FaultName"));
+        assertTrue(actual.sources().get(0).condition().isEmpty());
+    }
+
+    @Test
     public void testParseSoapSendReceiveJmsTimeoutType() throws Exception {
         InlineActivity.SOAPSendReceive.JMSProducer actual = (InlineActivity.SOAPSendReceive.JMSProducer)
                 XmlToTibcoModelParser.parseActivity(getProcessContext(),
@@ -798,6 +851,81 @@ public class XmlToModelTests {
                 TestUtils.stringToElement(soapSendReceiveOverJms("Minutes"))).get();
         assertTrue(actual instanceof InlineActivity.UnhandledInlineActivity);
         assertTrue(logs.stream().anyMatch(log -> log.contains("Unsupported SOAPSendReceive timeoutType: Minutes")));
+    }
+
+    @Test
+    public void testParseTimerEventSourceWithPropertyBindings() throws Exception {
+        Scope.Flow.Activity.ReceiveEvent receiveEvent = parseReceiveEvent(timerReceiveEvent("""
+                <attributeBindings bindingType="moduleProperty" eAttributeName="startTime"
+                    processProperty="StartTime"/>
+                <attributeBindings bindingType="moduleProperty" eAttributeName="timeInterval"
+                    processProperty="TimeInterval"/>
+                """, "endTime=\"2021-01-01T00:00:00.000+0100\" intervalUnit=\"Minute\""));
+        Scope.Flow.Activity.ReceiveEvent.TimerEventSource timer = receiveEvent.timer().orElseThrow();
+        assertEquals(timer.name(), "Timer");
+        assertEquals(timer.startTime().orElseThrow(),
+                new Scope.Flow.Activity.ReceiveEvent.TimerValue.ProcessProperty("StartTime"));
+        assertEquals(timer.timeInterval().orElseThrow(),
+                new Scope.Flow.Activity.ReceiveEvent.TimerValue.ProcessProperty("TimeInterval"));
+        assertEquals(timer.intervalUnit(), "Minute");
+        assertFalse(timer.runOnce());
+    }
+
+    @Test
+    public void testParseTimerEventSourceWithLiterals() throws Exception {
+        Scope.Flow.Activity.ReceiveEvent receiveEvent = parseReceiveEvent(timerReceiveEvent("",
+                "runOnce=\"true\" startTime=\"2024-01-01T08:00:00Z\" timeInterval=\"2\" intervalUnit=\"Hour\""));
+        Scope.Flow.Activity.ReceiveEvent.TimerEventSource timer = receiveEvent.timer().orElseThrow();
+        assertEquals(timer.startTime().orElseThrow(),
+                new Scope.Flow.Activity.ReceiveEvent.TimerValue.Literal("2024-01-01T08:00:00Z"));
+        assertEquals(timer.timeInterval().orElseThrow(), new Scope.Flow.Activity.ReceiveEvent.TimerValue.Literal("2"));
+        assertEquals(timer.intervalUnit(), "Hour");
+        assertTrue(timer.runOnce());
+    }
+
+    @Test
+    public void testParseStartEventHasNoTimer() throws Exception {
+        Scope.Flow.Activity.ReceiveEvent receiveEvent = parseReceiveEvent("""
+                <bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Start" variable="Start"
+                        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <bpws:sources><bpws:source linkName="StartToEnd"/></bpws:sources>
+                        <tibex:eventSource><tibex:StartEvent/></tibex:eventSource>
+                    </tibex:receiveEvent>
+                </bpws:extensionActivity>
+                """);
+        assertTrue(receiveEvent.timer().isEmpty());
+    }
+
+    private static Scope.Flow.Activity.ReceiveEvent parseReceiveEvent(String xml) throws Exception {
+        return (Scope.Flow.Activity.ReceiveEvent) XmlToTibcoModelParser.parseActivity(getProcessContext(),
+                TestUtils.stringToElement(xml)).orElseThrow();
+    }
+
+    private static String timerReceiveEvent(String bindings, String configAttributes) {
+        return """
+                <bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Timer" variable="Timer"
+                        xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                        <bpws:sources><bpws:source linkName="TimerToLog"/></bpws:sources>
+                        <tibex:eventSource>
+                            <bwext:BWActivity activityTypeID="bw.generalactivities.timer"
+                                xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                                xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                                xmlns:generalactivities="http://ns.tibco.com/bw/palette/generalactivities"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                                %s
+                                <activityConfig>
+                                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                        <type href="http://ns.tibco.com/bw/palette/generalactivities#//Timer"/>
+                                        <value %s xsi:type="generalactivities:Timer"/>
+                                    </properties>
+                                </activityConfig>
+                            </bwext:BWActivity>
+                        </tibex:eventSource>
+                    </tibex:receiveEvent>
+                </bpws:extensionActivity>
+                """.formatted(bindings, configAttributes);
     }
 
     private static String soapSendReceiveOverJms(String timeoutType) {

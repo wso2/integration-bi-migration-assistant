@@ -1,0 +1,11 @@
+[package]
+org = "testOrg"
+name = "JavaInvokeBW6"
+version = "0.1.0"
+distribution = "2201.12.0"
+
+[build-options]
+observabilityIncluded = true
+# TODO: Package the Java classes called by Java Invoke activities (com.example.text.TextTools) into this jar.
+[[platform.java21.dependency]]
+path = "./libs/com.example.text.jar"

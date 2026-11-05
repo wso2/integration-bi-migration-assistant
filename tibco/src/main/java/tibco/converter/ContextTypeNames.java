@@ -19,6 +19,6 @@
 package tibco.converter;
 
 public record ContextTypeNames(String context, String response, String jsonResponse, String xmlResponse,
-                               String textResponse) {
+                               String textResponse, String sharedVariableContext) {
 
 }

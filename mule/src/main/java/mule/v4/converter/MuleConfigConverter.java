@@ -802,6 +802,16 @@ public class MuleConfigConverter {
                 .map(script -> processMapScript(ctx, script, stmts, "queryParams"))
                 .orElse(null);
 
+        Optional<String> sentCorrelationId = sentCorrelationId(ctx, httpRequest, stmts);
+        if (sentCorrelationId.isPresent() && headersVar != null) {
+            // An X-Correlation-ID set in http:headers wins over the one Mule sends
+            stmts.add(stmtFrom(("if %1$s.keys().every(key => !key.equalsIgnoreCaseAscii(\"%2$s\")) "
+                    + "{ %1$s[\"%2$s\"] = %3$s; }").formatted(headersVar, Constants.CORRELATION_ID_HEADER,
+                    sentCorrelationId.get())));
+        }
+        Optional<String> correlationIdArg = headersVar != null ? Optional.empty() : sentCorrelationId.map(
+                id -> "headers = {\"%s\": %s}".formatted(Constants.CORRELATION_ID_HEADER, id));
+
         String clientResultVar = String.format(Constants.VAR_CLIENT_RESULT_TEMPLATE,
                 ctx.projectCtx.counters.clientResultVarCount++);
 
@@ -824,6 +834,7 @@ public class MuleConfigConverter {
             if (headersVar != null) {
                 callArgs.add(headersVar);
             }
+            correlationIdArg.ifPresent(callArgs::add);
             stmts.add(stmtFrom("%s %s = check %s->%s(%s);".formatted(Constants.HTTP_RESPONSE_TYPE,
                     clientResultVar, escapedConfigRef, method.toLowerCase(), String.join(", ", callArgs))));
         } else {
@@ -832,6 +843,7 @@ public class MuleConfigConverter {
             if (headersVar != null) {
                 params.add(headersVar);
             }
+            correlationIdArg.ifPresent(params::add);
             String queryParamsStr;
             try {
                 queryParamsStr = genQueryParam(ctx, queryParams);
@@ -857,6 +869,25 @@ public class MuleConfigConverter {
         }
 
         return new WorkerStatementResult(stmts);
+    }
+
+    // The request's sendCorrelationId wins over its config's. Mule sends the ID unless it is NEVER, so AUTO sends it.
+    private static Optional<String> sentCorrelationId(Context ctx, HttpRequest httpRequest, List<Statement> stmts) {
+        Optional<String> sendCorrelationId = httpRequest.sendCorrelationId()
+                .or(() -> Optional.ofNullable(ctx.projectCtx.getHttpRequestConfig(httpRequest.configRef()))
+                        .flatMap(HTTPRequestConfig::sendCorrelationId));
+        if (sendCorrelationId.equals(Optional.of(Constants.SEND_CORRELATION_ID_NEVER))) {
+            return Optional.empty();
+        }
+        if (httpRequest.correlationId().isEmpty()) {
+            return Optional.of(Constants.CORRELATION_ID_FIELD_ACCESS);
+        }
+        try {
+            return Optional.of(convertMuleExprToBalStringLiteral(ctx, httpRequest.correlationId().get()));
+        } catch (ScriptConversionException e) {
+            stmts.add(new Statement.Comment("TODO: failed to convert correlationId " + e.getMelExpression()));
+            return Optional.empty();
+        }
     }
 
     private static String clientTimeoutArg(Context ctx, HttpRequest httpRequest, List<Statement> stmts) {

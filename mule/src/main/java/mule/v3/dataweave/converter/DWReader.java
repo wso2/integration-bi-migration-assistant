@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static common.BallerinaModel.Statement;
@@ -107,7 +108,7 @@ public class DWReader {
                             context, ctx, sessionVariableElement.variableName(), statementList);
                     break;
                 case DW_INPUT_PAYLOAD:
-                    context.setMimeType(((InputPayloadElement) child).mimeType());
+                    findPayloadInputType((InputPayloadElement) child).ifPresent(context::setPayloadInputType);
                     break;
                 default:
                     ctx.migrationMetrics.failedBlocks.add(child.toString());
@@ -116,6 +117,22 @@ public class DWReader {
                     break;
             }
         }
+    }
+
+    @NotNull
+    private static Optional<String> findPayloadInputType(InputPayloadElement inputPayload) {
+        if (!inputPayload.mimeType().isEmpty()) {
+            return DWUtils.findSupportedBallerinaType(inputPayload.mimeType());
+        }
+        // doc:sample is design-time only, but when mimeType is absent its extension is the best hint we have.
+        String samplePath = inputPayload.samplePath();
+        return switch (samplePath.substring(samplePath.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)) {
+            case "json" -> DWUtils.findSupportedBallerinaType(DWUtils.APPLICATION_JSON);
+            case "xml" -> DWUtils.findSupportedBallerinaType(DWUtils.APPLICATION_XML);
+            case "csv" -> DWUtils.findSupportedBallerinaType(DWUtils.TEXT_CSV);
+            case "dwl" -> DWUtils.findSupportedBallerinaType(DWUtils.APPLICATION_JAVA);
+            default -> Optional.empty();
+        };
     }
 
     private static void addStatementToList(String script, String resourcePath,

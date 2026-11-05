@@ -1,0 +1,36 @@
+<bpws:extensionActivity>
+    <tibex:activityExtension inputVariable="FormatCode-input"
+                             name="FormatCode"
+                             outputVariable="FormatCode"
+                             tibex:xpdlId="e41a8c6d-0f25-4b93-9d7e-3c5b2a1f8064"
+                             xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+        <bpws:targets>
+            <bpws:target linkName="StartToFormatCode"/>
+        </bpws:targets>
+        <bpws:sources>
+            <bpws:source linkName="FormatCodeToEnd"/>
+        </bpws:sources>
+        <tibex:inputBindings>
+            <tibex:inputBinding
+                    expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns=&quot;www.tibco.com/plugin/java/JavaInvokeActivityInput+e41a8c6d-0f25-4b93-9d7e-3c5b2a1f8064+JavaInvokeActivityInput&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;Start&quot;/>&lt;xsl:template name=&quot;FormatCode-input&quot; match=&quot;/&quot;>&lt;tns:JavaInvokeActivityInput>&lt;MethodParameters>&lt;text>&lt;xsl:value-of select=&quot;$Start/code&quot;/>&lt;/text>&lt;/MethodParameters>&lt;/tns:JavaInvokeActivityInput>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+        </tibex:inputBindings>
+        <tibex:config>
+            <bwext:BWActivity activityTypeID="bw.java.javamethod"
+                              xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                              xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                              xmlns:java="http://ns.tibco.com/bw/palette/java"
+                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <activityConfig>
+                    <properties name="config" xsi:type="activityconfig:EMFProperty">
+                        <type href="http://ns.tibco.com/bw/palette/java#//JavaMethod"/>
+                        <value className="com.example.text.Formatter" isNew="true" isNewActivity="true" isStaticMethod="false"
+                               methodName="format" methodReturn="string" xsi:type="java:JavaMethod">
+                            <exceptionTypes>java.lang.Exception</exceptionTypes>
+                            <methodParameter paramName="text" paramType="string"/>
+                        </value>
+                    </properties>
+                </activityConfig>
+            </bwext:BWActivity>
+        </tibex:config>
+    </tibex:activityExtension>
+</bpws:extensionActivity>

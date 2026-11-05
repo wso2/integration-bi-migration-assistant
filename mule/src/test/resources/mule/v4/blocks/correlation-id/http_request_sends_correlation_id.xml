@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="request_config">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <http:request-config name="never_config" sendCorrelationId="NEVER">
+        <http:request-connection host="localhost" port="8082"/>
+    </http:request-config>
+    <flow name="autoFlow">
+        <http:listener config-ref="listener_config" path="/auto"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/auto" />
+    </flow>
+    <flow name="alwaysFlow">
+        <http:listener config-ref="listener_config" path="/always"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/always" sendCorrelationId="ALWAYS"/>
+    </flow>
+    <flow name="customFlow">
+        <http:listener config-ref="listener_config" path="/custom"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/custom" correlationId="#[vars.orderId]"/>
+    </flow>
+    <flow name="neverFlow">
+        <http:listener config-ref="listener_config" path="/never"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/never" sendCorrelationId="NEVER" correlationId="#[vars.orderId]"/>
+    </flow>
+    <flow name="configNeverFlow">
+        <http:listener config-ref="listener_config" path="/config-never"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="never_config" path="/config-never" />
+    </flow>
+    <flow name="configNeverOverriddenFlow">
+        <http:listener config-ref="listener_config" path="/config-never-overridden"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="never_config" path="/config-never-overridden" sendCorrelationId="ALWAYS"/>
+    </flow>
+    <flow name="explicitHeaderFlow">
+        <http:listener config-ref="listener_config" path="/explicit"/>
+        <set-variable variableName="orderId" value="#['order-1']"/>
+        <http:request method="GET" config-ref="request_config" path="/explicit">
+            <http:headers><![CDATA[#[{"x-correlation-id": vars.orderId, "accept": "application/json"}]]]></http:headers>
+        </http:request>
+    </flow>
+</mule>

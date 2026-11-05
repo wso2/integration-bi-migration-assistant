@@ -15,13 +15,8 @@ function CallHelper(Context cx) returns error? {
     addToContext(cx, "CallHelper", var5);
 }
 
-function End(Context cx) returns error? {
-}
-
 function MainScopeActivityRunner(Context cx) returns error? {
-    check Start(cx);
     check CallHelper(cx);
-    check End(cx);
 }
 
 function MainScopeFaultHandler(error err, Context cx) returns () {
@@ -33,9 +28,6 @@ function MainScopeScopeFn(Context cx) returns () {
     if result is error {
         MainScopeFaultHandler(result, cx);
     }
-}
-
-function Start(Context cx) returns error? {
 }
 
 function start_appmodule_Main(Context params) returns () {

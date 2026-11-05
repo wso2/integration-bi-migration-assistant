@@ -1,11 +1,8 @@
 import ballerina/data.xmldata;
 
-function Check(Context cx) returns error? {
-}
-
 function HandlerScopeActivityRunner(Context cx) returns error? {
-    check Check(cx);
-    if test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
+    boolean CheckToRecoverTaken = test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx);
+    if CheckToRecoverTaken {
         check Recover(cx);
     }
 }
@@ -44,6 +41,9 @@ function RaiseFault(Context cx) returns error? {
 }
 
 function Recover(Context cx) returns error? {
+    xml var0 = xml `<root></root>`;
+    error var1 = error("tns:RetryFault", faultName = "tns:RetryFault", payload = var0);
+    panic var1;
 }
 
 function catchAll(Context cx) returns error? {

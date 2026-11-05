@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Stream;
 
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 
@@ -286,15 +287,27 @@ public class ProcessAnalysisContext implements LoggingContext {
         if (controlFlowFunctions.containsKey(scope)) {
             return;
         }
-        String name = scope.name();
-        if (name.isEmpty()) {
-            name = "anonScope";
-        }
-        Set<String> controlFlowFunctionNames = projectAnalysisContext.controlFlowFunctionNames();
-        name = ConversionUtils.getSanitizedUniqueName(name, controlFlowFunctionNames);
-        controlFlowFunctionNames.add(name);
+        String name = allocateControlFlowBaseName(scope.name().isEmpty() ? "anonScope" : scope.name());
         controlFlowFunctions.put(scope, new AnalysisResult.ControlFlowFunctions(name + "ScopeFn",
                 name + "ActivityRunner", name + "FaultHandler"));
+    }
+
+    private String allocateControlFlowBaseName(String name) {
+        Set<String> controlFlowFunctionNames = projectAnalysisContext.controlFlowFunctionNames();
+        Set<String> reservedSymbols = projectAnalysisContext.unavailableActivityFunctionNames();
+        Set<String> rejectedBaseNames = new HashSet<>(controlFlowFunctionNames);
+        String baseName = ConversionUtils.getSanitizedUniqueName(name, rejectedBaseNames);
+        while (controlFlowFunctionIsReserved(baseName, reservedSymbols)) {
+            rejectedBaseNames.add(baseName);
+            baseName = ConversionUtils.getSanitizedUniqueName(name, rejectedBaseNames);
+        }
+        controlFlowFunctionNames.add(baseName);
+        return baseName;
+    }
+
+    private static boolean controlFlowFunctionIsReserved(String baseName, Set<String> reservedSymbols) {
+        return Stream.of("ScopeFn", "ActivityRunner", "FaultHandler")
+                .anyMatch(suffix -> reservedSymbols.contains(baseName + suffix));
     }
 
 
@@ -302,10 +315,7 @@ public class ProcessAnalysisContext implements LoggingContext {
         if (transitionGroupControlFlowFunctions.containsKey(transitionGroup)) {
             return;
         }
-        String name = "scope" + transitionGroupControlFlowFunctions.size();
-        Set<String> controlFlowFunctionNames = projectAnalysisContext.controlFlowFunctionNames();
-        name = ConversionUtils.getSanitizedUniqueName(name, controlFlowFunctionNames);
-        controlFlowFunctionNames.add(name);
+        String name = allocateControlFlowBaseName("scope" + transitionGroupControlFlowFunctions.size());
         transitionGroupControlFlowFunctions.put(transitionGroup,
                 new AnalysisResult.ControlFlowFunctions(
                         name + "ScopeFn",
@@ -361,6 +371,10 @@ public class ProcessAnalysisContext implements LoggingContext {
 
     public Map<String, XSD.XSDType> xsdTypes() {
         return projectAnalysisContext.xsdTypes();
+    }
+
+    Set<String> reservedTypeNames() {
+        return projectAnalysisContext.reservedTypeNames();
     }
 
     @Override

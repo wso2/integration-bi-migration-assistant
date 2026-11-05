@@ -96,6 +96,7 @@ public class DependencyAnalysisPass extends AnalysisPass {
             Collections.emptyMap(), // explicitTransitionGroupDependencies
             Collections.emptyMap(), // explicitTransitionGroupControlFlowFunctions
             Collections.emptyMap(), // xsdTypes
+            Collections.emptySet(), // reservedTypeNames
             calledProcesses,        // called processes
             TibcoAnalysisReport.empty()
         );

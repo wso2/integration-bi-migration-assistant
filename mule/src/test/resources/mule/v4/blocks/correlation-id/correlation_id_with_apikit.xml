@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+
+    <http:listener-config name="listener-config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+
+    <apikit:config name="api-config" api="api/api.raml" outboundHeadersMapName="outboundHeaders"
+                   httpStatusVarName="httpStatus"/>
+
+    <flow name="api-main">
+        <http:listener config-ref="listener-config" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" message="#['Request ' ++ correlationId]"/>
+        <apikit:router config-ref="api-config"/>
+        <logger level="INFO" message="#['Response ' ++ correlationId]"/>
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <set-variable variableName="httpStatus" value="404"/>
+                <set-payload value="#[{'message': 'Resource not found', correlationId: correlationId}]"/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+    <flow name="get:\orders:api-config">
+        <set-payload value="#[{orders: [], correlationId: correlationId}]"/>
+    </flow>
+</mule>
