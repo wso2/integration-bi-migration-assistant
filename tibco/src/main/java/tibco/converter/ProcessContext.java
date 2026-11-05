@@ -59,8 +59,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     public final Process process;
 
     public final ProjectContext projectContext;
-    // Identity-keyed: Predicate.Else has no fields, so distinct Else predicates from different
-    // sources are equals()-equal but must not share a cached function name.
+    // Identity-keyed so every link condition maps to its own function, matching the one-to-one lookup done
+    // when the activity flow is generated.
     private final Map<Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
             new IdentityHashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
