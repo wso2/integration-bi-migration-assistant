@@ -18,8 +18,13 @@
 
 package common;
 
+import io.ballerina.compiler.syntax.tree.Minutiae;
+import io.ballerina.compiler.syntax.tree.MinutiaeList;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.NodeVisitor;
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.Token;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -172,11 +177,10 @@ public final class BICodeConverter {
         // TODO: we can do this better by visiting tree and figure out types and
         //  function calls. But should be good enough for now
         SyntaxTree st = new CodeGenerator(doc).generateSyntaxTree();
-        String content = st.toSourceCode();
         Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
 
-        // Find all matches in content
-        Matcher matcher = searchPattern.matcher(content);
+        // Comments may carry source XML such as xsi:type="java:JavaMethod" that only looks like a module prefix.
+        Matcher matcher = searchPattern.matcher(sourceWithoutComments(st));
         Set<BallerinaModel.Import> imports = new HashSet<>();
 
         while (matcher.find()) {
@@ -187,6 +191,25 @@ public final class BICodeConverter {
         return new BallerinaModel.TextDocument(doc.documentName(), combinedImports, doc.moduleTypeDefs(),
                 doc.moduleVars(), doc.listeners(), doc.services(), doc.functions(), doc.Comments(), doc.intrinsics(),
                 doc.astNodes());
+    }
+
+    private static String sourceWithoutComments(SyntaxTree st) {
+        StringBuilder source = new StringBuilder();
+        st.rootNode().accept(new NodeVisitor() {
+            @Override
+            public void visit(Token token) {
+                appendNonComments(source, token.leadingMinutiae());
+                source.append(token.text());
+                appendNonComments(source, token.trailingMinutiae());
+            }
+        });
+        return source.toString();
+    }
+
+    private static void appendNonComments(StringBuilder source, MinutiaeList minutiaeList) {
+        for (Minutiae minutiae : minutiaeList) {
+            source.append(minutiae.kind() == SyntaxKind.COMMENT_MINUTIAE ? " " : minutiae.text());
+        }
     }
 
     private List<BallerinaModel.Import> prefixToImport(String prefix) {
