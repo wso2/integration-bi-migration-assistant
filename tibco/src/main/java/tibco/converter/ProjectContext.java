@@ -851,6 +851,7 @@ public class ProjectContext implements LoggingContext {
     }
 
     String getTimerListenerClass() {
+        importLibraryIfNeededToUtility(Library.LOG);
         importLibraryIfNeededToUtility(Library.TASK);
         importLibraryIfNeededToUtility(Library.TIME);
         utilityIntrinsics.add(Intrinsics.TIMER_LISTENER);

@@ -539,7 +539,7 @@ public enum Intrinsics {
                             return result;
                         }
                         if (result !is xml:Element) {
-                            panic error("Expected XML element");
+                            return error("Expected XML element");
                         }
                         map<string> attributes = result.getAttributes();
                         attributes["xmlns"] = namespace;
@@ -679,24 +679,28 @@ public enum Intrinsics {
 
                     class ProcessTimerJob {
                         *task:Job;
-                        private final function () returns () run;
+                        private final function () returns error? run;
 
-                        function init(function () returns () run) {
+                        function init(function () returns error? run) {
                             self.run = run;
                         }
 
                         public function execute() {
-                            self.run();
+                            error? result = self.run();
+                            // A failed process instance must not stop the timer, so it is only logged.
+                            if result is error {
+                                log:printError("Timer-triggered process failed", result);
+                            }
                         }
                     }
 
                     class TimerListener {
                         private final TimerConfig|error config;
-                        private final function () returns () run;
+                        private final function () returns error? run;
                         private task:JobId? jobId = ();
 
                         // An error is a Timer the converter could not resolve; it fails the program at startup.
-                        function init(TimerConfig|error config, function () returns () run) {
+                        function init(TimerConfig|error config, function () returns error? run) {
                             self.config = config;
                             self.run = run;
                         }

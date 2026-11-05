@@ -5,7 +5,7 @@ public listener http:Listener FooConnection = new (9091, {host: "localhost"});
 public listener http:Listener MainConnection = new (9090, {host: "localhost"});
 
 service on MainConnection {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
@@ -14,14 +14,14 @@ service on MainConnection {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_Main_process(cx);
+        check start_Processes_Main_process(cx);
         xml response = cx.result;
         return response;
     }
 }
 
 service on BarConnection {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
@@ -30,14 +30,14 @@ service on BarConnection {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_Bar_process(cx);
+        check start_Processes_Bar_process(cx);
         xml response = cx.result;
         return response;
     }
 }
 
 service on FooConnection {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml inputVal = xml `<root>
     <item>
@@ -46,7 +46,7 @@ service on FooConnection {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_Foo_process(cx);
+        check start_Processes_Foo_process(cx);
         xml response = cx.result;
         return response;
     }

@@ -4,7 +4,7 @@ xml sharedVariable = xml `<sharedData><count>0</count></sharedData>`;
 public listener http:Listener GeneralConnection = new (9090, {host: "localhost"});
 
 service on GeneralConnection {
-    resource function 'default [string... path](xml input) returns xml {
+    resource function 'default [string... path](xml input) returns xml|error {
         map<SharedVariableContext> jobSharedVariables = {};
         xml callVar = xml `<callData><count>0</count></callData>`;
         SharedVariableContext callVarContext = {getter: function() returns xml {
@@ -20,7 +20,7 @@ service on GeneralConnection {
 </root>`;
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
-        start_Processes_Main_process(cx);
+        check start_Processes_Main_process(cx);
         xml response = cx.result;
         return response;
     }

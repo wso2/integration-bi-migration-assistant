@@ -26,28 +26,28 @@ function Start(Context cx) returns error? {
 function scopeActivityRunner(Context cx) returns error? {
     check Start(cx);
     check LogA(cx);
-    if test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
+    if check test_conditional_MainProcess_predicate_0(xml `<root></root>`, cx) {
         check LogB(cx);
     }
 }
 
-function scopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function scopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scopeScopeFn(Context cx) returns () {
+function scopeScopeFn(Context cx) returns error? {
     error? result = scopeActivityRunner(cx);
     if result is error {
-        scopeFaultHandler(result, cx);
+        check scopeFaultHandler(result, cx);
     }
 }
 
-function start_test_conditional_MainProcess(Context params) returns () {
-    scopeScopeFn(params);
+function start_test_conditional_MainProcess(Context params) returns error? {
+    return scopeScopeFn(params);
 }
 
-function test_conditional_MainProcess_predicate_0(xml input, Context cx) returns boolean {
-    return checkpanic xmldata:transform(input, `1 = 1`, boolean);
+function test_conditional_MainProcess_predicate_0(xml input, Context cx) returns boolean|error {
+    return check xmldata:transform(input, `1 = 1`, boolean);
 }
 
 function getFromContext(Context context, string varName) returns xml {

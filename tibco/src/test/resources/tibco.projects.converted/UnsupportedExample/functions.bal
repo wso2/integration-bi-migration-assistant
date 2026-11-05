@@ -61,7 +61,7 @@ function InvokeProcess(Context cx) returns error? {
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     addToContext(cx, "Start", var2);
-    start_Processes_Other_process(cx);
+    check start_Processes_Other_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "InvokeProcess", var3);
 }
@@ -229,26 +229,27 @@ function SQL_Direct(Context cx) returns error? {
     sql:ParameterizedQuery var4 = ``;
     var4.strings = [var3];
     // WARNING: Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Using placeholder client.
-    jdbc:Client placeholder_db_connection = checkpanic error("Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Cannot generate call.");
-    xml var5;
+    jdbc:Client|error var5 = error("Missing DB client resource '/RestHelloWorld/JDBCConnection.sharedjdbc'. Cannot generate call.");
+    jdbc:Client var6 = check var5;
+    xml var7;
     if var3.startsWith("SELECT") {
-        stream<record {|anydata...;|}, error?> var6 = placeholder_db_connection->query(var4);
-        xml var7 = xml ``;
-        check from var each in var6
+        stream<record {|anydata...;|}, error?> var8 = var6->query(var4);
+        xml var9 = xml ``;
+        check from var each in var8
             do {
-                xml var8 = check toXML(each);
-                var7 = var7 + xml `<Record>${var8}</Record>`;
+                xml var10 = check toXML(each);
+                var9 = var9 + xml `<Record>${var10}</Record>`;
             };
 
-        xml var9 = xml `<root>${var7}</root>`;
-        var5 = var9;
+        xml var11 = xml `<root>${var9}</root>`;
+        var7 = var11;
     } else {
-        sql:ExecutionResult var10 = check placeholder_db_connection->execute(var4);
-        xml var11 = xml `<root></root>`;
-        var5 = var11;
+        sql:ExecutionResult var12 = check var6->execute(var4);
+        xml var13 = xml `<root></root>`;
+        var7 = var13;
     }
     // WARNING: validate jdbc query result mapping
-    addToContext(cx, "SQL-Direct", var5);
+    addToContext(cx, "SQL-Direct", var7);
 }
 
 function Write_File(Context cx) returns error? {
@@ -315,19 +316,19 @@ function scope0ActivityRunner(Context cx) returns error? {
     check SOAPRequestReply(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    checkpanic Catch(cx);
-    checkpanic ErrorLog(cx);
+function scope0FaultHandler(error err, Context cx) returns error? {
+    check Catch(cx);
+    check ErrorLog(cx);
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_Processes_MainProcessStarter_process(Context cx) returns () {
+function start_Processes_MainProcessStarter_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 
@@ -428,7 +429,7 @@ function Loop(Context cx) returns error? {
         var3 = var3 + 1;
         addToContext(cx, "index", xml `<root>${var3}</root>`);
         addToContext(cx, "element", each);
-        scope1ScopeFn(cx);
+        check scope1ScopeFn(cx);
         xml result = cx.result;
         var1 = result;
     }
@@ -595,32 +596,32 @@ function scope0_1ActivityRunner(Context cx) returns error? {
     check SOAPSendReply(cx);
 }
 
-function scope0_1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0_1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0_1ScopeFn(Context cx) returns () {
+function scope0_1ScopeFn(Context cx) returns error? {
     error? result = scope0_1ActivityRunner(cx);
     if result is error {
-        scope0_1FaultHandler(result, cx);
+        check scope0_1FaultHandler(result, cx);
     }
 }
 
 function scope1ActivityRunner(Context cx) returns error? {
 }
 
-function scope1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope1ScopeFn(Context cx) returns () {
+function scope1ScopeFn(Context cx) returns error? {
     error? result = scope1ActivityRunner(cx);
     if result is error {
-        scope1FaultHandler(result, cx);
+        check scope1FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Other_process(Context cx) returns () {
+function start_Processes_Other_process(Context cx) returns error? {
     return scope0_1ScopeFn(cx);
 }
 
@@ -647,7 +648,7 @@ function renderJSONAsXML(json value, string? namespace, string? typeName) return
         return result;
     }
     if (result !is xml:Element) {
-        panic error("Expected XML element");
+        return error("Expected XML element");
     }
     map<string> attributes = result.getAttributes();
     attributes["xmlns"] = namespace;
