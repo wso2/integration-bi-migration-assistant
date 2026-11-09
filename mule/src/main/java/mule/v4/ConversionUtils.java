@@ -490,7 +490,7 @@ public class ConversionUtils {
             case Constants.ATTRIBUTES_FIELD_ACCESS + ".uriParams" -> {
                 return "map<string>";
             }
-            case Constants.ATTRIBUTES_FIELD_ACCESS + ".request.getQueryParams()" -> {
+            case Constants.HTTP_REQUEST_ACCESS + ".getQueryParams()" -> {
                 return "map<string[]>";
             }
             case "true", "false" -> {
@@ -506,8 +506,8 @@ public class ConversionUtils {
             return "int";
         } else if (balExpr.matches("-?\\d+\\.\\d+")) {
             return "decimal";
-        } else if (balExpr.startsWith(Constants.ATTRIBUTES_FIELD_ACCESS + ".request.getQueryParamValue(")) {
-            return "string";
+        } else if (balExpr.startsWith(Constants.HTTP_REQUEST_ACCESS + ".getQueryParamValue(")) {
+            return "string?";
         } else if (balExpr.startsWith(Constants.ATTRIBUTES_FIELD_ACCESS + ".uriParams.get(")) {
             return "string";
         } else {

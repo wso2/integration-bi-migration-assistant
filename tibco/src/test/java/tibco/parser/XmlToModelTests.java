@@ -782,6 +782,58 @@ public class XmlToModelTests {
     }
 
     @Test
+    public void testParseLinkConditions() throws Exception {
+        String activityXml = """
+                <bpws:empty name="Split" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+                    <bpws:sources>
+                        <bpws:source linkName="SplitToOk">
+                            <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[$mode = 'ok']]></bpws:transitionCondition>
+                        </bpws:source>
+                        <bpws:source linkName="SplitToOtherwise">
+                            <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##otherwise##]]></bpws:transitionCondition>
+                        </bpws:source>
+                        <bpws:source linkName="SplitToError">
+                            <bpws:transitionCondition expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xpath2.0"><![CDATA[##error##]]></bpws:transitionCondition>
+                        </bpws:source>
+                        <bpws:source linkName="SplitToNext"/>
+                    </bpws:sources>
+                </bpws:empty>
+                """;
+        Scope.Flow.Activity.Empty actual = (Scope.Flow.Activity.Empty) XmlToTibcoModelParser.parseActivity(
+                getProcessContext(), TestUtils.stringToElement(activityXml)).get();
+        List<Optional<Scope.Flow.Activity.Source.Predicate>> conditions = actual.sources().stream()
+                .map(Scope.Flow.Activity.Source::condition).toList();
+        assertTrue(conditions.get(0).orElseThrow() instanceof Scope.Flow.Activity.Expression.XPath);
+        assertTrue(conditions.get(1).orElseThrow() instanceof Scope.Flow.Activity.Source.Predicate.Else);
+        assertTrue(conditions.get(2).orElseThrow() instanceof Scope.Flow.Activity.Source.Predicate.Error);
+        assertTrue(conditions.get(3).isEmpty());
+    }
+
+    @Test
+    public void testParseInvokeErrorLink() throws Exception {
+        String activityXml = """
+                <bpws:invoke inputVariable="Call-input" name="Call" operation="post" outputVariable="Call"
+                    partnerLink="orders" xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="CallToNext"/>
+                        <bpws:source linkName="CallToReport" tibex:faultDetailsVar="CallFault"
+                            tibex:faultNameVar="FaultName">
+                            <bpws:transitionCondition><![CDATA[##error##]]></bpws:transitionCondition>
+                        </bpws:source>
+                    </bpws:sources>
+                </bpws:invoke>
+                """;
+        Scope.Flow.Activity.Invoke actual = (Scope.Flow.Activity.Invoke) XmlToTibcoModelParser.parseActivity(
+                getProcessContext(), TestUtils.stringToElement(activityXml)).get();
+        Scope.Flow.Activity.Source errorLink = actual.sources().get(1);
+        assertTrue(errorLink.condition().orElseThrow() instanceof Scope.Flow.Activity.Source.Predicate.Error);
+        assertEquals(errorLink.faultDetailsVar(), Optional.of("CallFault"));
+        assertEquals(errorLink.faultNameVar(), Optional.of("FaultName"));
+        assertTrue(actual.sources().get(0).condition().isEmpty());
+    }
+
+    @Test
     public void testParseSoapSendReceiveJmsTimeoutType() throws Exception {
         InlineActivity.SOAPSendReceive.JMSProducer actual = (InlineActivity.SOAPSendReceive.JMSProducer)
                 XmlToTibcoModelParser.parseActivity(getProcessContext(),

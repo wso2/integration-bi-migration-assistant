@@ -19,7 +19,10 @@
 package common;
 
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NonTerminalNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
+import io.ballerina.compiler.syntax.tree.Token;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -33,6 +36,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public final class BICodeConverter {
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONFIGURABLE_PREDICATE =
@@ -173,10 +177,12 @@ public final class BICodeConverter {
         // TODO: we can do this better by visiting tree and figure out types and
         //  function calls. But should be good enough for now
         SyntaxTree st = new CodeGenerator(doc).generateSyntaxTree();
-        // Comments can quote source configs (e.g. `xsi:type="java:JavaMethod"`), which would pull in unused imports.
-        String content = st.toSourceCode().lines()
-                .filter(line -> !line.stripLeading().startsWith("//"))
-                .collect(Collectors.joining("\n"));
+        // Comments are minutiae, so rebuilding the source from token text keeps prefixes such as the
+        // "java:JavaMethod" of a commented-out source element from adding unused imports.
+        String content = tokens(st.rootNode())
+                .map(token -> (token.leadingMinutiae().isEmpty() ? "" : " ") + token.text()
+                        + (token.trailingMinutiae().isEmpty() ? "" : " "))
+                .collect(Collectors.joining());
         Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
 
         // Find all matches in content
@@ -191,6 +197,14 @@ public final class BICodeConverter {
         return new BallerinaModel.TextDocument(doc.documentName(), combinedImports, doc.moduleTypeDefs(),
                 doc.moduleVars(), doc.listeners(), doc.services(), doc.functions(), doc.Comments(), doc.intrinsics(),
                 doc.astNodes());
+    }
+
+    private static Stream<Token> tokens(Node node) {
+        if (node instanceof Token token) {
+            return Stream.of(token);
+        }
+        return StreamSupport.stream(((NonTerminalNode) node).children().spliterator(), false)
+                .flatMap(BICodeConverter::tokens);
     }
 
     private List<BallerinaModel.Import> prefixToImport(String prefix) {
@@ -214,6 +228,7 @@ public final class BICodeConverter {
             case "regexp" -> List.of(new BallerinaModel.Import("ballerina", "lang.regexp"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "time" -> List.of(new BallerinaModel.Import("ballerina", "time"));
+            case "uuid" -> List.of(new BallerinaModel.Import("ballerina", "uuid"));
             case "task" -> List.of(new BallerinaModel.Import("ballerina", "task"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
             case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));
