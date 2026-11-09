@@ -37,7 +37,7 @@ function Transform_XML(Context cx) returns error? {
         </ActivityInput>
     </xsl:template>
 </xsl:stylesheet>`);
-    xml var4 = check xslt:transform(var2, var3, cx);
+    xml var4 = check xslt:transform(var2, var3, cx.variables);
     addToContext(cx, "Transform-XML", var4);
 }
 

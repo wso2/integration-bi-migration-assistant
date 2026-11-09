@@ -3637,6 +3637,192 @@ function _dwMethod0_(json payload) returns json {
 
 ```
 
+- ### Transform Message With Input Payload Json Sample
+
+**Input (transform_message_with_input_payload_json_sample.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="sampleFlow">
+        <dw:transform-message>
+            <dw:input-payload doc:sample="sample_data/json.json"/>
+            <dw:set-variable variableName="userName"><![CDATA[%dw 1.0
+%output application/json
+---
+payload.name]]></dw:set-variable>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{ name: payload.name }]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_input_payload_json_sample.bal):**
+```ballerina
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function sampleFlow(Context ctx) {
+    json userName = check _dwMethod0_();
+    json _dwOutput_ = check _dwMethod1_();
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_() returns json|error {
+    return check payload.name;
+}
+
+function _dwMethod1_() returns json|error {
+    return {"name": check payload.name.ensureType(json)};
+}
+
+```
+
+- ### Transform Message With Input Payload No Attributes
+
+**Input (transform_message_with_input_payload_no_attributes.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="sampleFlow">
+        <dw:transform-message>
+            <dw:input-payload/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{ name: payload.name }]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_input_payload_no_attributes.bal):**
+```ballerina
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_() returns json|error {
+    return {"name": check payload[name].ensureType(json)};
+}
+
+```
+
+- ### Transform Message With Input Payload Sample Only
+
+**Input (transform_message_with_input_payload_sample_only.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="sampleFlow">
+        <dw:transform-message>
+            <dw:input-payload doc:sample="root_1.xml"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+sizeOf payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_input_payload_sample_only.bal):**
+```ballerina
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_() returns json {
+    // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'sizeOfpayload' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
+    return payload;
+}
+
+```
+
+- ### Transform Message With Input Payload Unknown Mime Type
+
+**Input (transform_message_with_input_payload_unknown_mime_type.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <flow name="sampleFlow">
+        <dw:transform-message>
+            <dw:input-payload mimeType="application/x-www-form-urlencoded"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{ name: payload.name }]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_input_payload_unknown_mime_type.bal):**
+```ballerina
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod0_();
+    ctx.payload = _dwOutput_;
+}
+
+function _dwMethod0_() returns json|error {
+    return {"name": check payload[name].ensureType(json)};
+}
+
+```
+
 - ### Transform Message With Simple Value
 
 **Input (transform_message_with_simple_value.xml):**
