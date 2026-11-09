@@ -217,6 +217,8 @@ final class ActivityConverter {
             case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
             case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                     convertLoopGroup(cx, result, loopGroup);
+            case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
+                    convertErrorLoopGroup(cx, errorLoopGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -1177,6 +1179,53 @@ final class ActivityConverter {
         sb.append(new Statement.VarAssignStatement(result, resultUpdate));
         sb.append("}");
         return stmtFrom(sb.toString());
+    }
+
+    // TIBCO evaluates the error condition only after the body fails, with the 1-based index of the failed attempt;
+    // the body's scope function is trapped because, depending on its fault handler, an uncaught fault either
+    // panics or is returned.
+    private static ActivityConversionResult convertErrorLoopGroup(
+            ActivityContext cx, Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoop) {
+        List<Statement> body = new ArrayList<>();
+        if (errorLoop.suspendAfterErrorRetry()) {
+            cx.log(WARN, "errorLoop group '" + errorLoop.name()
+                    + "' suspends the process after the last retry; the converted group fails instead.");
+            body.add(new Comment("FIXME: suspendAfterErrorRetry is not supported; "
+                    + "the group fails instead of suspending the process"));
+        }
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(resultValue);
+        VarDeclStatment index = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
+        body.add(index);
+        String scopeFn = cx.processContext.getAnalysisResult().getControlFlowFunctions(errorLoop.body()).scopeFn();
+        String error = cx.getAnnonVarName();
+        XsltTransformResult condition = xsltTransform(cx, resultValue.ref(), errorLoop.errorCondition());
+        addNonStandardXsltWarning(condition.nonStandardFunctions(), body);
+        body.addAll(condition.statements());
+        VarDeclStatment conditionOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), condition.expression());
+        VarDeclStatment retryLimitReached = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
+                exprFrom("(%s/*).toString().trim() == \"true\"".formatted(conditionOutput.ref())));
+        String publishIndex = errorLoop.indexSlot()
+                .map(indexSlot -> addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(index.ref())),
+                        indexSlot).toString())
+                .orElse("");
+        body.add(stmtFrom("""
+                while true {
+                    %1$s = %1$s + 1;
+                    %2$s
+                    error? %3$s = trap %4$s(%5$s);
+                    if %3$s is () {
+                        break;
+                    }
+                    %6$s
+                    %7$s
+                    if %8$s {
+                        return %3$s;
+                    }
+                }
+                """.formatted(index.ref(), publishIndex, error, scopeFn, cx.contextVarRef(), conditionOutput,
+                retryLimitReached, retryLimitReached.ref())));
+        return new ActivityConversionResult(resultValue.ref(), body);
     }
 
     private static ActivityConversionResult convertREST(
