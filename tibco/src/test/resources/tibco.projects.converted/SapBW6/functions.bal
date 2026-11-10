@@ -25,7 +25,7 @@ function LookupBalance(Context cx) returns error? {
 }
 
 function PostTransactional(Context cx) returns error? {
-    // FIXME: SAP Invoke RFC BAPI is only supported for non-transactional Request/Reply invocations
+    // FIXME: Unsupported activity PostTransactional: SAP Invoke RFC BAPI is only supported for non-transactional Request/Reply invocations
 
     // <bpws:extensionActivity xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
     //     <tibex:activityExtension xmlns:tibex="http://www.tibco.com/bpel/2007/extensions" inputVariable="PostTransactional-input" name="PostTransactional" outputVariable="PostTransactional">
@@ -47,16 +47,17 @@ function PostTransactional(Context cx) returns error? {
     //         </tibex:config>
     //     </tibex:activityExtension>
     // </bpws:extensionActivity>
+    return error("Unsupported activity PostTransactional: SAP Invoke RFC BAPI is only supported for non-transactional Request/Reply invocations");
 }
 
 function Start(Context cx) returns error? {
 }
 
 function scopeActivityRunner(Context cx) returns error? {
-    check PostTransactional(cx);
     check Start(cx);
     check CreateSalesOrders(cx);
     check LookupBalance(cx);
+    check PostTransactional(cx);
 }
 
 function scopeFaultHandler(error err, Context cx) returns () {
