@@ -28,7 +28,9 @@ import tibco.model.Scope;
 import tibco.model.Scope.Flow.Activity;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -60,6 +62,9 @@ public class ActivityNameResolutionTest {
                 new Process5.ExplicitTransitionGroup()));
     }
 
+    /**
+     * When an inner and an outer scope share a name, each referrer gets the activity from its own scope.
+     */
     @Test
     public void testPrefersReferrerScope() {
         Activity.Empty outerJoin = empty("Join", "outer");
@@ -76,6 +81,9 @@ public class ActivityNameResolutionTest {
         Assert.assertEquals(result.findActivityInScopeOf(outerReferrer, "Join"), Optional.of(outerJoin));
     }
 
+    /**
+     * A name missing from the referrer's scope is looked up in the scopes around it.
+     */
     @Test
     public void testFallsBackToEnclosingScope() {
         Activity.Empty outerSource = empty("Source", "outer");
@@ -90,6 +98,9 @@ public class ActivityNameResolutionTest {
         Assert.assertTrue(result.findActivityInScopeOf(innerReferrer, "Missing").isEmpty());
     }
 
+    /**
+     * A repeated name in one scope used to crash analysis; it now resolves to the first activity analysed.
+     */
     @Test
     public void testDuplicateInScopePicksFirst() {
         Activity.Empty first = empty("Join", "first");
@@ -99,5 +110,25 @@ public class ActivityNameResolutionTest {
         AnalysisResult result = analyse(scopeWith("Process", first, second, referrer));
 
         Assert.assertEquals(result.findActivityInScopeOf(referrer, "Join"), Optional.of(first));
+    }
+
+    /**
+     * Duplicates in a scope are all kept, in analysis order, rather than only the first one.
+     */
+    @Test
+    public void testIndexKeepsDuplicates() {
+        Scope scope = scopeWith("Process");
+        Activity.Empty first = empty("Join", "first");
+        Activity.Empty second = empty("Join", "second");
+        Activity.Empty referrer = empty("Referrer", "first");
+        Map<Activity, List<Scope>> enclosingScopes = new LinkedHashMap<>();
+        enclosingScopes.put(first, List.of(scope));
+        enclosingScopes.put(second, List.of(scope));
+        enclosingScopes.put(referrer, List.of(scope));
+
+        ActivityNameIndex index = ActivityNameIndex.from(enclosingScopes);
+
+        Assert.assertEquals(index.findAll(referrer, "Join"), List.of(first, second));
+        Assert.assertEquals(index.find(referrer, "Join"), Optional.of(first));
     }
 }

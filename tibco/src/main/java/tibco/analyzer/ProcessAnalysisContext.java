@@ -163,6 +163,10 @@ public class ProcessAnalysisContext implements LoggingContext {
         links.add(link);
     }
 
+    /**
+     * Scopes around each analysed activity, innermost first, in analysis order. Names are only unique within a
+     * scope, so name lookups need these to resolve a name from the right place.
+     */
     public Map<Scope.Flow.Activity, List<Scope>> getEnclosingScopes() {
         return Collections.unmodifiableMap(enclosingScopes);
     }
