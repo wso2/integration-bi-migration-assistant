@@ -92,7 +92,7 @@ public class DependencyAnalysisPass extends AnalysisPass {
             Collections.emptyMap(), // dependencyGraphs
             Collections.emptyMap(), // controlFlowFunctions
             Collections.emptyMap(), // scopes
-            Collections.emptyMap(), // activityByName
+            ActivityNameIndex.empty(),
             Collections.emptyMap(), // explicitTransitionGroupDependencies
             Collections.emptyMap(), // explicitTransitionGroupControlFlowFunctions
             Collections.emptyMap(), // xsdTypes

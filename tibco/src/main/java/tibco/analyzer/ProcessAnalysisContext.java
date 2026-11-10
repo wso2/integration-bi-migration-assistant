@@ -35,7 +35,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -80,6 +82,8 @@ public class ProcessAnalysisContext implements LoggingContext {
             new HashMap<>();
 
     private final Set<Scope.Flow.Activity> activities = new HashSet<>();
+    // Insertion order is analysis order, which keeps name resolution deterministic
+    private final Map<Scope.Flow.Activity, List<Scope>> enclosingScopes = new LinkedHashMap<>();
     private final Set<Scope.Flow.Link> links = new HashSet<>();
 
     public Map<Scope.Flow.Link, Collection<Scope.Flow.Activity>> getDestinationMap() {
@@ -159,7 +163,14 @@ public class ProcessAnalysisContext implements LoggingContext {
         links.add(link);
     }
 
+    public Map<Scope.Flow.Activity, List<Scope>> getEnclosingScopes() {
+        return Collections.unmodifiableMap(enclosingScopes);
+    }
+
     public void allocateActivityNameIfNeeded(Scope.Flow.Activity activity) {
+        if (!scopeStack.isEmpty()) {
+            enclosingScopes.putIfAbsent(activity, List.copyOf(scopeStack.reversed()));
+        }
         Map<Scope.Flow.Activity, String> activityFunctionNames =
                 projectAnalysisContext.activityFunctionNames();
         if (activityFunctionNames.containsKey(activity)) {

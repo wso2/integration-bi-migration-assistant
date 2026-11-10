@@ -67,6 +67,10 @@ public class ActivityContext implements LoggingContext {
         return processContext.getAnalysisResult().from(activity).functionName();
     }
 
+    Optional<Scope.Flow.Activity> findActivityInScope(String name) {
+        return processContext.getAnalysisResult().findActivityInScopeOf(activity, name);
+    }
+
     BallerinaModel.Expression.VariableReference contextVarRef() {
         return processContext.contextVarRef();
     }
