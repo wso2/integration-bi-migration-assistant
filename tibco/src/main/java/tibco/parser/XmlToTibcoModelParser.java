@@ -735,16 +735,17 @@ public final class XmlToTibcoModelParser {
 
     private static @NotNull ErrorLoopGroup parseErrorLoopGroup(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
-        // The condition is evaluated as a stylesheet so that its $variable references bind like any other mapping.
-        Flow.Activity.Expression.XSLT errorCondition = tryGetInlineActivityConfigValue(element, "errorCondition")
-                .map(condition -> wrapInStyleSheet(cx,
-                        "<%1$s><xsl:value-of select=\"boolean(%2$s)\"/></%1$s>".formatted(
-                                ErrorLoopGroup.CONDITION_RESULT, escapeXmlAttribute(condition))))
-                .orElseThrow(() -> new ParserException("errorLoop group has no error condition", element));
-        boolean suspendAfterErrorRetry = tryGetInlineActivityConfigValue(element, "suspendAfterErrorRetry")
-                .map(Boolean::parseBoolean).orElse(false);
         return new ErrorLoopGroup(element, name, inputBinding,
-                tryGetInlineActivityConfigValue(element, "indexSlot"), errorCondition, suspendAfterErrorRetry,
+                tryGetInlineActivityConfigValue(element, "indexSlot"),
+                // The condition is evaluated as a stylesheet so that its $variable references bind like any other
+                // mapping.
+                tryGetInlineActivityConfigValue(element, "errorCondition")
+                        .map(condition -> wrapInStyleSheet(cx,
+                                "<%1$s><xsl:value-of select=\"boolean(%2$s)\"/></%1$s>".formatted(
+                                        ErrorLoopGroup.CONDITION_RESULT, escapeXmlAttribute(condition))))
+                        .orElseThrow(() -> new ParserException("errorLoop group has no error condition", element)),
+                tryGetInlineActivityConfigValue(element, "suspendAfterErrorRetry")
+                        .map(Boolean::parseBoolean).orElse(false),
                 parseGroupBody(cx, element), cx.fileName());
     }
 
