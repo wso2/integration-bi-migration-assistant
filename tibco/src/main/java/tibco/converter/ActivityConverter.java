@@ -103,6 +103,12 @@ final class ActivityConverter {
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
     // TIBCO global variables are referenced as %%name%% and can appear inside a larger value.
     private static final Pattern SUBSTITUTION_TOKEN = Pattern.compile("%%([^%]+)%%");
+    // The failed attempt is exposed as $_error so that an errorLoop condition can test it; addToContext keeps only the
+    // children of the value, hence the root wrapper.
+    private static final String ERROR_LOOP_ERROR_VARIABLE = "_error";
+    private static final String ERROR_LOOP_ERROR_REPORT = "<root><ns:ErrorReport "
+            + "xmlns:ns=\"http://www.tibco.com/pe/EngineTypes\"><StackTrace>${%1$s.stackTrace().toString()}"
+            + "</StackTrace><Msg>${%1$s.message()}</Msg><MsgCode></MsgCode></ns:ErrorReport></root>";
 
     private ActivityConverter() {
     }
@@ -1197,7 +1203,6 @@ final class ActivityConverter {
         body.add(resultValue);
         VarDeclStatment index = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
         body.add(index);
-        String scopeFn = cx.processContext.getAnalysisResult().getControlFlowFunctions(errorLoop.body()).scopeFn();
         String error = cx.getAnnonVarName();
         XsltTransformResult condition = xsltTransform(cx, resultValue.ref(), errorLoop.errorCondition());
         addNonStandardXsltWarning(condition.nonStandardFunctions(), body);
@@ -1219,12 +1224,16 @@ final class ActivityConverter {
                     }
                     %6$s
                     %7$s
-                    if %8$s {
+                    %8$s
+                    if %9$s {
                         return %3$s;
                     }
                 }
-                """.formatted(index.ref(), publishIndex, error, scopeFn, cx.contextVarRef(), conditionOutput,
-                retryLimitReached, retryLimitReached.ref())));
+                """.formatted(index.ref(), publishIndex, error,
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(errorLoop.body()).scopeFn(),
+                cx.contextVarRef(), addToContext(cx, new XMLTemplate(ERROR_LOOP_ERROR_REPORT.formatted(error)),
+                        ERROR_LOOP_ERROR_VARIABLE),
+                conditionOutput, retryLimitReached, retryLimitReached.ref())));
         return new ActivityConversionResult(resultValue.ref(), body);
     }
 

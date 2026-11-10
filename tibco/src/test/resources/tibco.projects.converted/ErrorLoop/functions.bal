@@ -5,7 +5,7 @@ import ballerina/xslt;
 function Fail_Send(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0">
      <xsl:template name="Transform2" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema">
                         
@@ -39,7 +39,7 @@ function HTTP_Receiver(Context cx) returns error? {
 function Log_Attempt(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="idx"/>     <xsl:template name="Transform1" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="idx"/>     <xsl:template name="Transform1" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                         
     <message>
@@ -63,8 +63,8 @@ function Retry_Send(Context cx) returns error? {
     xml var1 = xml `<root></root>`;
     int var2 = 0;
     xml var4 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="idx"/>     <xsl:template name="Transform0" match="/">
-        <errorConditionResult><xsl:value-of select="boolean($idx &gt; 3)"/></errorConditionResult>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error"/><xsl:param name="idx"/>     <xsl:template name="Transform0" match="/">
+        <errorConditionResult><xsl:value-of select="boolean($idx &gt; 3 or contains($_error/root/ns2:ErrorReport/Msg, 'fatal'))"/></errorConditionResult>
     </xsl:template>
 </xsl:stylesheet>`);
     while true {
@@ -74,6 +74,7 @@ function Retry_Send(Context cx) returns error? {
         if var3 is () {
             break;
         }
+        addToContext(cx, "_error", xml `<root><ns:ErrorReport xmlns:ns="http://www.tibco.com/pe/EngineTypes"><StackTrace>${var3.stackTrace().toString()}</StackTrace><Msg>${var3.message()}</Msg><MsgCode></MsgCode></ns:ErrorReport></root>`);
         xml var5 = check xslt:transform(var1, var4, cx.variables);
         boolean var6 = (var5/*).toString().trim() == "true";
         if var6 {

@@ -2,6 +2,7 @@
 <pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema"
     xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema"
+    xmlns:ns2="http://www.tibco.com/pe/EngineTypes"
     xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <pd:name>Processes/Main.process</pd:name>
     <pd:startName>HTTP Receiver</pd:startName>
@@ -31,7 +32,7 @@
             <pd:groupType>errorLoop</pd:groupType>
             <pd:serializable>false</pd:serializable>
             <pd:indexSlot>idx</pd:indexSlot>
-            <pd:errorCondition>$idx &gt; 3</pd:errorCondition>
+            <pd:errorCondition>$idx &gt; 3 or contains($_error/ns2:ErrorReport/Msg, 'fatal')</pd:errorCondition>
             <pd:suspendAfterErrorRetry>false</pd:suspendAfterErrorRetry>
         </config>
         <pd:inputBindings/>
