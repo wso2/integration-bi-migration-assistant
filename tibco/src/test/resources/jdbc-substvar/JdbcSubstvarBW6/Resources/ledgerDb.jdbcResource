@@ -3,7 +3,7 @@
   <jndi:reference key="subjectJndiName" type="subject:SubjectConfiguration" value=""/>
   <jndi:configuration xsi:type="jdbc:JdbcDataSource">
     <substitutionBindings template="username" propName="/DB/Ledger/user"/>
-    <substitutionBindings template="password" propName="/DB/Ledger/password"/>
+    <substitutionBindings template="password" propName="/DB/Ledger/user"/>
     <connectionConfig xsi:type="jdbc:NonXaConnection">
       <substitutionBindings template="jdbcDriver" propName="/DB/Ledger/driver"/>
       <substitutionBindings template="dbURL" propName="/DB/Ledger/url"/>

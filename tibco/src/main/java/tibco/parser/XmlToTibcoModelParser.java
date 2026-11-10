@@ -33,6 +33,7 @@ import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
 import tibco.model.Process5.ExplicitTransitionGroup.Transition;
@@ -78,6 +79,7 @@ import static common.LoggingUtils.Level.WARN;
 
 public final class XmlToTibcoModelParser {
 
+    private static final String GROUP_START_NODE = "start";
     private static final String DELIMITED_DATA_FORMAT = "Delimiter separated";
     private static final String SINGLE_SEPARATOR_PARSE_RULE =
             "Treat all characters as entered as a single column separator string";
@@ -749,14 +751,42 @@ public final class XmlToTibcoModelParser {
         return parseOptionalString(jmsChannel, tag).filter(Predicate.not(String::isBlank));
     }
 
-    private static @NotNull LoopGroup parseLoopGroup(ProcessContext cx, Element element, String name,
+    private static @NotNull InlineActivity parseLoopGroup(ProcessContext cx, Element element, String name,
             Flow.Activity.InputBinding inputBinding) {
+        if (tryGetInlineActivityConfigValue(element, "groupType").filter("errorLoop"::equals).isPresent()) {
+            return parseErrorLoopGroup(cx, element, name, inputBinding);
+        }
         SourceExpression overExpr = parseSourceExpression(getInlineActivityConfigValue(element, "over"));
         Optional<String> iterationElementSlot = tryGetInlineActivityConfigValue(element, "iterationElementSlot");
         Optional<String> indexSlot = tryGetInlineActivityConfigValue(element, "indexSlot");
         Optional<String> activityOutputName = tryGetInlineActivityConfigValue(element, "activityOutputName");
         boolean accumulateOutput = tryGetInlineActivityConfigValue(element, "accumulateOutput")
                 .map(val -> val.equals("true")).orElse(false);
+        return new LoopGroup(element, name, inputBinding, overExpr, iterationElementSlot, indexSlot,
+                activityOutputName, accumulateOutput, parseGroupBody(cx, element), cx.fileName());
+    }
+
+    private static @NotNull ErrorLoopGroup parseErrorLoopGroup(ProcessContext cx, Element element, String name,
+            Flow.Activity.InputBinding inputBinding) {
+        return new ErrorLoopGroup(element, name, inputBinding,
+                tryGetInlineActivityConfigValue(element, "indexSlot"),
+                // The condition is evaluated as a stylesheet so that its $variable references bind like any other
+                // mapping.
+                tryGetInlineActivityConfigValue(element, "errorCondition")
+                        .map(condition -> wrapInStyleSheet(cx,
+                                "<%1$s><xsl:value-of select=\"boolean(%2$s)\"/></%1$s>".formatted(
+                                        ErrorLoopGroup.CONDITION_RESULT, escapeXmlAttribute(condition))))
+                        .orElseThrow(() -> new ParserException("errorLoop group has no error condition", element)),
+                tryGetInlineActivityConfigValue(element, "suspendAfterErrorRetry")
+                        .map(Boolean::parseBoolean).orElse(false),
+                parseGroupBody(cx, element), cx.fileName());
+    }
+
+    private static @NotNull String escapeXmlAttribute(String value) {
+        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private static @NotNull Process5.ExplicitTransitionGroup parseGroupBody(ProcessContext cx, Element element) {
         Process5.ExplicitTransitionGroup transitionGroup = new Process5.ExplicitTransitionGroup();
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
@@ -778,8 +808,16 @@ public final class XmlToTibcoModelParser {
                 }
             }
         }
-        return new LoopGroup(element, name, inputBinding, overExpr, iterationElementSlot, indexSlot,
-                activityOutputName, accumulateOutput, transitionGroup, cx.fileName());
+        if (transitionGroup.startActivity().isPresent()) {
+            return transitionGroup;
+        }
+        // A group body has no starter; its transitions leave an implicit "start" node instead.
+        return transitionGroup.transitions().stream()
+                .map(Transition::from)
+                .filter(GROUP_START_NODE::equalsIgnoreCase)
+                .findFirst()
+                .map(transitionGroup::setStartName)
+                .orElse(transitionGroup);
     }
 
     private static SourceExpression parseSourceExpression(String expression) {
@@ -935,9 +973,11 @@ public final class XmlToTibcoModelParser {
     }
 
     private static Flow.Activity.Expression.@NotNull XSLT parseXSLTTag(ProcessContext cx, Element element) {
-        String content = ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
-                .collect(Collectors.joining());
+        return wrapInStyleSheet(cx, ElementIterable.of(element).stream().map(ConversionUtils::elementToString)
+                .collect(Collectors.joining()));
+    }
 
+    private static Flow.Activity.Expression.@NotNull XSLT wrapInStyleSheet(ProcessContext cx, String content) {
         StringBuilder namespaceDeclarations = new StringBuilder();
         // Track prefixes to avoid redeclaration
         Set<String> declaredPrefixes = new java.util.HashSet<>();
