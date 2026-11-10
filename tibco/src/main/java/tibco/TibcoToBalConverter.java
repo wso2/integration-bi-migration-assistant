@@ -66,6 +66,7 @@ import javax.xml.parsers.ParserConfigurationException;
 public class TibcoToBalConverter {
 
     private static final String DEFAULT_PROFILE = "default.substvar";
+    private static final String PASSWORD_PROPERTY_TYPE = "Password";
 
     private TibcoToBalConverter() {
     }
@@ -310,10 +311,10 @@ public class TibcoToBalConverter {
 
     // Each BW6 profile is a META-INF/<profile>.substvar file. The default profile decides; a property it leaves unset
     // is taken from the other profiles only when they all agree, so no single deployment environment is guessed.
-    public static @NotNull Map<String, String> parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
+    public static @NotNull ModulePropertyDefaults parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
         Path metaInf = Paths.get(projectPath, "META-INF");
         if (!Files.isDirectory(metaInf)) {
-            return Map.of();
+            return ModulePropertyDefaults.NONE;
         }
         List<Path> profiles;
         try (Stream<Path> files = Files.list(metaInf)) {
@@ -324,9 +325,10 @@ public class TibcoToBalConverter {
         } catch (IOException e) {
             cx.log(LoggingUtils.Level.WARN, "Unable to list module property profiles in " + metaInf + ": "
                     + e.getMessage());
-            return Map.of();
+            return ModulePropertyDefaults.NONE;
         }
         Map<String, String> defaults = new HashMap<>();
+        Map<String, String> agreedAcrossProfiles = new HashMap<>();
         Map<String, Map<String, String>> otherProfileValuesByProperty = new TreeMap<>();
         for (Path profile : profiles) {
             String profileName = profile.getFileName().toString();
@@ -345,15 +347,33 @@ public class TibcoToBalConverter {
             }
             String profileNames = String.join(", ", valuesByProfile.keySet());
             if (new HashSet<>(valuesByProfile.values()).size() == 1) {
-                defaults.put(name, valuesByProfile.values().iterator().next());
+                agreedAcrossProfiles.put(name, valuesByProfile.values().iterator().next());
                 cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
-                        + "; using its value from " + profileNames);
+                        + "; using its value from " + profileNames + " to resolve the JDBC driver");
             } else {
                 cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
                         + " and its value differs across " + profileNames + "; leaving it unresolved");
             }
         });
-        return defaults;
+        return new ModulePropertyDefaults(defaults, agreedAcrossProfiles);
+    }
+
+    // Only defaultProfile values become configurable defaults: a value merely shared by the deployment profiles
+    // would silently point the migrated project at one of those environments.
+    public record ModulePropertyDefaults(Map<String, String> defaultProfile,
+                                         Map<String, String> agreedAcrossProfiles) {
+
+        public static final ModulePropertyDefaults NONE = new ModulePropertyDefaults(Map.of(), Map.of());
+
+        public ModulePropertyDefaults {
+            defaultProfile = Map.copyOf(defaultProfile);
+            agreedAcrossProfiles = Map.copyOf(agreedAcrossProfiles);
+        }
+
+        public @NotNull Optional<String> resolved(String propName) {
+            return Optional.ofNullable(defaultProfile.get(propName))
+                    .or(() -> Optional.ofNullable(agreedAcrossProfiles.get(propName)));
+        }
     }
 
     private static @NotNull Map<String, String> parseModuleProperties(LoggingContext cx, Path profile) {
@@ -363,6 +383,10 @@ public class TibcoToBalConverter {
                     .getElementsByTagNameNS("*", "globalVariable");
             for (int i = 0; i < globalVariables.getLength(); i++) {
                 Element globalVariable = (Element) globalVariables.item(i);
+                // A Password property's value is obfuscated by TIBCO, so it is never a usable default.
+                if (childText(globalVariable, "type").filter(PASSWORD_PROPERTY_TYPE::equals).isPresent()) {
+                    continue;
+                }
                 Optional<String> name = childText(globalVariable, "name");
                 Optional<String> value = childText(globalVariable, "value").filter(text -> !text.isBlank());
                 if (name.isPresent() && value.isPresent()) {
