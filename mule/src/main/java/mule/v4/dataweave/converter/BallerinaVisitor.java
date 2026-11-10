@@ -337,6 +337,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         contextRequestMethodCall(selectorExpression, "hasHeader");
         exprBuilder.append(" ? ");
         contextRequestMethodCall(selectorExpression, "getHeader");
+        dwContext.addCheckExpr();
     }
 
     private void contextRequestMethodCall(DataWeaveParser.SelectorExpressionContext selectorExpression,
@@ -363,6 +364,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         attributeAttributeUriParamAccess(selectorExpression, "hasKey");
         exprBuilder.append(" ? ");
         attributeAttributeUriParamAccess(selectorExpression, "get");
+        dwContext.addCheckExpr();
     }
 
     private void attributeAttributeUriParamAccess(DataWeaveParser.SelectorExpressionContext selectorExpression,
@@ -1266,7 +1268,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         if (headerAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeHeaderAccess(ctx.primaryExpression(), ctx.selectorExpression());
-            exprBuilder.append(": error(\"no such header\"))");
+            exprBuilder.append(": ())");
         } else if (uriParamAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
@@ -1291,7 +1293,9 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             accessOp = ".";
         }
         dwContext.append(accessOp).append(ctx.IDENTIFIER().getText());
-        dwContext.addCheckExpr(); // TODO: sometimes 'check' not needed
+        if (!dwContext.inKeyAccess) {
+            dwContext.addCheckExpr(); // TODO: sometimes 'check' not needed
+        }
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;
     }
@@ -1299,8 +1303,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     @Override
     public Void visitKeySelector(DataWeaveParser.KeySelectorContext ctx) {
         assert dwContext.inKeyAccess;
-        dwContext.append(ctx.STRING().getText());
-        dwContext.addCheckExpr();
+        String quotedKey = ctx.STRING().getText();
+        dwContext.append(quotedKey.substring(1, quotedKey.length() - 1));
         stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
         return null;
     }

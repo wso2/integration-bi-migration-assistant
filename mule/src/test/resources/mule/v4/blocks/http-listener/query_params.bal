@@ -21,7 +21,7 @@ service /mule4 on config {
     resource function get test_query(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked");
-        log:printInfo(string `Path params - version: ${ctx.attributes.request.getQueryParamValue("country").toString()}, id: ${ctx.attributes.request.getQueryParamValue("city").toString()}`);
+        log:printInfo(string `Path params - version: ${(<http:Request>ctx.attributes.request).getQueryParamValue("country").toString()}, id: ${(<http:Request>ctx.attributes.request).getQueryParamValue("city").toString()}`);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;

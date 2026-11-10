@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 final class AnalysisResultImpl implements AnalysisResult {
@@ -156,35 +155,6 @@ final class AnalysisResultImpl implements AnalysisResult {
                     .toList();
         }
         return List.of();
-    }
-
-    @Override
-    public Stream<TransitionData> transitionConditions(
-            Scope.Flow.Activity activity) {
-        if (!(activity instanceof Scope.Flow.Activity.ActivityWithTargets activityWithTargets)) {
-            return Stream.empty();
-        }
-        Stream.Builder<Stream<TransitionData>> predicateStreams = Stream.builder();
-        for (Scope.Flow.Activity.Target target : activityWithTargets.targets()) {
-            Scope.Flow.Link link = new Scope.Flow.Link(target.linkName());
-            Collection<Scope.Flow.Activity> sources = sourceMap.get(link);
-            for (Scope.Flow.Activity source : sources) {
-                predicateStreams.add(transitionCondition(source, link).map(prec -> new TransitionData(source, prec)));
-            }
-        }
-        return predicateStreams.build().flatMap(Function.identity());
-    }
-
-    @Override
-    public Stream<Scope.Flow.Activity.Source.Predicate> transitionCondition(
-            Scope.Flow.Activity activity, Scope.Flow.Link link) {
-        if (!(activity instanceof Scope.Flow.Activity.ActivityWithSources activityWithSources)) {
-            return Stream.empty();
-        }
-        return activityWithSources.sources().stream()
-                .filter(source -> source.linkName().equals(link.name()))
-                .map(Scope.Flow.Activity.Source::condition)
-                .flatMap(Optional::stream);
     }
 
     @Override

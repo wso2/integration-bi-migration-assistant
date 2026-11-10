@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config" doc:name="HTTP Listener config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" protocol="HTTPS"/>
+    </http:request-config>
+    <flow name="demoFlow" >
+        <http:listener doc:name="Listener" config-ref="listener_config" path="/orders/{order-id}/{type}" allowedMethods="GET"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders/{id}/{kind}">
+            <http:uri-params><![CDATA[#[output application/java
+---
+{
+	"id" : attributes.uriParams.'order-id',
+	"kind" : attributes.uriParams.'type'
+}]]]></http:uri-params>
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+	"page-size" : attributes.queryParams.'page-size',
+	"limit" : attributes.queryParams.limit,
+	"2fa" : attributes.queryParams.'2fa'
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
