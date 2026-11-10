@@ -64,6 +64,7 @@ import tibco.xslt.AddMissingParameters;
 import tibco.xslt.IgnoreRootWrapper;
 import tibco.xslt.ReplaceDotAccessWithXPath;
 import tibco.xslt.ReplaceVariableReference;
+import tibco.xslt.TibcoFunctions;
 import tibco.xslt.TransformPipeline;
 
 import java.util.ArrayList;
@@ -102,6 +103,12 @@ final class ActivityConverter {
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
     // TIBCO global variables are referenced as %%name%% and can appear inside a larger value.
     private static final Pattern SUBSTITUTION_TOKEN = Pattern.compile("%%([^%]+)%%");
+    // The failed attempt is exposed as $_error so that an errorLoop condition can test it; addToContext keeps only the
+    // children of the value, hence the root wrapper.
+    private static final String ERROR_LOOP_ERROR_VARIABLE = "_error";
+    private static final String ERROR_LOOP_ERROR_REPORT = "<root><ns:ErrorReport "
+            + "xmlns:ns=\"http://www.tibco.com/pe/EngineTypes\"><StackTrace>${%1$s.stackTrace().toString()}"
+            + "</StackTrace><Msg>${%1$s.message()}</Msg><MsgCode></MsgCode></ns:ErrorReport></root>";
 
     private ActivityConverter() {
     }
@@ -112,6 +119,7 @@ final class ActivityConverter {
         xsltTransformer.append(new ReplaceVariableReference());
         xsltTransformer.append(new ReplaceDotAccessWithXPath());
         xsltTransformer.append(new IgnoreRootWrapper());
+        xsltTransformer.append(new TibcoFunctions());
         return xsltTransformer;
     }
 
@@ -215,6 +223,8 @@ final class ActivityConverter {
             case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
             case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                     convertLoopGroup(cx, result, loopGroup);
+            case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
+                    convertErrorLoopGroup(cx, errorLoopGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -1177,6 +1187,56 @@ final class ActivityConverter {
         return stmtFrom(sb.toString());
     }
 
+    // TIBCO evaluates the error condition only after the body fails, with the 1-based index of the failed attempt;
+    // the body's scope function is trapped because, depending on its fault handler, an uncaught fault either
+    // panics or is returned.
+    private static ActivityConversionResult convertErrorLoopGroup(
+            ActivityContext cx, Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoop) {
+        List<Statement> body = new ArrayList<>();
+        if (errorLoop.suspendAfterErrorRetry()) {
+            cx.log(WARN, "errorLoop group '" + errorLoop.name()
+                    + "' suspends the process after the last retry; the converted group fails instead.");
+            body.add(new Comment("FIXME: suspendAfterErrorRetry is not supported; "
+                    + "the group fails instead of suspending the process"));
+        }
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(resultValue);
+        VarDeclStatment index = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
+        body.add(index);
+        String error = cx.getAnnonVarName();
+        XsltTransformResult condition = xsltTransform(cx, resultValue.ref(), errorLoop.errorCondition());
+        addNonStandardXsltWarning(condition.nonStandardFunctions(), body);
+        body.addAll(condition.statements());
+        VarDeclStatment conditionOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), condition.expression());
+        VarDeclStatment retryLimitReached = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
+                exprFrom("(%s/*).toString().trim() == \"true\"".formatted(conditionOutput.ref())));
+        String publishIndex = errorLoop.indexSlot()
+                .map(indexSlot -> addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(index.ref())),
+                        indexSlot).toString())
+                .orElse("");
+        body.add(stmtFrom("""
+                while true {
+                    %1$s = %1$s + 1;
+                    %2$s
+                    error? %3$s = trap %4$s(%5$s);
+                    if %3$s is () {
+                        break;
+                    }
+                    %6$s
+                    %7$s
+                    %8$s
+                    if %9$s {
+                        return %3$s;
+                    }
+                }
+                """.formatted(index.ref(), publishIndex, error,
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(errorLoop.body()).scopeFn(),
+                cx.contextVarRef(), addToContext(cx, new XMLTemplate(ERROR_LOOP_ERROR_REPORT.formatted(error)),
+                        ERROR_LOOP_ERROR_VARIABLE),
+                conditionOutput, retryLimitReached, retryLimitReached.ref())));
+        return new ActivityConversionResult(resultValue.ref(), body);
+    }
+
     private static ActivityConversionResult convertREST(
             ActivityContext cx, VariableReference input, InlineActivity.REST rest) {
         if (rest.method() == InlineActivity.REST.Method.GET) {
@@ -1369,12 +1429,13 @@ final class ActivityConverter {
             return new ActivityConversionResult(input, body);
         } else {
             cx.addLibraryImport(Library.XSLT);
+            addNonStandardXsltWarning(detectNonStandardFunctions(xsltContent), body);
             VarDeclStatment styleSheetDecl = parseStyleSheet(cx, xsltContent);
             body.add(styleSheetDecl);
             VarDeclStatment transformResult = new VarDeclStatment(XML, cx.getAnnonVarName(), new Check(
                     new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                            List.of(input, styleSheetDecl.ref(),
-                                    cx.contextVarRef()))));
+                            List.of(input, styleSheetDecl.ref(), xsltParameters(cx.processContext, xsltContent,
+                                    new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))))));
             body.add(transformResult);
             return new ActivityConversionResult(transformResult.ref(), body);
         }
@@ -2700,10 +2761,23 @@ final class ActivityConverter {
 
         VarDeclStatment styleSheetDecl = parseStyleSheet(cx, styleSheet);
         BallerinaModel.Expression expression = new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, styleSheetDecl.ref(),
-                        new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables"))));
+                List.of(inputVariable, styleSheetDecl.ref(), xsltParameters(cx.processContext, styleSheet,
+                        new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables")))));
 
         return new XsltTransformResult(List.of(styleSheetDecl), expression, nonStandardFunctions);
+    }
+
+    @NotNull
+    static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
+                                                    BallerinaModel.Expression variables) {
+        List<String> uuidParameters = TibcoFunctions.uuidParameters(styleSheet);
+        if (uuidParameters.isEmpty()) {
+            return variables;
+        }
+        cx.addLibraryImport(Library.UUID);
+        return new FunctionCall(cx.getXsltParamsFn(), List.of(variables, exprFrom(uuidParameters.stream()
+                .map(name -> "\"%s\": uuid:createType4AsString()".formatted(name))
+                .collect(Collectors.joining(", ", "{", "}")))));
     }
 
     // An inline xml literal expands into compiler AST nodes at build time, and that expansion grows exponentially
@@ -2726,7 +2800,8 @@ final class ActivityConverter {
 
         while (matcher.find()) {
             String function = matcher.group().replaceAll("\\s*\\($", "");
-            if (!nonStandardFunctions.contains(function)) {
+            if (!nonStandardFunctions.contains(function)
+                    && !TibcoFunctions.isDefined(xsltContent, function.substring(function.indexOf(':') + 1))) {
                 nonStandardFunctions.add(function);
             }
         }

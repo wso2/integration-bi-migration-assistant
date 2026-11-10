@@ -10,6 +10,7 @@
             <class name="tibco.analyzer.ResourceLookupTest"/>
             <class name="tibco.converter.ProcessLookupTest"/>
             <class name="tibco.util.PathMatcherTest"/>
+            <class name="tibco.xslt.TibcoFunctionsTest"/>
         </classes>
     </test>
 </suite>

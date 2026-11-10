@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DWContext {
-    public String mimeType;
+    private String payloadInputType;
     public final List<BallerinaModel.Statement> parentStatements;
     public DWScriptContext currentScriptContext;
     public final Context toolContext;
@@ -54,6 +54,7 @@ public class DWContext {
             this.currentScriptContext.visited = true;
         }
         this.currentScriptContext = new DWScriptContext();
+        this.currentScriptContext.inputType = this.payloadInputType;
     }
 
     public void finalizeFunction() {
@@ -76,11 +77,9 @@ public class DWContext {
         this.currentScriptContext.containsCheck = true;
     }
 
-    public void setMimeType(String mimeType) {
-        this.mimeType = mimeType;
-        if (mimeType != null) {
-            this.currentScriptContext.inputType = DWUtils.findBallerinaType(mimeType);
-        }
+    public void setPayloadInputType(String inputType) {
+        this.payloadInputType = inputType;
+        this.currentScriptContext.inputType = inputType;
     }
 
     public StringBuilder append(String context) {

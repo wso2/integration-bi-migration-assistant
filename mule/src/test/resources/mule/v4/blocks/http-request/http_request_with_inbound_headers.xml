@@ -15,6 +15,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 ---
 {
 	"orderType" : attributes.headers.'orderType',
+	"lang" : attributes.headers.'lang' default "en",
 	("crmId" : attributes.headers.'crmId') if(!isEmpty(attributes.headers.'crmId')),
 	"Content-Type" : "application/json"
 }]]]></http:headers>

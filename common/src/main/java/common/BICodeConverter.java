@@ -18,11 +18,9 @@
 
 package common;
 
-import io.ballerina.compiler.syntax.tree.Minutiae;
-import io.ballerina.compiler.syntax.tree.MinutiaeList;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
-import io.ballerina.compiler.syntax.tree.NodeVisitor;
-import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.compiler.syntax.tree.Node;
+import io.ballerina.compiler.syntax.tree.NonTerminalNode;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.Token;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +34,9 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public final class BICodeConverter {
     public static final Predicate<BallerinaModel.ModuleVar> DEFAULT_IS_CONFIGURABLE_PREDICATE =
@@ -177,10 +177,16 @@ public final class BICodeConverter {
         // TODO: we can do this better by visiting tree and figure out types and
         //  function calls. But should be good enough for now
         SyntaxTree st = new CodeGenerator(doc).generateSyntaxTree();
+        // Comments are minutiae, so rebuilding the source from token text keeps prefixes such as the
+        // "java:JavaMethod" of a commented-out source element from adding unused imports.
+        String content = tokens(st.rootNode())
+                .map(token -> (token.leadingMinutiae().isEmpty() ? "" : " ") + token.text()
+                        + (token.trailingMinutiae().isEmpty() ? "" : " "))
+                .collect(Collectors.joining());
         Pattern searchPattern = Pattern.compile("([a-zA-Z0-9]+):[a-zA-Z0-9]+");
 
-        // Comments may carry source XML such as xsi:type="java:JavaMethod" that only looks like a module prefix.
-        Matcher matcher = searchPattern.matcher(sourceWithoutComments(st));
+        // Find all matches in content
+        Matcher matcher = searchPattern.matcher(content);
         Set<BallerinaModel.Import> imports = new HashSet<>();
 
         while (matcher.find()) {
@@ -193,23 +199,12 @@ public final class BICodeConverter {
                 doc.astNodes());
     }
 
-    private static String sourceWithoutComments(SyntaxTree st) {
-        StringBuilder source = new StringBuilder();
-        st.rootNode().accept(new NodeVisitor() {
-            @Override
-            public void visit(Token token) {
-                appendNonComments(source, token.leadingMinutiae());
-                source.append(token.text());
-                appendNonComments(source, token.trailingMinutiae());
-            }
-        });
-        return source.toString();
-    }
-
-    private static void appendNonComments(StringBuilder source, MinutiaeList minutiaeList) {
-        for (Minutiae minutiae : minutiaeList) {
-            source.append(minutiae.kind() == SyntaxKind.COMMENT_MINUTIAE ? " " : minutiae.text());
+    private static Stream<Token> tokens(Node node) {
+        if (node instanceof Token token) {
+            return Stream.of(token);
         }
+        return StreamSupport.stream(((NonTerminalNode) node).children().spliterator(), false)
+                .flatMap(BICodeConverter::tokens);
     }
 
     private List<BallerinaModel.Import> prefixToImport(String prefix) {
@@ -233,6 +228,7 @@ public final class BICodeConverter {
             case "regexp" -> List.of(new BallerinaModel.Import("ballerina", "lang.regexp"));
             case "log" -> List.of(new BallerinaModel.Import("ballerina", "log"));
             case "time" -> List.of(new BallerinaModel.Import("ballerina", "time"));
+            case "uuid" -> List.of(new BallerinaModel.Import("ballerina", "uuid"));
             case "task" -> List.of(new BallerinaModel.Import("ballerina", "task"));
             case "soap11" -> List.of(new BallerinaModel.Import("ballerina", "soap.soap11"));
             case "sql" -> List.of(new BallerinaModel.Import("ballerina", "sql"));

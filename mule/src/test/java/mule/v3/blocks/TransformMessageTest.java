@@ -40,6 +40,30 @@ public class TransformMessageTest extends AbstractBlockTest {
                 "transform-message/transform_message_with_unsupported_components.bal");
     }
 
+    @Test
+    public void testTransformMessageWithInputPayloadSampleOnly() {
+        testMule3ToBal("transform-message/transform_message_with_input_payload_sample_only.xml",
+                "transform-message/transform_message_with_input_payload_sample_only.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithInputPayloadJsonSample() {
+        testMule3ToBal("transform-message/transform_message_with_input_payload_json_sample.xml",
+                "transform-message/transform_message_with_input_payload_json_sample.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithInputPayloadNoAttributes() {
+        testMule3ToBal("transform-message/transform_message_with_input_payload_no_attributes.xml",
+                "transform-message/transform_message_with_input_payload_no_attributes.bal");
+    }
+
+    @Test
+    public void testTransformMessageWithInputPayloadUnknownMimeType() {
+        testMule3ToBal("transform-message/transform_message_with_input_payload_unknown_mime_type.xml",
+                "transform-message/transform_message_with_input_payload_unknown_mime_type.bal");
+    }
+
     @Test (dataProvider = "provideTestParams")
     public void testTransformMessageWithCustomDataWeave(String dwFileName, String balFileName) {
         String dwFilePath = "transform-message/dataweave-files/" + dwFileName;
