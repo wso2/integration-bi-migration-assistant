@@ -1246,8 +1246,7 @@ public final class XmlToTibcoModelParser {
 
     private static Flow.Activity.Reply parseReply(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
-        var operation = Method.from(
-                element.getAttribute("operation"));
+        String operation = element.getAttribute("operation");
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         ActivityInputOutput result = getActivityInputOutput(element);
@@ -1273,8 +1272,7 @@ public final class XmlToTibcoModelParser {
     }
 
     private static Flow.Activity.Pick.OnMessage parseOnMessage(ProcessContext cx, Element element) {
-        var operation = Method.from(
-                element.getAttribute("operation"));
+        String operation = element.getAttribute("operation");
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         String variable = element.getAttribute("variable");
@@ -1285,13 +1283,7 @@ public final class XmlToTibcoModelParser {
     private static Flow.Activity.Invoke parseInvoke(ProcessContext cx, Element element) {
         String inputVariable = element.getAttribute("inputVariable");
         String outputVariable = element.getAttribute("outputVariable");
-        Method operation;
-        try {
-            operation = Method.from(element.getAttribute("operation"));
-        } catch (IllegalArgumentException ignored) {
-            // TODO: need to handle this properly, this happens for SOAP operations
-            operation = Method.POST;
-        }
+        String operation = element.getAttribute("operation");
         String partnerLink = element.getAttribute("partnerLink");
         List<Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         Collection<Flow.Activity.Target> targets = new ArrayList<>();
