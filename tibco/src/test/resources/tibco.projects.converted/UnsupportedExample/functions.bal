@@ -607,6 +607,8 @@ function scope0_1ScopeFn(Context cx) returns () {
 }
 
 function scope1ActivityRunner(Context cx) returns error? {
+    check InnerLogIndex(cx);
+    check InnerLogElement(cx);
 }
 
 function scope1FaultHandler(error err, Context cx) returns () {
