@@ -1,14 +1,14 @@
 function FallbackScopeActivityRunner(Context cx) returns error? {
 }
 
-function FallbackScopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function FallbackScopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function FallbackScopeScopeFn(Context cx) returns () {
+function FallbackScopeScopeFn(Context cx) returns error? {
     error? result = FallbackScopeActivityRunner(cx);
     if result is error {
-        FallbackScopeFaultHandler(result, cx);
+        check FallbackScopeFaultHandler(result, cx);
     }
 }
 
@@ -16,53 +16,54 @@ function MainScopeActivityRunner(Context cx) returns error? {
     check RaiseFault(cx);
 }
 
-function MainScopeFaultHandler(error err, Context cx) returns () {
+function MainScopeFaultHandler(error err, Context cx) returns error? {
     if err.detail()["faultName"] == "tns:TestFault" {
-        addToContext(cx, "TestFaultVar", checkpanic err.detail()["payload"].ensureType());
-        checkpanic catch(cx);
+        xml|error payload = err.detail()["payload"].ensureType();
+        addToContext(cx, "TestFaultVar", payload is xml ? payload : xml ``);
+        check catch(cx);
         return;
     }
-    checkpanic catchAll(cx);
+    check catchAll(cx);
     return;
 }
 
-function MainScopeScopeFn(Context cx) returns () {
+function MainScopeScopeFn(Context cx) returns error? {
     error? result = MainScopeActivityRunner(cx);
     if result is error {
-        MainScopeFaultHandler(result, cx);
+        check MainScopeFaultHandler(result, cx);
     }
 }
 
 function RaiseFault(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     error var1 = error("tns:TestFault", faultName = "tns:TestFault", payload = var0);
-    panic var1;
+    return var1;
 }
 
 function RecoveryScopeActivityRunner(Context cx) returns error? {
 }
 
-function RecoveryScopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function RecoveryScopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function RecoveryScopeScopeFn(Context cx) returns () {
+function RecoveryScopeScopeFn(Context cx) returns error? {
     error? result = RecoveryScopeActivityRunner(cx);
     if result is error {
-        RecoveryScopeFaultHandler(result, cx);
+        check RecoveryScopeFaultHandler(result, cx);
     }
 }
 
 function catch(Context cx) returns error? {
-    RecoveryScopeScopeFn(cx);
+    check RecoveryScopeScopeFn(cx);
 }
 
 function catchAll(Context cx) returns error? {
-    FallbackScopeScopeFn(cx);
+    check FallbackScopeScopeFn(cx);
 }
 
-function start_test_faulthandling_MainProcess(Context params) returns () {
-    MainScopeScopeFn(params);
+function start_test_faulthandling_MainProcess(Context params) returns error? {
+    return MainScopeScopeFn(params);
 }
 
 function addToContext(Context context, string varName, xml value) {

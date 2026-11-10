@@ -20,7 +20,7 @@ function Call_Foo(Context cx) returns error? {
 </xsl:stylesheet>`);
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     addToContext(cx, "Start", var2);
-    start_Processes_Foo_process(cx);
+    check start_Processes_Foo_process(cx);
     xml var3 = cx.result;
     addToContext(cx, "Call-Foo", var3);
 }
@@ -107,18 +107,18 @@ function scope0ActivityRunner(Context cx) returns error? {
     check HTTP_Response(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Main_process(Context cx) returns () {
+function start_Processes_Main_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 
@@ -166,18 +166,18 @@ function scope0_1ActivityRunner(Context cx) returns error? {
     check HTTP_Response_1(cx);
 }
 
-function scope0_1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0_1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0_1ScopeFn(Context cx) returns () {
+function scope0_1ScopeFn(Context cx) returns error? {
     error? result = scope0_1ActivityRunner(cx);
     if result is error {
-        scope0_1FaultHandler(result, cx);
+        check scope0_1FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Bar_process(Context cx) returns () {
+function start_Processes_Bar_process(Context cx) returns error? {
     return scope0_1ScopeFn(cx);
 }
 
@@ -316,18 +316,18 @@ function scope0_2ActivityRunner(Context cx) returns error? {
     check HTTP_Response_2(cx);
 }
 
-function scope0_2FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope0_2FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope0_2ScopeFn(Context cx) returns () {
+function scope0_2ScopeFn(Context cx) returns error? {
     error? result = scope0_2ActivityRunner(cx);
     if result is error {
-        scope0_2FaultHandler(result, cx);
+        check scope0_2FaultHandler(result, cx);
     }
 }
 
-function start_Processes_Foo_process(Context cx) returns () {
+function start_Processes_Foo_process(Context cx) returns error? {
     return scope0_2ScopeFn(cx);
 }
 

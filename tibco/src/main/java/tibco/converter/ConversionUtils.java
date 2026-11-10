@@ -296,7 +296,7 @@ public final class ConversionUtils {
                             Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
         Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());
-        return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr)));
+        return new Expression.Check(new Expression.FunctionCall(predicateTestFn, List.of(value, xPathExpr)));
     }
 
     // Passes an explicit "boolean" typedesc argument to xmldata:transform instead of relying on
@@ -305,7 +305,7 @@ public final class ConversionUtils {
                             Scope.Flow.Activity.Expression.XPath predicate) {
         String predicateTestFn = cx.getXPathFunction();
         Expression xPathExpr = templateExpression(predicate, context, cx.getFromContextFn());
-        return new Expression.CheckPanic(new Expression.FunctionCall(predicateTestFn,
+        return new Expression.Check(new Expression.FunctionCall(predicateTestFn,
                 List.of(value, xPathExpr, new Expression.BallerinaExpression(BOOLEAN.toString()))));
     }
 
@@ -400,12 +400,14 @@ public final class ConversionUtils {
 
     public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc processFunctionType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
-                List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
+                List.of(new BallerinaModel.Parameter("cx", cx.contextType())),
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(NIL, BallerinaModel.TypeDesc.BuiltinType.ERROR));
     }
 
     public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc scopeFnType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
-                List.of(new BallerinaModel.Parameter("cx", cx.contextType())));
+                List.of(new BallerinaModel.Parameter("cx", cx.contextType())),
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(NIL, BallerinaModel.TypeDesc.BuiltinType.ERROR));
     }
 
     public static @NotNull Expression.FieldAccess getXMLResultFromContext(Expression.VariableReference context) {
@@ -421,7 +423,8 @@ public final class ConversionUtils {
     public static @NotNull BallerinaModel.TypeDesc.FunctionTypeDesc errorFlowFnType(ProcessContext cx) {
         return new BallerinaModel.TypeDesc.FunctionTypeDesc(
                 List.of(new BallerinaModel.Parameter("err", BallerinaModel.TypeDesc.BuiltinType.ERROR),
-                        new BallerinaModel.Parameter("cx", cx.contextType())));
+                        new BallerinaModel.Parameter("cx", cx.contextType())),
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(NIL, BallerinaModel.TypeDesc.BuiltinType.ERROR));
     }
 
     public static @NotNull BallerinaModel.TypeDesc toTypeDesc(XSD xsd) {

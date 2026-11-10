@@ -65,13 +65,13 @@ function FailLog(Context cx) returns error? {
 function FailThrow(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     error var1 = error("tns:CheckFault", faultName = "tns:CheckFault", payload = var0);
-    panic var1;
+    return var1;
 }
 
 function MainScopeActivityRunner(Context cx) returns error? {
     check Check(cx);
-    boolean CheckToOkTaken = test_branching_MainProcess_predicate_0(xml `<root></root>`, cx);
-    boolean CheckToAltTaken = test_branching_MainProcess_predicate_1(xml `<root></root>`, cx);
+    boolean CheckToOkTaken = check test_branching_MainProcess_predicate_0(xml `<root></root>`, cx);
+    boolean CheckToAltTaken = check test_branching_MainProcess_predicate_1(xml `<root></root>`, cx);
     boolean CheckToFailTaken = !(CheckToOkTaken || CheckToAltTaken);
     if CheckToFailTaken {
         check FailLog(cx);
@@ -104,14 +104,14 @@ function MainScopeActivityRunner(Context cx) returns error? {
     }
 }
 
-function MainScopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function MainScopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function MainScopeScopeFn(Context cx) returns () {
+function MainScopeScopeFn(Context cx) returns error? {
     error? result = MainScopeActivityRunner(cx);
     if result is error {
-        MainScopeFaultHandler(result, cx);
+        check MainScopeFaultHandler(result, cx);
     }
 }
 
@@ -148,7 +148,7 @@ function OkLog(Context cx) returns error? {
 function Recover(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     error var1 = error("tns:RiskyFault", faultName = "tns:RiskyFault", payload = var0);
-    panic var1;
+    return var1;
 }
 
 function Risky(Context cx) returns error? {
@@ -166,16 +166,16 @@ function Risky(Context cx) returns error? {
     log:printInfo(var3.toString());
 }
 
-function start_test_branching_MainProcess(Context params) returns () {
-    MainScopeScopeFn(params);
+function start_test_branching_MainProcess(Context params) returns error? {
+    return MainScopeScopeFn(params);
 }
 
-function test_branching_MainProcess_predicate_0(xml input, Context cx) returns boolean {
-    return checkpanic xmldata:transform(input, `${getFromContext(cx, "mode")} = 'ok'`, boolean);
+function test_branching_MainProcess_predicate_0(xml input, Context cx) returns boolean|error {
+    return check xmldata:transform(input, `${getFromContext(cx, "mode")} = 'ok'`, boolean);
 }
 
-function test_branching_MainProcess_predicate_1(xml input, Context cx) returns boolean {
-    return checkpanic xmldata:transform(input, `${getFromContext(cx, "mode")} = 'alt'`, boolean);
+function test_branching_MainProcess_predicate_1(xml input, Context cx) returns boolean|error {
+    return check xmldata:transform(input, `${getFromContext(cx, "mode")} = 'alt'`, boolean);
 }
 
 function addToContext(Context context, string varName, xml value) {
