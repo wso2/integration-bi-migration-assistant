@@ -1246,12 +1246,11 @@ public final class XmlToTibcoModelParser {
 
     private static Flow.Activity.Reply parseReply(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
-        String operation = element.getAttribute("operation");
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         ActivityInputOutput result = getActivityInputOutput(element);
-        return new Flow.Activity.Reply(name, operation, partnerLink, portType, result.inputBindings,
-                result.targets, element, cx.fileName());
+        return new Flow.Activity.Reply(name, element.getAttribute("operation"), partnerLink, portType,
+                result.inputBindings, result.targets, element, cx.fileName());
     }
 
     private static Flow.Activity.Empty parseEmpty(ProcessContext cx, Element element) {
@@ -1272,18 +1271,17 @@ public final class XmlToTibcoModelParser {
     }
 
     private static Flow.Activity.Pick.OnMessage parseOnMessage(ProcessContext cx, Element element) {
-        String operation = element.getAttribute("operation");
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         String variable = element.getAttribute("variable");
         Scope scope = parseScope(cx, getFirstChildWithTag(element, "scope"));
-        return new Flow.Activity.Pick.OnMessage(operation, partnerLink, portType, variable, scope, cx.fileName());
+        return new Flow.Activity.Pick.OnMessage(element.getAttribute("operation"), partnerLink, portType, variable,
+                scope, cx.fileName());
     }
 
     private static Flow.Activity.Invoke parseInvoke(ProcessContext cx, Element element) {
         String inputVariable = element.getAttribute("inputVariable");
         String outputVariable = element.getAttribute("outputVariable");
-        String operation = element.getAttribute("operation");
         String partnerLink = element.getAttribute("partnerLink");
         List<Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         Collection<Flow.Activity.Target> targets = new ArrayList<>();
@@ -1307,7 +1305,7 @@ public final class XmlToTibcoModelParser {
                 default -> throw new ParserException("Unsupported invoke element tag: " + tag, element);
             }
         }
-        return new Flow.Activity.Invoke(inputVariable, outputVariable, operation, partnerLink,
+        return new Flow.Activity.Invoke(inputVariable, outputVariable, element.getAttribute("operation"), partnerLink,
                 inputBindings, targets, sources, element, cx.fileName());
     }
 
