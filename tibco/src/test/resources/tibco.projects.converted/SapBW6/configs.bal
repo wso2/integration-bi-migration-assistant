@@ -1,0 +1,9 @@
+configurable string Resources_SAP_Finance_Password = ?;
+configurable string Resources_SAP_Sales_AppServer = ?;
+configurable string Resources_SAP_Sales_Client = ?;
+configurable string Resources_SAP_Sales_LogonGroup = ?;
+configurable string Resources_SAP_Sales_MsgServer = ?;
+configurable string Resources_SAP_Sales_Password = ?;
+configurable string Resources_SAP_Sales_SystemName = ?;
+configurable string Resources_SAP_Sales_SystemNumber = ?;
+configurable string Resources_SAP_Sales_UserName = ?;
