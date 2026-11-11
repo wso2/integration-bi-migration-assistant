@@ -194,7 +194,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Reply(String name, Method operation, String partnerLink, String portType,
+            record Reply(String name, String operation, String partnerLink, String portType,
                          List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
                          Element element, String fileName)
                     implements Flow.Activity, Flow.Activity.ActivityWithTargets, Flow.Activity.ActivityWithName {
@@ -231,7 +231,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
                     return onMessage().scope();
                 }
 
-                public record OnMessage(Method operation, String partnerLink, String portType, String variable,
+                public record OnMessage(String operation, String partnerLink, String portType, String variable,
                         Scope scope, String fileName) {
 
                 }
@@ -764,7 +764,7 @@ public record Scope(String name, Collection<Flow> flows, Collection<Sequence> se
 
             }
 
-            record Invoke(String inputVariable, String outputVariable, Method operation, String partnerLink,
+            record Invoke(String inputVariable, String outputVariable, String operation, String partnerLink,
                           List<Flow.Activity.InputBinding> inputBindings, Collection<Flow.Activity.Target> targets,
                           List<Flow.Activity.Source> sources,
                           Element element, String fileName)

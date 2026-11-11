@@ -72,7 +72,8 @@ function JMS_Send(Context cx) returns error? {
 function Log(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Queue-Receiver"/>     <xsl:template name="Transform0" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Queue-Receiver"/>
+     <xsl:template name="Transform0" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                     
     <message>
@@ -94,7 +95,8 @@ function Log(Context cx) returns error? {
 function Log_End(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>     <xsl:template name="Transform3" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>
+     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                     
     <message>
@@ -140,7 +142,8 @@ function Sleep(Context cx) returns error? {
 function Topic_Send(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>     <xsl:template name="Transform4" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:ns0="http://www.tibco.com/namespaces/tnt/plugins/timer" xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms" version="2.0"><xsl:param name="JMS-Get"/>
+     <xsl:template name="Transform4" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/jms">
                     
     <Body>
