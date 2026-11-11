@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Collection<Chunk> parameterUsage) {
 
@@ -52,9 +54,11 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
     private static final Collection<String> XPATH_ATTRIBUTES =
             Set.of("select", "test", "match", "xpath", "from", "count");
 
+    private static final Pattern LOCAL_VARIABLE = Pattern.compile("<\\w+:variable\\b[^>]*?\\sname=[\"']([^\"']*)[\"']");
+
     static AnalysisResult analyse(String xsltContent) {
         Collection<Chunk> parameters = parameters(xsltContent);
-        ParseResult result = parse(xsltContent);
+        ParseResult result = parse(xsltContent, localVariables(xsltContent));
         return new AnalysisResult(parameters, result.paths(), result.parameterUsage());
     }
 
@@ -68,7 +72,13 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         return Collections.unmodifiableList(parameterChunks);
     }
 
-    private static ParseResult parse(String xsltContent) {
+    private static Set<String> localVariables(String xsltContent) {
+        return LOCAL_VARIABLE.matcher(xsltContent).results()
+                .map(match -> match.group(1))
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static ParseResult parse(String xsltContent, Set<String> localVariables) {
         int index = 0;
         List<Chunk> paths = new ArrayList<>();
         List<Chunk> parameters = new ArrayList<>();
@@ -87,7 +97,8 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                     if (xsltContent.charAt(index) == '>') {
                         index++;
                         inTag = false;
-                        ParseResult parseResult = parseTag(xsltContent.substring(start, index), start);
+                        ParseResult parseResult = parseTag(xsltContent.substring(start, index), start,
+                                localVariables);
                         paths.addAll(parseResult.paths());
                         parameters.addAll(parseResult.parameterUsage());
                     }
@@ -96,7 +107,8 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                     index++;
                     if (inTag) {
                         inTag = false;
-                        ParseResult parseResult = parseTag(xsltContent.substring(start, index), start);
+                        ParseResult parseResult = parseTag(xsltContent.substring(start, index), start,
+                                localVariables);
                         paths.addAll(parseResult.paths());
                         parameters.addAll(parseResult.parameterUsage());
                     }
@@ -108,7 +120,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         return new ParseResult(paths, parameters);
     }
 
-    static ParseResult parseTag(String tagDefn, int offset) {
+    static ParseResult parseTag(String tagDefn, int offset, Set<String> localVariables) {
         assert tagDefn.startsWith("<") && tagDefn.endsWith(">");
         if (tagDefn.startsWith("<!--") && tagDefn.endsWith("-->")) {
             // this is a comment, skip it
@@ -152,7 +164,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                             Predicate.not((ch) -> stringTerminator.map(c -> c.equals(ch)).orElse(false) || ch == '>'));
             String attributeValue = tagDefn.substring(index, attributeValueEnd);
             if (XPATH_ATTRIBUTES.contains(attributeName)) {
-                ParseResult parseResult = parseXPath(attributeValue, index + offset);
+                ParseResult parseResult = parseXPath(attributeValue, index + offset, localVariables);
                 paths.addAll(parseResult.paths());
                 parameters.addAll(parseResult.parameterUsage());
             }
@@ -178,13 +190,14 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         return index;
     }
 
-    static ParseResult parseXPath(String xPath, int offset) {
+    static ParseResult parseXPath(String xPath, int offset, Set<String> localVariables) {
         List<Chunk> paths = new ArrayList<>();
         List<Chunk> parameters = new ArrayList<>();
         int index = 0;
         int start = -1;
         int paranthesisCount = 0;
         boolean insidePath = false;
+        boolean rootedAtLocalVariable = false;
         while (index < xPath.length()) {
             char c = xPath.charAt(index);
             switch (c) {
@@ -204,6 +217,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                     parameters.add(new Chunk(xPath.substring(paramStart, index), paramStart + offset, index + offset));
                     start = index;
                     insidePath = true;
+                    rootedAtLocalVariable = localVariables.contains(xPath.substring(paramStart + 1, index));
                 }
                 case '(' -> {
                     if (insidePath) {
@@ -214,8 +228,10 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                     if (insidePath) {
                         paranthesisCount--;
                         if (paranthesisCount < 0) {
-                            paths.add(
-                                    new Chunk(xPath.substring(start, index), start + offset, index + offset));
+                            if (!rootedAtLocalVariable) {
+                                paths.add(
+                                        new Chunk(xPath.substring(start, index), start + offset, index + offset));
+                            }
                             insidePath = false;
                             paranthesisCount = 0;
                         }
@@ -224,12 +240,15 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
                 case '/' -> {
                     if (!insidePath) {
                         insidePath = true;
+                        rootedAtLocalVariable = false;
                         start = index;
                     }
                 }
                 case ' ' | ',' -> {
                     if (insidePath) {
-                        paths.add(new Chunk(xPath.substring(start, index), start + offset, index + offset));
+                        if (!rootedAtLocalVariable) {
+                            paths.add(new Chunk(xPath.substring(start, index), start + offset, index + offset));
+                        }
                         insidePath = false;
                     }
                 }
@@ -237,7 +256,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
             index++;
         }
         // We have bound check to handle $foo (TODO: need to think of a better way)
-        if (insidePath && index == xPath.length()) {
+        if (insidePath && !rootedAtLocalVariable && index == xPath.length()) {
             paths.add(new Chunk(xPath.substring(start, index), start + offset, index + offset));
         }
 

@@ -94,6 +94,22 @@ public class AnalysisResultTest {
     }
 
     @Test
+    public void testRootWrapperSkipsLocalVariablePaths() {
+        String xslt = "<xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" version=\"2.0\">"
+                + "<xsl:param name=\"Start\"/><xsl:template match=\"/\">"
+                + "<xsl:variable name=\"v\" select=\"$Start/item\"/>"
+                + "<xsl:value-of select=\"concat($v/child, $Start/other)\"/>"
+                + "<xsl:value-of select=\"$v/child\"/>"
+                + "</xsl:template></xsl:stylesheet>";
+        TransformPipeline pipeline = new TransformPipeline();
+        pipeline.append(new IgnoreRootWrapper());
+        String result = pipeline.apply(null, xslt);
+        assertTrue(result.contains("<xsl:variable name=\"v\" select=\"$Start/root/item\"/>"), result);
+        assertTrue(result.contains("select=\"concat($v/child, $Start/root/other)\""), result);
+        assertTrue(result.contains("<xsl:value-of select=\"$v/child\"/>"), result);
+    }
+
+    @Test
     public void testMissingParameterSkipsStylesheetProcessingInstruction() {
         String xslt = "<?xml-stylesheet type=\"text/xsl\" href=\"a.xsl\"?>"
                 + "<xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" version=\"2.0\">"
