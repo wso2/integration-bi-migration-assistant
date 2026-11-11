@@ -39,7 +39,8 @@ function HTTP_Receiver(Context cx) returns error? {
 function Log_Attempt(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="idx"/>     <xsl:template name="Transform1" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="idx"/>
+     <xsl:template name="Transform1" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema">
                         
     <message>
@@ -63,7 +64,8 @@ function Retry_Send(Context cx) returns error? {
     xml var1 = xml `<root></root>`;
     int var2 = 0;
     xml var4 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error"/><xsl:param name="idx"/>     <xsl:template name="Transform0" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns2="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error"/><xsl:param name="idx"/>
+     <xsl:template name="Transform0" match="/">
         <errorConditionResult><xsl:value-of select="boolean($idx &gt; 3 or contains($_error/root/ns2:ErrorReport/Msg, 'fatal'))"/></errorConditionResult>
     </xsl:template>
 </xsl:stylesheet>`);
