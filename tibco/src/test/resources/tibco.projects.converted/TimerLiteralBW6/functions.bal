@@ -21,26 +21,26 @@ function scopeActivityRunner(Context cx) returns error? {
     check LogTick(cx);
 }
 
-function scopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function scopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scopeScopeFn(Context cx) returns () {
+function scopeScopeFn(Context cx) returns error? {
     error? result = scopeActivityRunner(cx);
     if result is error {
-        scopeFaultHandler(result, cx);
+        check scopeFaultHandler(result, cx);
     }
 }
 
-function start_test_timer_Literal(Context params) returns () {
-    scopeScopeFn(params);
+function start_test_timer_Literal(Context params) returns error? {
+    return scopeScopeFn(params);
 }
 
-function trigger_test_timer_Literal() returns () {
+function trigger_test_timer_Literal() returns error? {
     map<SharedVariableContext> jobSharedVariables = {};
     map<xml> paramXML = {};
     Context cx = initContext(paramXML, jobSharedVariables);
-    start_test_timer_Literal(cx);
+    check start_test_timer_Literal(cx);
 }
 
 listener TimerListener test_timer_Literal_timer = new ({interval: 900, startTime: check time:utcFromString("2024-01-01T08:00:00Z"), runOnce: false}, trigger_test_timer_Literal);
@@ -56,24 +56,28 @@ type TimerConfig record {|
 
 class ProcessTimerJob {
     *task:Job;
-    private final function () returns () run;
+    private final function () returns error? run;
 
-    function init(function () returns () run) {
+    function init(function () returns error? run) {
         self.run = run;
     }
 
     public function execute() {
-        self.run();
+        error? result = self.run();
+        // A failed process instance must not stop the timer, so it is only logged.
+        if result is error {
+            log:printError("Timer-triggered process failed", result);
+        }
     }
 }
 
 class TimerListener {
     private final TimerConfig|error config;
-    private final function () returns () run;
+    private final function () returns error? run;
     private task:JobId? jobId = ();
 
     // An error is a Timer the converter could not resolve; it fails the program at startup.
-    function init(TimerConfig|error config, function () returns () run) {
+    function init(TimerConfig|error config, function () returns error? run) {
         self.config = config;
         self.run = run;
     }

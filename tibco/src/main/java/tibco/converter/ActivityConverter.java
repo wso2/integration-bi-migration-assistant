@@ -21,7 +21,6 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Action.RemoteMethodCallAction;
 import common.BallerinaModel.Expression.Check;
-import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.MethodCall;
 import common.BallerinaModel.Expression.StringConstant;
@@ -103,6 +102,12 @@ final class ActivityConverter {
     private static final TransformPipeline xsltTransformer = createXsltTransformer();
     // TIBCO global variables are referenced as %%name%% and can appear inside a larger value.
     private static final Pattern SUBSTITUTION_TOKEN = Pattern.compile("%%([^%]+)%%");
+    // The failed attempt is exposed as $_error so that an errorLoop condition can test it; addToContext keeps only the
+    // children of the value, hence the root wrapper.
+    private static final String ERROR_LOOP_ERROR_VARIABLE = "_error";
+    private static final String ERROR_LOOP_ERROR_REPORT = "<root><ns:ErrorReport "
+            + "xmlns:ns=\"http://www.tibco.com/pe/EngineTypes\"><StackTrace>${%1$s.stackTrace().toString()}"
+            + "</StackTrace><Msg>${%1$s.message()}</Msg><MsgCode></MsgCode></ns:ErrorReport></root>";
 
     private ActivityConverter() {
     }
@@ -122,7 +127,7 @@ final class ActivityConverter {
         if (activity instanceof Empty) {
             return Optional.empty();
         }
-        // The fault handler panics with the caught error in place of calling a Rethrow function.
+        // The fault handler returns the caught error in place of calling a Rethrow function.
         if (activity instanceof InlineActivity.Rethrow) {
             return Optional.empty();
         }
@@ -221,6 +226,8 @@ final class ActivityConverter {
             case InlineActivity.SOAPSendReply soapSendReply -> convertSoapSendReply(cx, result, soapSendReply);
             case Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup loopGroup ->
                     convertLoopGroup(cx, result, loopGroup);
+            case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
+                    convertErrorLoopGroup(cx, errorLoopGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -284,11 +291,17 @@ final class ActivityConverter {
                                                                String balClientType, Library library,
                                                                String resourceKind, String resourceName) {
         cx.addLibraryImport(library);
-        VarDeclStatment placeholder = new VarDeclStatment(typeFrom(balClientType),
-                "placeholder_" + resourceKind + "_connection",
-                new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
+        // Typed as `client|error` so the `check` below returns the error to the scope's fault handlers while the
+        // placeholder stays a usable client for the rest of the generated body. Both names are generated so that
+        // several missing resources in one activity don't redeclare the same variables.
+        VarDeclStatment missingClientError = new VarDeclStatment(UnionTypeDesc.of(typeFrom(balClientType), ERROR),
+                cx.getAnnonVarName(),
+                new FunctionCall("error", List.of(new StringConstant(
                         "Missing " + resourceKind.toUpperCase(Locale.ROOT) + " client resource '" + resourceName
-                                + "'. Cannot generate call.")))));
+                                + "'. Cannot generate call."))));
+        body.add(missingClientError);
+        VarDeclStatment placeholder = new VarDeclStatment(typeFrom(balClientType), cx.getAnnonVarName(),
+                new Check(missingClientError.ref()));
         body.add(placeholder);
         return placeholder.ref();
     }
@@ -1168,7 +1181,7 @@ final class ActivityConverter {
         loop.elementSlot().ifPresent(s -> sb.append(addToContext(cx, new VariableReference(element), s)));
         AnalysisResult analysisResult = cx.processContext.getAnalysisResult();
         String scopeFn = analysisResult.getControlFlowFunctions(loop.body()).scopeFn();
-        sb.append(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        sb.append(new CallStatement(new Check(new FunctionCall(scopeFn, List.of(cx.contextVarRef())))));
         // TODO: need a cleaner way to do this
         VarDeclStatment resultDecl = new VarDeclStatment(XML, "result",
                 ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
@@ -1183,6 +1196,56 @@ final class ActivityConverter {
         sb.append(new Statement.VarAssignStatement(result, resultUpdate));
         sb.append("}");
         return stmtFrom(sb.toString());
+    }
+
+    // TIBCO evaluates the error condition only after the body fails, with the 1-based index of the failed attempt;
+    // the body's scope function is trapped because, depending on its fault handler, an uncaught fault either
+    // panics or is returned.
+    private static ActivityConversionResult convertErrorLoopGroup(
+            ActivityContext cx, Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoop) {
+        List<Statement> body = new ArrayList<>();
+        if (errorLoop.suspendAfterErrorRetry()) {
+            cx.log(WARN, "errorLoop group '" + errorLoop.name()
+                    + "' suspends the process after the last retry; the converted group fails instead.");
+            body.add(new Comment("FIXME: suspendAfterErrorRetry is not supported; "
+                    + "the group fails instead of suspending the process"));
+        }
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(), defaultEmptyXml());
+        body.add(resultValue);
+        VarDeclStatment index = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
+        body.add(index);
+        String error = cx.getAnnonVarName();
+        XsltTransformResult condition = xsltTransform(cx, resultValue.ref(), errorLoop.errorCondition());
+        addNonStandardXsltWarning(condition.nonStandardFunctions(), body);
+        body.addAll(condition.statements());
+        VarDeclStatment conditionOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), condition.expression());
+        VarDeclStatment retryLimitReached = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
+                exprFrom("(%s/*).toString().trim() == \"true\"".formatted(conditionOutput.ref())));
+        String publishIndex = errorLoop.indexSlot()
+                .map(indexSlot -> addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(index.ref())),
+                        indexSlot).toString())
+                .orElse("");
+        body.add(stmtFrom("""
+                while true {
+                    %1$s = %1$s + 1;
+                    %2$s
+                    error? %3$s = trap %4$s(%5$s);
+                    if %3$s is () {
+                        break;
+                    }
+                    %6$s
+                    %7$s
+                    %8$s
+                    if %9$s {
+                        return %3$s;
+                    }
+                }
+                """.formatted(index.ref(), publishIndex, error,
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(errorLoop.body()).scopeFn(),
+                cx.contextVarRef(), addToContext(cx, new XMLTemplate(ERROR_LOOP_ERROR_REPORT.formatted(error)),
+                        ERROR_LOOP_ERROR_VARIABLE),
+                conditionOutput, retryLimitReached, retryLimitReached.ref())));
+        return new ActivityConversionResult(resultValue.ref(), body);
     }
 
     private static ActivityConversionResult convertREST(
@@ -1257,14 +1320,19 @@ final class ActivityConverter {
         body.add(addToContext(cx, input, "Start"));
         Optional<String> processFn = cx.getProcessFunction(callProcess.processName());
         if (processFn.isPresent()) {
-            body.add(new CallStatement(new FunctionCall(processFn.get(), List.of(cx.contextVarRef()))));
+            body.add(new CallStatement(new Check(new FunctionCall(processFn.get(), List.of(cx.contextVarRef())))));
         } else {
             cx.log(SEVERE, "WARNING: Failed to find process for " + callProcess.processName()
                     + ". Using placeholder call.");
             body.add(new Comment(
                     "WARNING: Missing process '" + callProcess.processName() + "'. Cannot generate call."));
-            body.add(new CallStatement(new CheckPanic(new FunctionCall("error", List.of(new StringConstant(
-                    "Missing process '" + callProcess.processName() + "'. Cannot generate call."))))));
+            // Held in an `error?` variable so the `check` returns the error to the scope's fault handlers
+            // without making the remainder of the activity body unreachable.
+            VarDeclStatment missingProcessError = new VarDeclStatment(UnionTypeDesc.of(NIL, ERROR),
+                    cx.getAnnonVarName(), new FunctionCall("error", List.of(new StringConstant(
+                            "Missing process '" + callProcess.processName() + "'. Cannot generate call."))));
+            body.add(missingProcessError);
+            body.add(new CallStatement(new Check(missingProcessError.ref())));
         }
 
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
@@ -1493,7 +1561,7 @@ final class ActivityConverter {
         // repeatUntil.counterName() is not threaded into the context
         body.add(stmtFrom("""
                 while true {
-                    %1$s(%2$s);
+                    check %1$s(%2$s);
                     %3$s
                     if %4$s {
                         break;
@@ -1555,7 +1623,7 @@ final class ActivityConverter {
                 exprFrom("error(\"%s\", faultName = \"%s\", payload = %s)".formatted(
                         escapedFaultName, escapedFaultName, inputBindings.resultRef())));
         body.add(errorValue);
-        body.add(stmtFrom(String.format("panic %s;", errorValue.varName())));
+        body.add(new Statement.Return<>(errorValue.ref()));
         return body;
     }
 
@@ -1572,7 +1640,7 @@ final class ActivityConverter {
         String scopeFn =
                 cx.processContext.getAnalysisResult().getControlFlowFunctions(activityWithScope.scope())
                         .scopeFn();
-        return List.of(new CallStatement(new FunctionCall(scopeFn, List.of(cx.contextVarRef()))));
+        return List.of(new CallStatement(new Check(new FunctionCall(scopeFn, List.of(cx.contextVarRef())))));
     }
 
     private static List<Statement> convertUnhandledActivity(ActivityContext cx,
@@ -2240,8 +2308,7 @@ final class ActivityConverter {
     }
 
     private static @NotNull String dataFormatLiteral(String value) {
-        return "\"" + ConversionUtils.escapeString(value)
-                .replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") + "\"";
+        return "\"" + ConversionUtils.escapeStringLiteral(value) + "\"";
     }
 
     private static ActivityConversionResult createSQLOperation(
@@ -2399,7 +2466,7 @@ final class ActivityConverter {
                         %2$s = check %3$s->post(%4$s, postData);
                     }
                     _ => {
-                        panic error("Unsupported method: " + %1$s);
+                        return error("Unsupported method: " + %1$s);
                     }
                 }
                 """.formatted(method.varName(), result.varName(), client.varName(),
@@ -2631,7 +2698,7 @@ final class ActivityConverter {
             ActivityContext cx, ProjectContext.FunctionData startFunction, VariableReference input) {
         List<Statement> body = new ArrayList<>();
         body.add(addToContext(cx, input, "Start"));
-        body.add(new CallStatement(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef()))));
+        body.add(new CallStatement(new Check(new FunctionCall(startFunction.name(), List.of(cx.contextVarRef())))));
         VarDeclStatment result = new VarDeclStatment(XML, cx.getAnnonVarName(),
                 new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "result"));
         body.add(result);

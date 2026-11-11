@@ -20,6 +20,7 @@ package tibco.converter;
 
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.BinaryLogical;
+import common.BallerinaModel.Expression.Check;
 import common.BallerinaModel.Expression.FunctionCall;
 import common.BallerinaModel.Expression.Not;
 import common.BallerinaModel.Expression.StringConstant;
@@ -240,8 +241,8 @@ final class ActivityFlowGenerator {
             }
             // Transition predicates resolve their `$var` references from the context, so the input document is
             // only the XPath evaluation root and carries no data.
-            Expression condition = new FunctionCall(cx.predicateFunction(xPath),
-                    List.of(new XMLTemplate("<root></root>"), context));
+            Expression condition = new Check(new FunctionCall(cx.predicateFunction(xPath),
+                    List.of(new XMLTemplate("<root></root>"), context)));
             if (!linksIntoFlow.contains(source.linkName())) {
                 conditionalTaken.add(condition);
                 continue;

@@ -85,19 +85,19 @@ function scopeActivityRunner(Context cx) returns error? {
     check PublishOrders(cx);
 }
 
-function scopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function scopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scopeScopeFn(Context cx) returns () {
+function scopeScopeFn(Context cx) returns error? {
     error? result = scopeActivityRunner(cx);
     if result is error {
-        scopeFaultHandler(result, cx);
+        check scopeFaultHandler(result, cx);
     }
 }
 
-function start_test_sftp_ArchiveProcess(Context params) returns () {
-    scopeScopeFn(params);
+function start_test_sftp_ArchiveProcess(Context params) returns error? {
+    return scopeScopeFn(params);
 }
 
 function sftpDeleteFiles(ftp:Client sftpClient, string remotePath) returns error? {

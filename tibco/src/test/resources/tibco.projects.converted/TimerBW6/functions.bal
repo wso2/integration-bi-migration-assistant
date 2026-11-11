@@ -21,26 +21,26 @@ function scopeActivityRunner(Context cx) returns error? {
     check LogTick(cx);
 }
 
-function scopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function scopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scopeScopeFn(Context cx) returns () {
+function scopeScopeFn(Context cx) returns error? {
     error? result = scopeActivityRunner(cx);
     if result is error {
-        scopeFaultHandler(result, cx);
+        check scopeFaultHandler(result, cx);
     }
 }
 
-function start_test_timer_Scheduled(Context params) returns () {
-    scopeScopeFn(params);
+function start_test_timer_Scheduled(Context params) returns error? {
+    return scopeScopeFn(params);
 }
 
-function trigger_test_timer_Scheduled() returns () {
+function trigger_test_timer_Scheduled() returns error? {
     map<SharedVariableContext> jobSharedVariables = {};
     map<xml> paramXML = {};
     Context cx = initContext(paramXML, jobSharedVariables);
-    start_test_timer_Scheduled(cx);
+    check start_test_timer_Scheduled(cx);
 }
 
 function LogTick_1(Context cx) returns error? {
@@ -61,26 +61,26 @@ function scope_1ActivityRunner(Context cx) returns error? {
     check LogTick_1(cx);
 }
 
-function scope_1FaultHandler(error err, Context cx) returns () {
-    panic err;
+function scope_1FaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function scope_1ScopeFn(Context cx) returns () {
+function scope_1ScopeFn(Context cx) returns error? {
     error? result = scope_1ActivityRunner(cx);
     if result is error {
-        scope_1FaultHandler(result, cx);
+        check scope_1FaultHandler(result, cx);
     }
 }
 
-function start_test_timer_Configured(Context params) returns () {
-    scope_1ScopeFn(params);
+function start_test_timer_Configured(Context params) returns error? {
+    return scope_1ScopeFn(params);
 }
 
-function trigger_test_timer_Configured() returns () {
+function trigger_test_timer_Configured() returns error? {
     map<SharedVariableContext> jobSharedVariables = {};
     map<xml> paramXML = {};
     Context cx = initContext(paramXML, jobSharedVariables);
-    start_test_timer_Configured(cx);
+    check start_test_timer_Configured(cx);
 }
 
 listener TimerListener test_timer_Scheduled_timer = new ({interval: 5, startTime: check time:utcFromString("2024-01-01T00:00:02Z"), runOnce: false}, trigger_test_timer_Scheduled);
@@ -97,24 +97,28 @@ type TimerConfig record {|
 
 class ProcessTimerJob {
     *task:Job;
-    private final function () returns () run;
+    private final function () returns error? run;
 
-    function init(function () returns () run) {
+    function init(function () returns error? run) {
         self.run = run;
     }
 
     public function execute() {
-        self.run();
+        error? result = self.run();
+        // A failed process instance must not stop the timer, so it is only logged.
+        if result is error {
+            log:printError("Timer-triggered process failed", result);
+        }
     }
 }
 
 class TimerListener {
     private final TimerConfig|error config;
-    private final function () returns () run;
+    private final function () returns error? run;
     private task:JobId? jobId = ();
 
     // An error is a Timer the converter could not resolve; it fails the program at startup.
-    function init(TimerConfig|error config, function () returns () run) {
+    function init(TimerConfig|error config, function () returns error? run) {
         self.config = config;
         self.run = run;
     }

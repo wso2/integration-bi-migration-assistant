@@ -127,6 +127,31 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 }
 
             }
+
+            // A "Repeat On Error Until True" group. errorCondition is a stylesheet that writes the boolean value of
+            // the TIBCO error condition into a CONDITION_RESULT element, so its $variables bind like a mapping's.
+            record ErrorLoopGroup(Element element, String name, InputBinding inputBinding, Optional<String> indexSlot,
+                                  Scope.Flow.Activity.Expression.XSLT errorCondition,
+                                  boolean suspendAfterErrorRetry, ExplicitTransitionGroup body, String fileName)
+                    implements ExplicitTransitionGroup.NestedGroup {
+
+                public static final String CONDITION_RESULT = "errorConditionResult";
+
+                public ErrorLoopGroup {
+                    assert errorCondition != null : "errorLoop group must have an error condition";
+                    assert body != null : "errorLoop group must have a body";
+                }
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.LOOP_GROUP;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
         }
 
         public record Transition(String from, String to) {

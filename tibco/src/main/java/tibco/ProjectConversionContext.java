@@ -44,7 +44,8 @@ public final class ProjectConversionContext implements LoggingContext {
     private final String name;
     private final Set<TibcoToBalConverter.JavaDependencies> javaDependencies = new LinkedHashSet<>();
     private final SortedMap<String, SortedSet<String>> javaClassesByPackage = new TreeMap<>();
-    private Map<String, String> modulePropertyDefaults = Map.of();
+    private TibcoToBalConverter.ModulePropertyDefaults modulePropertyDefaults =
+            TibcoToBalConverter.ModulePropertyDefaults.NONE;
     private final ConversionContext cx;
     private final Set<Resource> sharedResources = new HashSet<>();
     private final Set<Process> sharedProcesses = new HashSet<>();
@@ -100,12 +101,17 @@ public final class ProjectConversionContext implements LoggingContext {
         return Collections.unmodifiableSortedMap(javaClassesByPackage);
     }
 
-    public void setModulePropertyDefaults(Map<String, String> modulePropertyDefaults) {
-        this.modulePropertyDefaults = Map.copyOf(modulePropertyDefaults);
+    public void setModulePropertyDefaults(TibcoToBalConverter.ModulePropertyDefaults modulePropertyDefaults) {
+        assert modulePropertyDefaults != null : "modulePropertyDefaults must not be null";
+        this.modulePropertyDefaults = modulePropertyDefaults;
     }
 
     public @NotNull Optional<String> modulePropertyDefault(String propName) {
-        return Optional.ofNullable(modulePropertyDefaults.get(propName));
+        return modulePropertyDefaults.resolved(propName);
+    }
+
+    public @NotNull Optional<String> defaultProfileValue(String propName) {
+        return Optional.ofNullable(modulePropertyDefaults.defaultProfile().get(propName));
     }
 
     public ConversionContext conversionContext() {

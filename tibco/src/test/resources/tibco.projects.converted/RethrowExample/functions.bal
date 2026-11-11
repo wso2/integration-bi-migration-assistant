@@ -67,20 +67,20 @@ function scope0ActivityRunner(Context cx) returns error? {
     check Log(cx);
 }
 
-function scope0FaultHandler(error err, Context cx) returns () {
-    checkpanic CatchAll(cx);
-    checkpanic ErrorLog(cx);
-    panic err;
+function scope0FaultHandler(error err, Context cx) returns error? {
+    check CatchAll(cx);
+    check ErrorLog(cx);
+    return err;
 }
 
-function scope0ScopeFn(Context cx) returns () {
+function scope0ScopeFn(Context cx) returns error? {
     error? result = scope0ActivityRunner(cx);
     if result is error {
-        scope0FaultHandler(result, cx);
+        check scope0FaultHandler(result, cx);
     }
 }
 
-function start_main_process(Context cx) returns () {
+function start_main_process(Context cx) returns error? {
     return scope0ScopeFn(cx);
 }
 
