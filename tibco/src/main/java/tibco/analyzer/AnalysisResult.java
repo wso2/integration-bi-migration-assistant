@@ -45,7 +45,7 @@ public interface AnalysisResult {
         return new AnalysisResultImpl(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                ActivityNameIndex.empty(), Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyMap(), Collections.emptySet(), Collections.emptySet(), TibcoAnalysisReport.empty());
     }
 
@@ -55,7 +55,11 @@ public interface AnalysisResult {
 
     Collection<Scope.Flow.Activity> sources(Scope.Flow.Link link);
 
-    Optional<Scope.Flow.Activity> findActivity(String name);
+    /**
+     * Finds the activity with the given name that is visible from the referring activity, searching the referrer's
+     * scope first and then its enclosing scopes.
+     */
+    Optional<Scope.Flow.Activity> findActivityInScopeOf(Scope.Flow.Activity referrer, String name);
 
     String variableType(Process process, String variableName);
 
