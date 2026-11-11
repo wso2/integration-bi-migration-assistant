@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpws:process exitOnStandardFault="no"
+    name="test.sap.OrderSyncProcess" suppressJoinFailure="yes"
+    targetNamespace="http://xmlns.example.com/test/sap"
+    xmlns:bpws="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+    xmlns:sca-bpel="http://docs.oasis-open.org/ns/opencsa/sca-bpel/200801"
+    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <bpws:variables>
+        <bpws:variable name="CreateSalesOrders-input" sca-bpel:internal="true"/>
+        <bpws:variable name="CreateSalesOrders" sca-bpel:internal="true"/>
+        <bpws:variable name="LookupBalance-input" sca-bpel:internal="true"/>
+        <bpws:variable name="LookupBalance" sca-bpel:internal="true"/>
+        <bpws:variable name="PostTransactional-input" sca-bpel:internal="true"/>
+        <bpws:variable name="PostTransactional" sca-bpel:internal="true"/>
+        <bpws:variable name="SalesSAPConnection" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://ns.tibco.com/bw/sharedresource/sapconnection}SAPConnection" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Sales.SAPConnection</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+        <bpws:variable name="FinanceSAPConnection" sca-bpel:hotUpdate="false"
+            sca-bpel:privateProperty="true" sca-bpel:property="yes"
+            sca-bpel:sharedResourceType="{http://ns.tibco.com/bw/sharedresource/sapconnection}SAPConnection" type="xsd:string">
+            <bpws:from>
+                <bpws:literal>Finance.SAPConnection</bpws:literal>
+            </bpws:from>
+        </bpws:variable>
+    </bpws:variables>
+    <bpws:scope name="scope">
+        <bpws:flow name="flow">
+            <bpws:links>
+                <bpws:link name="StartToCreateSalesOrders" tibex:linkType="SUCCESS"/>
+                <bpws:link name="CreateSalesOrdersToLookupBalance" tibex:linkType="SUCCESS"/>
+                <bpws:link name="LookupBalanceToPostTransactional" tibex:linkType="SUCCESS"/>
+            </bpws:links>
+            <bpws:extensionActivity>
+                <tibex:receiveEvent createInstance="yes" eventTimeout="0" name="Start"
+                    xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:sources>
+                        <bpws:source linkName="StartToCreateSalesOrders"/>
+                    </bpws:sources>
+                    <tibex:eventSource>
+                        <tibex:StartEvent xmlns:tibex="http://www.tibco.com/bpel/2007/extensions"/>
+                    </tibex:eventSource>
+                </tibex:receiveEvent>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="CreateSalesOrders-input" name="CreateSalesOrders"
+                    outputVariable="CreateSalesOrders" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="StartToCreateSalesOrders"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="CreateSalesOrdersToLookupBalance"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/xmlns/sap/Sales.SAPConnection/Z_CREATE_ORDERS&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;CreateSalesOrders-input&quot; match=&quot;/&quot;>&lt;tns1:RequestInputType>&lt;RfcRequest>&lt;I_MODE>&lt;xsl:value-of select=&quot;'S'&quot;/>&lt;/I_MODE>&lt;I_HEADER>&lt;SALES_ORG>&lt;xsl:value-of select=&quot;'1000'&quot;/>&lt;/SALES_ORG>&lt;CHANNEL>&lt;xsl:value-of select=&quot;'WEB'&quot;/>&lt;/CHANNEL>&lt;/I_HEADER>&lt;I_ORDERS>&lt;item>&lt;ORDER_ID>&lt;xsl:value-of select=&quot;'ORD-1'&quot;/>&lt;/ORDER_ID>&lt;QUANTITY>&lt;xsl:value-of select=&quot;5&quot;/>&lt;/QUANTITY>&lt;/item>&lt;item>&lt;ORDER_ID>&lt;xsl:value-of select=&quot;'ORD-2'&quot;/>&lt;/ORDER_ID>&lt;QUANTITY>&lt;xsl:value-of select=&quot;2&quot;/>&lt;/QUANTITY>&lt;/item>&lt;/I_ORDERS>&lt;I_EMPTY/>&lt;CS_STATUS>&lt;STATUS>&lt;xsl:value-of select=&quot;'NEW'&quot;/>&lt;/STATUS>&lt;/CS_STATUS>&lt;/RfcRequest>&lt;/tns1:RequestInputType>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sap.InvokeRequestResponse"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:internalization="http://ns.tibco.com/bw/palette/sap/internalization"
+                            xmlns:sap="http://ns.tibco.com/bw/palette/sap"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sap#//InvokeRequestResponse"/>
+                                    <value connectionReference="SalesSAPConnection" operation="Z_CREATE_ORDERS"
+                                        schemaPath="/SapBW6/Schemas/.SAP/Sales.SAPConnection/functionModules/Z_CREATE_ORDERS.xsd"
+                                        xsi:type="sap:InvokeRequestResponse">
+                                        <internalConfig bLastForInput="true" bLastForOutput="true"
+                                            connRefName="Sales.SAPConnection"
+                                            inputXsdElement="http://www.tibco.com/xmlns/sap/Sales.SAPConnection/Z_CREATE_ORDERS##RfcRequest"
+                                            outputXsdElement="http://www.tibco.com/xmlns/sap/Sales.SAPConnection/Z_CREATE_ORDERS##RfcResponse"
+                                            xsi:type="internalization:InvokeRFC"/>
+                                    </value>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="LookupBalance-input" name="LookupBalance"
+                    outputVariable="LookupBalance" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="CreateSalesOrdersToLookupBalance"/>
+                    </bpws:targets>
+                    <bpws:sources>
+                        <bpws:source linkName="LookupBalanceToPostTransactional"/>
+                    </bpws:sources>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/xmlns/sap/Finance.SAPConnection/Z_GET_BALANCE&quot; version=&quot;2.0&quot;>&lt;xsl:param name=&quot;CreateSalesOrders&quot;/>&lt;xsl:template name=&quot;LookupBalance-input&quot; match=&quot;/&quot;>&lt;tns1:RequestInputType>&lt;RfcRequest>&lt;I_COMPANY>&lt;xsl:value-of select=&quot;$CreateSalesOrders/RfcResponse/E_COMPANY&quot;/>&lt;/I_COMPANY>&lt;/RfcRequest>&lt;/tns1:RequestInputType>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sap.InvokeRequestResponse"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:internalization="http://ns.tibco.com/bw/palette/sap/internalization"
+                            xmlns:sap="http://ns.tibco.com/bw/palette/sap"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sap#//InvokeRequestResponse"/>
+                                    <value connectionReference="FinanceSAPConnection" operation="Z_GET_BALANCE"
+                                        schemaPath="/SapBW6/Schemas/.SAP/Finance.SAPConnection/functionModules/Z_GET_BALANCE.xsd"
+                                        xsi:type="sap:InvokeRequestResponse">
+                                        <internalConfig bLastForInput="true" bLastForOutput="true"
+                                            connRefName="Finance.SAPConnection"
+                                            inputXsdElement="http://www.tibco.com/xmlns/sap/Finance.SAPConnection/Z_GET_BALANCE##RfcRequest"
+                                            outputXsdElement="http://www.tibco.com/xmlns/sap/Finance.SAPConnection/Z_GET_BALANCE##RfcResponse"
+                                            xsi:type="internalization:InvokeRFC"/>
+                                    </value>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+            <bpws:extensionActivity>
+                <tibex:activityExtension inputVariable="PostTransactional-input" name="PostTransactional"
+                    outputVariable="PostTransactional" xmlns:tibex="http://www.tibco.com/bpel/2007/extensions">
+                    <bpws:targets>
+                        <bpws:target linkName="LookupBalanceToPostTransactional"/>
+                    </bpws:targets>
+                    <tibex:inputBindings>
+                        <tibex:inputBinding expression="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xa;&lt;xsl:stylesheet xmlns:xsl=&quot;http://www.w3.org/1999/XSL/Transform&quot; xmlns:tns1=&quot;http://www.tibco.com/xmlns/sap/Finance.SAPConnection/Z_GET_BALANCE&quot; version=&quot;2.0&quot;>&lt;xsl:template name=&quot;PostTransactional-input&quot; match=&quot;/&quot;>&lt;tns1:RequestInputType>&lt;RfcRequest>&lt;I_COMPANY>&lt;xsl:value-of select=&quot;'1000'&quot;/>&lt;/I_COMPANY>&lt;/RfcRequest>&lt;/tns1:RequestInputType>&lt;/xsl:template>&lt;/xsl:stylesheet>" expressionLanguage="urn:oasis:names:tc:wsbpel:2.0:sublang:xslt1.0"/>
+                    </tibex:inputBindings>
+                    <tibex:config>
+                        <bwext:BWActivity activityTypeID="bw.sap.InvokeRequestResponse"
+                            xmlns:activityconfig="http://tns.tibco.com/bw/model/activityconfig"
+                            xmlns:bwext="http://tns.tibco.com/bw/model/core/bwext"
+                            xmlns:internalization="http://ns.tibco.com/bw/palette/sap/internalization"
+                            xmlns:sap="http://ns.tibco.com/bw/palette/sap"
+                            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                            <activityConfig>
+                                <properties name="config" xsi:type="activityconfig:EMFProperty">
+                                    <type href="http://ns.tibco.com/bw/palette/sap#//InvokeRequestResponse"/>
+                                    <value connectionReference="FinanceSAPConnection" operation="Z_GET_BALANCE"
+                                        schemaPath="/SapBW6/Schemas/.SAP/Finance.SAPConnection/functionModules/Z_GET_BALANCE.xsd"
+                                        transactional="true" xsi:type="sap:InvokeRequestResponse"/>
+                                </properties>
+                            </activityConfig>
+                        </bwext:BWActivity>
+                    </tibex:config>
+                </tibex:activityExtension>
+            </bpws:extensionActivity>
+        </bpws:flow>
+    </bpws:scope>
+</bpws:process>

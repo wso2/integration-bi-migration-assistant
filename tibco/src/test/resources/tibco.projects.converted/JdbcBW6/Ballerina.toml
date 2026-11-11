@@ -7,7 +7,7 @@ distribution = "2201.12.0"
 [build-options]
 observabilityIncluded = true
 
-[[platform.java17.dependency]]
+[[platform.java21.dependency]]
 artifactId = "postgresql"
 version = "42.7.2"
 groupId = "org.postgresql"

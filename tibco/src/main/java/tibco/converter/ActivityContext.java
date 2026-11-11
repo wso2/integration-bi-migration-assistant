@@ -216,6 +216,14 @@ public class ActivityContext implements LoggingContext {
         return processContext.getSftpPutFilesFunction();
     }
 
+    public @NotNull String getSapRfcParametersFunction() {
+        return processContext.getSapRfcParametersFunction();
+    }
+
+    public @NotNull String getSapRfcToXmlFunction() {
+        return processContext.getSapRfcToXmlFunction();
+    }
+
     public String getFilesInPathFunction() {
         return processContext.getFilesInPathFunction();
     }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:sapconnection="http://ns.tibco.com/bw/sharedresource/sapconnection" xmi:id="_financeResource" name="Finance.SAPConnection" type="sapconnection:SAPConnection">
+  <jndi:configuration xsi:type="sapconnection:SAPConnection" xmi:id="_financeConfiguration" clientConnName="Finance.SAPConnection.ClientConnection" connType="Dedicated Application Server" appServer="sap-finance.example.com" systemNumber="01" client="200" userName="FINANCE_INT" language="German" languageCode="D">
+    <substitutionBindings xmi:id="_financePassword" template="password" propName="/Resources/SAP/Finance/Password"/>
+  </jndi:configuration>
+</jndi:namedResource>
