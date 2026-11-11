@@ -272,7 +272,8 @@ public class ActivityConversionTest {
                 }
 
                 @Override
-                public Optional<Scope.Flow.Activity> findActivity(String name) {
+                public Optional<Scope.Flow.Activity> findActivityInScopeOf(Scope.Flow.Activity referrer,
+                                                                           String name) {
                     return Optional.empty();
                 }
 

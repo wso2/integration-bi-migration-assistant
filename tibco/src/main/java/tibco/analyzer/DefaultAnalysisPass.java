@@ -65,17 +65,10 @@ public final class DefaultAnalysisPass extends AnalysisPass {
         Map<Process, Map<String, String>> variableTypes = Map.of(process, cx.getVariableTypes());
         Map<Process, Collection<Scope>> scopes = Map.of(process,
                 cx.getDependencyGraphs().keySet());
-        record ActivityNames(String name, Scope.Flow.Activity activity) {
-        }
-        Map<String, Scope.Flow.Activity> activityByName = cx.getActivities().stream()
-                .filter(each -> each instanceof Scope.Flow.Activity.ActivityWithName)
-                .map(each -> (Scope.Flow.Activity.ActivityWithName) each)
-                .filter(each -> each.getName().isPresent())
-                .map(each -> new ActivityNames(each.getName().get(), each))
-                .collect(Collectors.toMap(ActivityNames::name, ActivityNames::activity));
         return new AnalysisResultImpl(cx.getDestinationMap(), cx.getSourceMap(),
                 activityData, partnerLinkBindings, cx.getQueryIndex(), inputTypeNames, outputTypeName, variableTypes,
-                cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes, activityByName,
+                cx.getDependencyGraphs(), cx.getControlFlowFunctions(), scopes,
+                ActivityNameIndex.from(cx.getEnclosingScopes()),
                 cx.getExplicitTransitionGroupDependencyGraph(), cx.getTransitionGroupControlFlowFunctions(),
                 cx.xsdTypes(), cx.reservedTypeNames(), Collections.emptySet(), TibcoAnalysisReport.empty()
         );

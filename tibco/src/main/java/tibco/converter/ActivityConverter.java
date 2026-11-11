@@ -1793,8 +1793,7 @@ final class ActivityConverter {
     private static ActivityConversionResult createAccumulateEnd(
             ActivityContext cx, ActivityExtension.Config.AccumulateEnd accumulateEnd,
             String resultName) {
-        AnalysisResult ar = cx.processContext.getAnalysisResult();
-        Activity source = ar.findActivity(accumulateEnd.activityName())
+        Activity source = cx.findActivityInScope(accumulateEnd.activityName())
                 .orElseThrow(() -> new IllegalStateException(
                         "Cannot find activity: " + accumulateEnd.activityName()));
         if (!(source instanceof Activity.ActivityWithOutput activityWithOutput &&

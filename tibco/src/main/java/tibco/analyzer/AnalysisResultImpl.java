@@ -49,7 +49,7 @@ final class AnalysisResultImpl implements AnalysisResult {
     private final Map<Scope, Graph<GraphNode>> dependencyGraphs;
     private final Map<Scope, ControlFlowFunctions> controlFlowFunctions;
     private final Map<Process, Collection<Scope>> scopes;
-    private final Map<String, Scope.Flow.Activity> activityByName;
+    private final ActivityNameIndex activityNameIndex;
     private final Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies;
     private final Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions;
     private final Map<String, XSD.XSDType> xsdTypes;
@@ -68,7 +68,7 @@ final class AnalysisResultImpl implements AnalysisResult {
                        Map<Scope, Graph<GraphNode>> dependencyGraphs,
                        Map<Scope, ControlFlowFunctions> controlFlowFunctions,
                        Map<Process, Collection<Scope>> scopes,
-                       Map<String, Scope.Flow.Activity> activityByName,
+                       ActivityNameIndex activityNameIndex,
                        Map<ExplicitTransitionGroup, Graph<GraphNode>> explicitTransitionGroupDependencies,
                        Map<ExplicitTransitionGroup, ControlFlowFunctions> explicitTransitionGroupControlFlowFunctions,
                        Map<String, XSD.XSDType> xsdTypes, Set<String> reservedTypeNames,
@@ -84,7 +84,7 @@ final class AnalysisResultImpl implements AnalysisResult {
         this.dependencyGraphs = dependencyGraphs;
         this.controlFlowFunctions = controlFlowFunctions;
         this.scopes = scopes;
-        this.activityByName = activityByName;
+        this.activityNameIndex = activityNameIndex;
         this.explicitTransitionGroupDependencies = explicitTransitionGroupDependencies;
         this.explicitTransitionGroupControlFlowFunctions = explicitTransitionGroupControlFlowFunctions;
         this.xsdTypes = xsdTypes;
@@ -114,8 +114,8 @@ final class AnalysisResultImpl implements AnalysisResult {
     }
 
     @Override
-    public Optional<Scope.Flow.Activity> findActivity(String name) {
-        return Optional.ofNullable(activityByName.get(name));
+    public Optional<Scope.Flow.Activity> findActivityInScopeOf(Scope.Flow.Activity referrer, String name) {
+        return activityNameIndex.find(referrer, name);
     }
 
     @Override
@@ -246,7 +246,7 @@ final class AnalysisResultImpl implements AnalysisResult {
                 combineMap(this.dependencyGraphs, other.dependencyGraphs),
                 combineMap(this.controlFlowFunctions, other.controlFlowFunctions),
                 combineMap(this.scopes, other.scopes),
-                combineMap(this.activityByName, other.activityByName),
+                this.activityNameIndex.combine(other.activityNameIndex),
                 combineMap(this.explicitTransitionGroupDependencies, other.explicitTransitionGroupDependencies),
                 combineMap(this.explicitTransitionGroupControlFlowFunctions,
                         other.explicitTransitionGroupControlFlowFunctions),
