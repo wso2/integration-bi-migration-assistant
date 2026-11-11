@@ -21,9 +21,7 @@ package tibco.converter;
 import common.BallerinaModel;
 import common.BallerinaModel.Expression;
 import common.BallerinaModel.Expression.Check;
-import common.BallerinaModel.Expression.CheckPanic;
 import common.BallerinaModel.Expression.FunctionCall;
-import common.BallerinaModel.Expression.Panic;
 import common.BallerinaModel.Expression.StringConstant;
 import common.BallerinaModel.Expression.TypeCheckExpression;
 import common.BallerinaModel.Expression.VariableReference;
@@ -80,7 +78,6 @@ import static common.BallerinaModel.TypeDesc.BuiltinType.NIL;
 import static common.BallerinaModel.TypeDesc.BuiltinType.STRING;
 import static common.BallerinaModel.TypeDesc.BuiltinType.XML;
 import static common.ConversionUtils.exprFrom;
-import static common.ConversionUtils.stmtFrom;
 import static tibco.converter.Library.FILE;
 import static tibco.converter.Library.JMS;
 
@@ -89,16 +86,42 @@ public class ProcessConverter {
     private ProcessConverter() {
     }
 
-    static @NotNull BallerinaModel.Service convertStartActivityService(
-            ProcessContext cx, ExplicitTransitionGroup group) {
-        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity().get();
+    static @NotNull TypeConversionResult convertStartActivity(ProcessContext cx, ExplicitTransitionGroup group) {
+        ExplicitTransitionGroup.InlineActivity startActivity = group.startActivity().orElseThrow();
         return switch (startActivity) {
-            case HttpEventSource httpEventSource -> createHTTPServiceForStartActivity(cx, group, httpEventSource);
-            case FileEventSource fileEventSource -> createFileEventServiceForStartActivity(cx, group, fileEventSource);
+            case HttpEventSource httpEventSource ->
+                    serviceResult(createHTTPServiceForStartActivity(cx, group, httpEventSource));
+            case FileEventSource fileEventSource ->
+                    serviceResult(createFileEventServiceForStartActivity(cx, group, fileEventSource));
             case ExplicitTransitionGroup.InlineActivity.JMSQueueEventSource jmsQueueEventSource ->
-                    createJMSListenerServiceForStartActivity(cx, group, jmsQueueEventSource);
-            default -> createFallbackServices(cx, startActivity);
+                    serviceResult(createJMSListenerServiceForStartActivity(cx, group, jmsQueueEventSource));
+            // A service needs a listener; without one the generated `service ... on {` does not parse
+            default -> new TypeConversionResult(List.of(),
+                    Optional.of(createFallbackStarterFunction(cx, startActivity)));
         };
+    }
+
+    private static @NotNull TypeConversionResult serviceResult(BallerinaModel.Service service) {
+        assert service != null : "Service cannot be null";
+        return new TypeConversionResult(List.of(service), Optional.empty());
+    }
+
+    private static BallerinaModel.@NotNull Function createFallbackStarterFunction(
+            ProcessContext cx, ExplicitTransitionGroup.InlineActivity startActivity) {
+        assert cx != null : "Process context cannot be null";
+        assert startActivity != null : "Start activity cannot be null";
+        cx.log(LoggingUtils.Level.WARN,
+                "Unsupported start activity %s generating fallback function".formatted(startActivity.name()));
+        List<Statement> body = List.of(
+                new Statement.Comment("FIXME: unsupported start activity: %s".formatted(startActivity.name())),
+                new Statement.Comment(("FIXME: replace this function with a listener and service that builds "
+                        + "a Context via %s and calls %s").formatted(cx.getInitContextFn(),
+                        cx.getProcessStartFunction().name()))
+        );
+        return new BallerinaModel.Function(Optional.empty(),
+                cx.projectContext.allocateModuleSymbol(
+                        "unsupported_" + cx.process.name() + "_" + startActivity.name()),
+                List.of(), Optional.empty(), new BallerinaModel.BlockFunctionBody(body));
     }
 
     private static BallerinaModel.Service createFileEventServiceForStartActivity(ProcessContext cx,
@@ -152,9 +175,10 @@ public class ProcessConverter {
         body.add(contextDecl);
 
         body.add(new Statement.CallStatement(
-                new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
+                new Check(new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref())))));
         return new BallerinaModel.Remote(
-                new BallerinaModel.Function(Optional.empty(), event, List.of(parameter), Optional.empty(),
+                new BallerinaModel.Function(Optional.empty(), event, List.of(parameter),
+                        Optional.of(processFnType.returnType()),
                         new BallerinaModel.BlockFunctionBody(body)));
     }
 
@@ -166,24 +190,6 @@ public class ProcessConverter {
                 new BallerinaModel.Listener.FileListener(name, new StringConstant(filePath), true);
         cx.projectContext.addListnerDeclartion(name, listener, List.of(), List.of(FILE));
         return new VariableReference(listener.name());
-    }
-
-    private static BallerinaModel.Service createFallbackServices(ProcessContext cx,
-                                                                 ExplicitTransitionGroup.InlineActivity startActivity) {
-        cx.log(LoggingUtils.Level.WARN,
-                "Unsupported start activity %s generating fallback service".formatted(startActivity.name()));
-        List<Statement> body = List.of(
-                new Statement.Comment("FIXME: service for start activity: %s".formatted(startActivity.name())),
-                new Statement.Comment(
-                        "FIXME: call %s from fixed service".formatted(cx.getProcessStartFunction().name()))
-        );
-
-        BallerinaModel.Remote remoteFn = new BallerinaModel.Remote(
-                new BallerinaModel.Function(Optional.empty(), "onStart", List.of(), Optional.empty(),
-                        new BallerinaModel.BlockFunctionBody(body)));
-
-        return new BallerinaModel.Service("\"" + ConversionUtils.sanitizes(startActivity.name()) + "\"",
-                List.of(), Optional.empty(), List.of(), List.of(), List.of(), List.of(remoteFn), Optional.empty());
     }
 
     private static BallerinaModel.Service createJMSListenerServiceForStartActivity(
@@ -211,7 +217,8 @@ public class ProcessConverter {
         body.addAll(initJobSharedVariables(cx.projectContext, jobSharedVariables.ref()));
         body.add(Statement.IfElseStatement.ifStatement(common.ConversionUtils.exprFrom(
                         "%s !is %s".formatted(parameter.name(), ConversionUtils.Constants.JMS_TEXT_MESSAGE)),
-                List.of(common.ConversionUtils.stmtFrom("panic error(\"Unsupported JMS message type\");"))));
+                List.of(new Return<>(new FunctionCall("error",
+                        List.of(new StringConstant("Unsupported JMS message type")))))));
         VarDeclStatment content =
                 new VarDeclStatment(STRING, "content", new Expression.FieldAccess(parameter.ref(), "content"));
         body.add(content);
@@ -228,9 +235,10 @@ public class ProcessConverter {
         body.add(contextDecl);
 
         body.add(new Statement.CallStatement(
-                new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
+                new Check(new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref())))));
         return new BallerinaModel.Remote(
-                new BallerinaModel.Function(Optional.empty(), "onMessage", List.of(parameter), Optional.empty(),
+                new BallerinaModel.Function(Optional.empty(), "onMessage", List.of(parameter),
+                        Optional.of(processFnType.returnType()),
                         new BallerinaModel.BlockFunctionBody(body)));
     }
 
@@ -302,7 +310,7 @@ public class ProcessConverter {
         // TODO: it is better if we can reuse the same logic as Process6 where we use the intrinsic and return
         //  http response. But we need to refactor how deal with return bindings
         body.add(new Statement.CallStatement(
-                new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
+                new Check(new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref())))));
         VarDeclStatment resultDecl =
                         new VarDeclStatment(XML, "response",
                                         ConversionUtils.getXMLResultFromContext(contextDecl.ref()));
@@ -317,7 +325,7 @@ public class ProcessConverter {
         });
         body.add(new Return<>(resultDecl.ref()));
         return new BallerinaModel.Resource("'default[string... path]", "",
-                List.of(parameter), Optional.of(XML), body);
+                List.of(parameter), Optional.of(UnionTypeDesc.of(XML, ERROR)), body);
     }
 
     static @NotNull BallerinaModel.TextDocument convertBody(ProcessContext cx, Process5 process,
@@ -369,10 +377,11 @@ public class ProcessConverter {
         cx.addModuleDeclaration("listener %s %s_timer = new (%s, %s);".formatted(
                 cx.projectContext.getTimerListenerClass(), processName,
                 timerConfigExpr(cx, process, receiveEvent.timer().orElseThrow()), triggerFn));
-        return new BallerinaModel.Function(triggerFn, List.of(), NIL, startProcess(cx, readsTimerOutput(receiveEvent)
-                ? "{\"%s\": %s()}".formatted(ConversionUtils.Constants.CONTEXT_INPUT_NAME,
-                        cx.projectContext.getTimerOutputFn())
-                : "{}"));
+        return new BallerinaModel.Function(triggerFn, List.of(), ConversionUtils.processFunctionType(cx).returnType(),
+                startProcess(cx, readsTimerOutput(receiveEvent)
+                        ? "{\"%s\": %s()}".formatted(ConversionUtils.Constants.CONTEXT_INPUT_NAME,
+                                cx.projectContext.getTimerOutputFn())
+                        : "{}"));
     }
 
     // A Timer that can't be resolved becomes an error config, so the program fails at startup with the reason
@@ -609,7 +618,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             Expression expr) {
         return new BallerinaModel.Function(cx.predicateFunction(predicate),
                 List.of(new Parameter("input", XML), new Parameter("cx", cx.contextType())),
-                BOOLEAN, List.of(new Return<>(expr)));
+                UnionTypeDesc.of(BOOLEAN, ERROR), List.of(new Return<>(expr)));
     }
 
     static @NotNull TypeConversionResult convertTypes(ProcessContext cx, Process6 process) {
@@ -625,7 +634,8 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
     @NotNull
     static BallerinaModel.Function createMainFunction(ProcessContext cx, Process5 process) {
-        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(), Optional.empty(),
+        return new BallerinaModel.Function(Optional.of("public"), "main", List.of(),
+                Optional.of(ConversionUtils.processFunctionType(cx).returnType()),
                 new BallerinaModel.BlockFunctionBody(startProcess(cx, "{}")));
     }
 
@@ -647,7 +657,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         body.add(contextDecl);
 
         body.add(new Statement.CallStatement(
-                new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref()))));
+                new Check(new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref())))));
         return body;
     }
 
@@ -722,14 +732,14 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         }
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         return generateActivityFlowFunctionInner(cx, activities, errorHandlerFunction,
-                errorFlowFnType.returnType(), CheckPanic::new, errorFlowFnType.parameters());
+                errorFlowFnType.returnType(), Check::new, errorFlowFnType.parameters());
     }
 
     private static BallerinaModel.@NotNull Function defaultErrorHandlerFunction(ProcessContext cx,
                                                                                 String errorHandlerFunction) {
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         List<Parameter> parameters = errorFlowFnType.parameters();
-        List<Statement> body = List.of(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
+        List<Statement> body = List.of(new Return<>(new VariableReference("err")));
         return new BallerinaModel.Function(errorHandlerFunction, parameters, errorFlowFnType.returnType(), body);
     }
 
@@ -747,11 +757,12 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                     case Process6 process6 -> cx.getAnalysisResult().getControlFlowFunctions(
                             process6.scope());
                 };
-        body.add(new Statement.CallStatement(new FunctionCall(controlFlowFunctions.scopeFn(), List.of(params))));
+        body.add(new Return<>(new FunctionCall(controlFlowFunctions.scopeFn(), List.of(params))));
 
         return new BallerinaModel.Function(cx.isShared(process) ? Optional.of("public") : Optional.empty(),
                 startFuncData.name(),
-                List.of(new Parameter(params.varName(), cx.contextType())), Optional.of(NIL),
+                List.of(new Parameter(params.varName(), cx.contextType())),
+                Optional.of(ConversionUtils.scopeFnType(cx).returnType()),
                 new BallerinaModel.BlockFunctionBody(body));
     }
 
@@ -821,7 +832,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 new Statement.IfElseStatement(
                         new TypeCheckExpression(result.ref(), ERROR),
                         List.of(new Statement.CallStatement(
-                                new FunctionCall(errorHandlerFn, List.of(result.ref(), context)))),
+                                new Check(new FunctionCall(errorHandlerFn, List.of(result.ref(), context))))),
                         List.of(), List.of()));
     }
 
@@ -867,16 +878,22 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         boolean lastHandlerAlwaysReturns = false;
         for (Scope.FaultHandler each : orderedFaultHandlers) {
             AnalysisResult.ActivityData data = analysisResult.from(each);
-            Statement invokeHandler = new Statement.CallStatement(new CheckPanic(
+            Statement invokeHandler = new Statement.CallStatement(new Check(
                     new FunctionCall(data.functionName(), List.of(new VariableReference(context.name())))));
             if (each instanceof Scope.Flow.Activity.Catch catchHandler) {
                 // Only the first matching typed catch runs for a given fault; catchAll (below) is the
                 // fallback reached only when no preceding catch matched.
                 List<Statement> matchedBody = new ArrayList<>();
-                catchHandler.faultVariable().ifPresent(faultVariable -> matchedBody.add(
-                        new Statement.CallStatement(new FunctionCall(cx.getAddToContextFn(),
-                                List.of(new VariableReference(context.name()), new StringConstant(faultVariable),
-                                        exprFrom("checkpanic err.detail()[\"payload\"].ensureType()"))))));
+                catchHandler.faultVariable().ifPresent(faultVariable -> {
+                    // A payload that isn't xml must not replace the fault being handled, and must not leave a
+                    // previous fault's payload in the variable, so the handler runs with an empty payload instead.
+                    VarDeclStatment payload = new VarDeclStatment(UnionTypeDesc.of(XML, ERROR), "payload",
+                            exprFrom("err.detail()[\"payload\"].ensureType()"));
+                    matchedBody.add(payload);
+                    matchedBody.add(new Statement.CallStatement(new FunctionCall(cx.getAddToContextFn(),
+                            List.of(new VariableReference(context.name()), new StringConstant(faultVariable),
+                                    exprFrom("%1$s is xml ? %1$s : xml ``".formatted(payload.varName()))))));
+                });
                 matchedBody.add(invokeHandler);
                 matchedBody.add(new Return<Expression>());
                 body.add(Statement.IfElseStatement.ifStatement(
@@ -891,9 +908,9 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             }
         }
         // Reachable only when no fault handler unconditionally handles every fault (i.e. no trailing
-        // catchAll): re-panic rather than silently swallowing a fault nothing matched.
+        // catchAll): rethrow to the enclosing scope rather than silently swallowing a fault nothing matched.
         if (!lastHandlerAlwaysReturns) {
-            body.add(stmtFrom(new Panic(new VariableReference("err")) + ";\n"));
+            body.add(new Return<>(new VariableReference("err")));
         }
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(scope).errorHandler();
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
@@ -914,7 +931,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         if (!TibcoFunctions.uuidParameters(xsltContent).isEmpty()) {
             arguments.add(ActivityConverter.xsltParameters(cx, xsltContent, exprFrom("{}")));
         }
-        Expression expression = new CheckPanic(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
+        Expression expression = new Check(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
                 arguments));
 
         return new ActivityConverter.XsltTransformResult(expression, nonStandardFunctions);

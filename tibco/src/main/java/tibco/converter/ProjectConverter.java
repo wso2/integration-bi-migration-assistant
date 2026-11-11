@@ -48,6 +48,7 @@ public class ProjectConverter {
             Collection<Resource.JDBCSharedResource> jdbcSharedResource,
             Collection<Resource.JMSSharedResource> jmsSharedResource,
             Collection<Resource.SFTPResource> sftpResources,
+            Collection<Resource.SAPConnectionResource> sapConnectionResources,
             Collection<Resource.DataFormatResource> dataFormatResources,
             Collection<Resource.SharedVariable> sharedVariables
     ) {
@@ -66,6 +67,7 @@ public class ProjectConverter {
                     jdbcSharedResource,
                     jmsSharedResource,
                     sftpResources,
+                    sapConnectionResources,
                     dataFormatResources,
                     sharedVariables).flatMap(Collection::stream);
         }
@@ -87,6 +89,7 @@ public class ProjectConverter {
                     mergeCollections(first.jdbcSharedResource, second.jdbcSharedResource),
                     mergeCollections(first.jmsSharedResource, second.jmsSharedResource),
                     mergeCollections(first.sftpResources, second.sftpResources),
+                    mergeCollections(first.sapConnectionResources, second.sapConnectionResources),
                     mergeCollections(first.dataFormatResources, second.dataFormatResources),
                     mergeCollections(first.sharedVariables, second.sharedVariables));
         }
@@ -184,21 +187,14 @@ public class ProjectConverter {
     }
 
     private static ProcessResult convertServices(ProjectContext cx, Process5 process) {
-        List<BallerinaModel.Service> startService;
-        Optional<BallerinaModel.Function> mainFn;
         if (isLifecycleProcess(process)) {
-            startService = List.of();
-            mainFn = Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process));
-        } else {
-            // Check if the group has a start activity before attempting to convert it
-            startService = process.transitionGroup().startActivity()
-                    .map(startActivity -> ProcessConverter.convertStartActivityService(cx.getProcessContext(process),
-                            process.transitionGroup()))
-                    .map(List::of)
-                    .orElse(List.of());
-            mainFn = Optional.empty();
+            return new ProcessResult(process, new ProcessConverter.TypeConversionResult(List.of(),
+                    Optional.of(ProcessConverter.createMainFunction(cx.getProcessContext(process), process))));
         }
-        return new ProcessResult(process, new ProcessConverter.TypeConversionResult(startService, mainFn));
+        return new ProcessResult(process, process.transitionGroup().startActivity()
+                .map(startActivity -> ProcessConverter.convertStartActivity(cx.getProcessContext(process),
+                        process.transitionGroup()))
+                .orElseGet(() -> new ProcessConverter.TypeConversionResult(List.of(), Optional.empty())));
     }
 
     private static boolean isLifecycleProcess(Process5 process) {
@@ -254,6 +250,9 @@ public class ProjectConverter {
         }
         for (Resource.SFTPResource resource : projectResources.sftpResources) {
             ResourceConvertor.convertSftpResource(cx, resource);
+        }
+        for (Resource.SAPConnectionResource resource : projectResources.sapConnectionResources) {
+            ResourceConvertor.convertSapConnectionResource(cx, resource);
         }
         for (Resource.DataFormatResource resource : projectResources.dataFormatResources) {
             cx.addDataFormatResource(resource, hasQualifiedFields(resource, schemas));

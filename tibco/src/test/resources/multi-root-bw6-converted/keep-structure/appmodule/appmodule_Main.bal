@@ -9,7 +9,7 @@ function CallHelper(Context cx) returns error? {
     xml var2 = check xslt:transform(var0, var1, cx.variables);
     xml var3 = transform(var2);
     addToContext(cx, "Start", var3);
-    sharedmodule:start_sharedmodule_subs_Helper(cx);
+    check sharedmodule:start_sharedmodule_subs_Helper(cx);
     xml var4 = cx.result;
     xml var5 = xml `<root>${var4}</root>`;
     addToContext(cx, "CallHelper", var5);
@@ -19,19 +19,19 @@ function MainScopeActivityRunner(Context cx) returns error? {
     check CallHelper(cx);
 }
 
-function MainScopeFaultHandler(error err, Context cx) returns () {
-    panic err;
+function MainScopeFaultHandler(error err, Context cx) returns error? {
+    return err;
 }
 
-function MainScopeScopeFn(Context cx) returns () {
+function MainScopeScopeFn(Context cx) returns error? {
     error? result = MainScopeActivityRunner(cx);
     if result is error {
-        MainScopeFaultHandler(result, cx);
+        check MainScopeFaultHandler(result, cx);
     }
 }
 
-function start_appmodule_Main(Context params) returns () {
-    MainScopeScopeFn(params);
+function start_appmodule_Main(Context params) returns error? {
+    return MainScopeScopeFn(params);
 }
 
 xmlns "http://www.tibco.com/bpel/2007/extensions" as tibex;

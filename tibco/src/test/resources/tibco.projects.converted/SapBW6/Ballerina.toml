@@ -1,0 +1,25 @@
+[package]
+org = "testOrg"
+name = "SapBW6"
+version = "0.1.0"
+distribution = "2201.12.0"
+
+[build-options]
+observabilityIncluded = true
+
+# TODO: Download SAP JCo 3.1 from the SAP Support Portal and set the path to sapjco3.jar. The native
+# library (sapjco3.dll / libsapjco3.so / libsapjco3.jnilib) must also be on the library path at runtime.
+[[platform.java21.dependency]]
+path = "<path-to-sapjco3.jar>"
+groupId = "com.sap"
+artifactId = "com.sap.conn.jco"
+version = "3.1.*"
+scope = "provided"
+
+# TODO: Set the path to sapidoc3.jar from the SAP Java IDoc Class Library.
+[[platform.java21.dependency]]
+path = "<path-to-sapidoc3.jar>"
+groupId = "com.sap"
+artifactId = "com.sap.conn.idoc"
+version = "3.1.*"
+scope = "provided"

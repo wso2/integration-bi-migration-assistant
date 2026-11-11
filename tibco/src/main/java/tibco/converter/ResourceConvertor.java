@@ -35,11 +35,13 @@ import tibco.model.Resource;
 import tibco.model.Resource.HTTPClientResource;
 import tibco.model.Resource.HTTPConnectionResource;
 import tibco.model.Resource.JDBCResource;
+import tibco.model.Resource.SAPConnectionResource;
 import tibco.model.Resource.SFTPResource;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -86,14 +88,15 @@ final class ResourceConvertor {
 
     public static void convertJDBCResource(ProjectContext cx, JDBCResource resource) {
         try {
+            String clientName = cx.getUtilityVarName(ConversionUtils.resourceNameFromPath(resource.path()));
+            Map<String, ModuleVar> configurables = new LinkedHashMap<>();
             NewExpression constructorCall = new NewExpression(List.of(
                     jdbcFieldValue(cx, resource, "dbURL", resource.dbUrl()),
                     jdbcFieldValue(cx, resource, "username", resource.userName()),
-                    jdbcFieldValue(cx, resource, "password", resource.password())));
-            ModuleVar resourceVar = new ModuleVar(cx.getUtilityVarName(
-                    ConversionUtils.resourceNameFromPath(resource.path())), "jdbc:Client",
+                    jdbcPasswordValue(cx, resource, clientName, configurables)));
+            ModuleVar resourceVar = new ModuleVar(clientName, "jdbc:Client",
                     Optional.of(new CheckPanic(constructorCall)), false, false);
-            cx.addResourceDeclaration(resource.path(), resourceVar, List.of(), List.of(Library.JDBC));
+            cx.addResourceDeclaration(resource.path(), resourceVar, configurables.values(), List.of(Library.JDBC));
             addJavaSQLConnector(cx, resource.path(), Stream.of(
                     jdbcResolvedValue(cx, resource, "jdbcDriver", resource.jdbcDriver()),
                     jdbcResolvedValue(cx, resource, "dbURL", resource.dbUrl()))
@@ -109,7 +112,18 @@ final class ResourceConvertor {
         return jdbcBindingName(resource, field)
                 .<Expression>map(propName -> new Expression.VariableReference(
                         cx.getOrAddConfigurableVariable(propName, STRING)))
-                .orElseGet(() -> new StringConstant(literal));
+                .orElseGet(() -> new StringConstant(ConversionUtils.escapeStringLiteral(literal)));
+    }
+
+    // Like SFTP secrets, a password the resource file carries as a literal still becomes a configurable, to keep it
+    // out of the generated source.
+    @NotNull
+    private static Expression jdbcPasswordValue(ProjectContext cx, JDBCResource resource, String clientName,
+                                                Map<String, ModuleVar> configurables) {
+        return jdbcBindingName(resource, "password")
+                .<Expression>map(propName -> new Expression.VariableReference(
+                        cx.getOrAddSecretConfigurableVariable(propName, STRING)))
+                .orElseGet(() -> requiredConfigurable(cx, clientName + "_password", STRING, configurables));
     }
 
     // A bound field's value is only known through the module property's default in META-INF/default.substvar; an
@@ -228,7 +242,7 @@ final class ResourceConvertor {
     private static Expression sftpAuthChosenAtRuntime(ProjectContext cx, SFTPResource resource, String clientName,
                                                       MappingField username, String privKeyAuthModuleProperty,
                                                       Map<String, ModuleVar> configurables) {
-        return new TernaryExpression(sftpModuleProperty(cx, privKeyAuthModuleProperty, BOOLEAN),
+        return new TernaryExpression(resourceModuleProperty(cx, privKeyAuthModuleProperty, BOOLEAN),
                 sftpPrivateKeyAuth(cx, resource, clientName, username, configurables),
                 sftpPasswordAuth(cx, resource, clientName, username, configurables));
     }
@@ -270,8 +284,9 @@ final class ResourceConvertor {
     private static Expression sftpSecretValue(ProjectContext cx, SFTPResource resource, String clientName,
                                               String field, Map<String, ModuleVar> configurables) {
         return sftpBindingName(resource, field)
-                .map(bindingName -> sftpModuleProperty(cx, bindingName, STRING))
-                .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, STRING, configurables));
+                .<Expression>map(bindingName -> new Expression.VariableReference(
+                        cx.getOrAddSecretConfigurableVariable(bindingName, STRING)))
+                .orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, STRING, configurables));
     }
 
     @NotNull
@@ -281,30 +296,19 @@ final class ResourceConvertor {
                                               Map<String, ModuleVar> configurables) {
         Optional<String> bindingName = sftpBindingName(resource, field);
         if (bindingName.isPresent()) {
-            return sftpModuleProperty(cx, bindingName.get(), type);
+            return resourceModuleProperty(cx, bindingName.get(), type);
         }
         Optional<String> literal = Optional.ofNullable(resource.configuration().get(field));
         if (literal.isPresent()) {
             if (type != INT) {
-                return new StringConstant(ConversionUtils.escapeString(literal.get()));
+                return new StringConstant(ConversionUtils.escapeStringLiteral(literal.get()));
             }
-            String trimmed = literal.get().trim();
-            if (!trimmed.isEmpty()) {
-                return parseIntLiteral(trimmed)
-                        .<Expression>map(Expression.IntConstant::new)
-                        .orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
+            if (!literal.get().isBlank()) {
+                return ConversionUtils.intLiteral(literal.get())
+                        .orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, type, configurables));
             }
         }
-        return defaultValue.orElseGet(() -> sftpConfigurable(cx, clientName + "_" + field, type, configurables));
-    }
-
-    @NotNull
-    private static Optional<Integer> parseIntLiteral(String literal) {
-        try {
-            return Optional.of(Integer.parseInt(literal));
-        } catch (NumberFormatException e) {
-            return Optional.empty();
-        }
+        return defaultValue.orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, type, configurables));
     }
 
     @NotNull
@@ -316,16 +320,142 @@ final class ResourceConvertor {
     }
 
     @NotNull
-    private static Expression sftpModuleProperty(ProjectContext cx, String propName, BallerinaModel.TypeDesc type) {
+    private static Expression resourceModuleProperty(ProjectContext cx, String propName, BallerinaModel.TypeDesc type) {
         return new Expression.VariableReference(cx.getOrAddConfigurableVariable(propName, type));
     }
 
     @NotNull
-    private static Expression sftpConfigurable(ProjectContext cx, String name, BallerinaModel.TypeDesc type,
-                                               Map<String, ModuleVar> configurables) {
+    private static Expression requiredConfigurable(ProjectContext cx, String name, BallerinaModel.TypeDesc type,
+                                                   Map<String, ModuleVar> configurables) {
         ModuleVar configurable = ModuleVar.configurable(cx.getUtilityVarName(name), type);
         configurables.put(configurable.name(), configurable);
         return new Expression.VariableReference(configurable.name());
+    }
+
+    // TIBCO's SAP Connection is a wrapper over SAP JCo, so each setting maps directly onto a jco.client.* property.
+    public static void convertSapConnectionResource(ProjectContext cx, SAPConnectionResource resource) {
+        try {
+            String connectionType = resource.configuration().getOrDefault("connType", "");
+            if (connectionType.toUpperCase(Locale.ROOT).contains("SNC")) {
+                throw new IllegalStateException("SNC SAP connections are not supported: " + connectionType);
+            }
+            String clientName = cx.getUtilityVarName(resource.name().isEmpty()
+                    ? ConversionUtils.resourceNameFromPath(resource.path()) : resource.name());
+            Map<String, ModuleVar> configurables = new LinkedHashMap<>();
+            List<MappingField> logonFields = List.of(
+                    sapClientProperty(cx, resource, clientName, "client", "jco.client.client", configurables),
+                    sapClientProperty(cx, resource, clientName, "userName", "jco.client.user", configurables),
+                    new MappingField("\"jco.client.passwd\"",
+                            sapSecretValue(cx, resource, clientName, "password", configurables)),
+                    new MappingField("\"jco.client.lang\"", sapLanguage(cx, resource, clientName, configurables)));
+            Expression config;
+            if (sapBindingName(resource, "msgServer").isPresent()
+                    && sapBindingName(resource, "appServer").isPresent()) {
+                // Both servers come from module properties, so the deployment decides: a message server value selects
+                // load balancing, as TIBCO profiles commonly leave it empty for a direct connection in development.
+                config = new Expression.BallerinaExpression("(%s)".formatted(new TernaryExpression(
+                        new Expression.BallerinaExpression("%s != \"\"".formatted(
+                                sapConfigValue(cx, resource, clientName, "msgServer", configurables))),
+                        sapLoadBalancedConfig(cx, resource, clientName, logonFields, configurables),
+                        sapApplicationServerConfig(cx, resource, clientName, logonFields, configurables))));
+            } else if (connectionType.equalsIgnoreCase("Load Balancing")) {
+                config = sapLoadBalancedConfig(cx, resource, clientName, logonFields, configurables);
+            } else {
+                config = sapApplicationServerConfig(cx, resource, clientName, logonFields, configurables);
+            }
+            ModuleVar resourceVar = new ModuleVar(clientName, "jco:Client", Optional.of(new CheckPanic(
+                    new NewExpression(List.of(new Expression.TypeCast(
+                            common.ConversionUtils.typeFrom("jco:AdvancedConfig"), config))))),
+                    false, false);
+            cx.addResourceDeclaration(resource.path(), resourceVar, configurables.values(),
+                    List.of(Library.SAP_JCO));
+            cx.addJavaDependency(TibcoToBalConverter.JavaDependencies.SAP_JCO);
+            cx.addJavaDependency(TibcoToBalConverter.JavaDependencies.SAP_IDOC);
+        } catch (Exception e) {
+            cx.registerResourceConversionFailure(resource);
+        }
+    }
+
+    @NotNull
+    private static MappingConstructor sapLoadBalancedConfig(ProjectContext cx, SAPConnectionResource resource,
+                                                            String clientName, List<MappingField> logonFields,
+                                                            Map<String, ModuleVar> configurables) {
+        return new MappingConstructor(Stream.concat(Stream.of(
+                        sapClientProperty(cx, resource, clientName, "msgServer", "jco.client.mshost", configurables),
+                        sapClientProperty(cx, resource, clientName, "systemName", "jco.client.r3name", configurables),
+                        sapClientProperty(cx, resource, clientName, "groupName", "jco.client.group", configurables)),
+                logonFields.stream()).toList());
+    }
+
+    @NotNull
+    private static MappingConstructor sapApplicationServerConfig(ProjectContext cx, SAPConnectionResource resource,
+                                                                 String clientName, List<MappingField> logonFields,
+                                                                 Map<String, ModuleVar> configurables) {
+        return new MappingConstructor(Stream.concat(Stream.of(
+                        sapClientProperty(cx, resource, clientName, "appServer", "jco.client.ashost", configurables),
+                        sapClientProperty(cx, resource, clientName, "systemNumber", "jco.client.sysnr",
+                                configurables)),
+                logonFields.stream()).toList());
+    }
+
+    @NotNull
+    private static MappingField sapClientProperty(ProjectContext cx, SAPConnectionResource resource,
+                                                  String clientName, String field, String jcoProperty,
+                                                  Map<String, ModuleVar> configurables) {
+        return new MappingField("\"" + jcoProperty + "\"",
+                sapConfigValue(cx, resource, clientName, field, configurables));
+    }
+
+    // JCo expects the one or two letter SAP language key (e.g. "I"), which the resource keeps in languageCode next to
+    // the display name in language.
+    @NotNull
+    private static Expression sapLanguage(ProjectContext cx, SAPConnectionResource resource, String clientName,
+                                          Map<String, ModuleVar> configurables) {
+        if (sapHasSetting(resource, "languageCode")) {
+            return sapConfigValue(cx, resource, clientName, "languageCode", configurables);
+        }
+        if (sapHasSetting(resource, "language")) {
+            cx.log(LoggingUtils.Level.WARN, "SAP connection " + resource.name() + ": language '"
+                    + resource.configuration().getOrDefault("language", "<module property>")
+                    + "' has no language key (languageCode); defaulting jco.client.lang to EN.");
+        }
+        return new StringConstant("EN");
+    }
+
+    private static boolean sapHasSetting(SAPConnectionResource resource, String field) {
+        return sapBindingName(resource, field).isPresent()
+                || !resource.configuration().getOrDefault(field, "").isBlank();
+    }
+
+    @NotNull
+    private static Expression sapSecretValue(ProjectContext cx, SAPConnectionResource resource, String clientName,
+                                             String field, Map<String, ModuleVar> configurables) {
+        return sapBindingName(resource, field)
+                .<Expression>map(bindingName -> new Expression.VariableReference(
+                        cx.getOrAddSecretConfigurableVariable(bindingName, STRING)))
+                .orElseGet(() -> requiredConfigurable(cx, clientName + "_" + field, STRING, configurables));
+    }
+
+    @NotNull
+    private static Expression sapConfigValue(ProjectContext cx, SAPConnectionResource resource, String clientName,
+                                             String field, Map<String, ModuleVar> configurables) {
+        Optional<String> bindingName = sapBindingName(resource, field);
+        if (bindingName.isPresent()) {
+            return resourceModuleProperty(cx, bindingName.get(), STRING);
+        }
+        String literal = resource.configuration().getOrDefault(field, "");
+        if (!literal.isBlank()) {
+            return new StringConstant(ConversionUtils.escapeString(literal));
+        }
+        return requiredConfigurable(cx, clientName + "_" + field, STRING, configurables);
+    }
+
+    @NotNull
+    private static Optional<String> sapBindingName(SAPConnectionResource resource, String field) {
+        return resource.substitutionBindings().stream()
+                .filter(binding -> binding.template().equals(field))
+                .map(Resource.SubstitutionBinding::propName)
+                .findFirst();
     }
 
     public static void convertHttpSharedResource(ProjectContext cx, Resource.HTTPSharedResource resource) {

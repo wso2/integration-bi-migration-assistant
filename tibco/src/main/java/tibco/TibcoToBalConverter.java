@@ -66,6 +66,7 @@ import javax.xml.parsers.ParserConfigurationException;
 public class TibcoToBalConverter {
 
     private static final String DEFAULT_PROFILE = "default.substvar";
+    private static final String PASSWORD_PROPERTY_TYPE = "Password";
 
     private TibcoToBalConverter() {
     }
@@ -93,12 +94,15 @@ public class TibcoToBalConverter {
         var jmsSharedResourceParser = new JMSSharedResourceParsingUnit();
         java.util.Set<Resource.JMSSharedResource> jmsSharedResource = jmsSharedResourceParser.parse(pcx);
         java.util.Set<Resource.SFTPResource> sftpResources = SFTP_RESOURCE_PARSING_UNIT.parse(pcx);
+        java.util.Set<Resource.SAPConnectionResource> sapConnectionResources =
+                SAP_CONNECTION_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.DataFormatResource> dataFormatResources = DATA_FORMAT_RESOURCE_PARSING_UNIT.parse(pcx);
         java.util.Set<Resource.SharedVariable> sharedVariables = SHARED_VARIABLE_PARSING_UNIT.parse(pcx);
 
         return new tibco.converter.ProjectConverter.ProjectResources(jdbcResources,
                 httpConnectionResources, httpClientResources, httpSharedResources, jdbcSharedResource,
-                jmsSharedResource, sftpResources, dataFormatResources, sharedVariables);
+                jmsSharedResource, sftpResources, sapConnectionResources, dataFormatResources,
+                sharedVariables);
     }
 
 
@@ -143,6 +147,11 @@ public class TibcoToBalConverter {
             new ParsingUnit.SimpleParsingUnit<>(
                     (String projectPath) -> getFilesWithExtension(projectPath, "sftpResource"),
                     XmlToTibcoModelParser::parseSFTPResource,
+                    TibcoToBalConverter::getResourceContext);
+    private static final ParsingUnit<Resource.SAPConnectionResource> SAP_CONNECTION_RESOURCE_PARSING_UNIT =
+            new ParsingUnit.SimpleParsingUnit<>(
+                    (String projectPath) -> getFilesWithExtension(projectPath, "sapconnectionResource"),
+                    XmlToTibcoModelParser::parseSAPConnectionResource,
                     TibcoToBalConverter::getResourceContext);
     private static final ParsingUnit<Resource.DataFormatResource> DATA_FORMAT_RESOURCE_PARSING_UNIT =
             new ParsingUnit.SimpleParsingUnit<>(
@@ -310,10 +319,10 @@ public class TibcoToBalConverter {
 
     // Each BW6 profile is a META-INF/<profile>.substvar file. The default profile decides; a property it leaves unset
     // is taken from the other profiles only when they all agree, so no single deployment environment is guessed.
-    public static @NotNull Map<String, String> parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
+    public static @NotNull ModulePropertyDefaults parseModulePropertyDefaults(LoggingContext cx, String projectPath) {
         Path metaInf = Paths.get(projectPath, "META-INF");
         if (!Files.isDirectory(metaInf)) {
-            return Map.of();
+            return ModulePropertyDefaults.NONE;
         }
         List<Path> profiles;
         try (Stream<Path> files = Files.list(metaInf)) {
@@ -324,9 +333,10 @@ public class TibcoToBalConverter {
         } catch (IOException e) {
             cx.log(LoggingUtils.Level.WARN, "Unable to list module property profiles in " + metaInf + ": "
                     + e.getMessage());
-            return Map.of();
+            return ModulePropertyDefaults.NONE;
         }
         Map<String, String> defaults = new HashMap<>();
+        Map<String, String> agreedAcrossProfiles = new HashMap<>();
         Map<String, Map<String, String>> otherProfileValuesByProperty = new TreeMap<>();
         for (Path profile : profiles) {
             String profileName = profile.getFileName().toString();
@@ -345,15 +355,33 @@ public class TibcoToBalConverter {
             }
             String profileNames = String.join(", ", valuesByProfile.keySet());
             if (new HashSet<>(valuesByProfile.values()).size() == 1) {
-                defaults.put(name, valuesByProfile.values().iterator().next());
+                agreedAcrossProfiles.put(name, valuesByProfile.values().iterator().next());
                 cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
-                        + "; using its value from " + profileNames);
+                        + "; using its value from " + profileNames + " to resolve the JDBC driver");
             } else {
                 cx.log(LoggingUtils.Level.WARN, "Module property " + name + " is not set in " + DEFAULT_PROFILE
                         + " and its value differs across " + profileNames + "; leaving it unresolved");
             }
         });
-        return defaults;
+        return new ModulePropertyDefaults(defaults, agreedAcrossProfiles);
+    }
+
+    // Only defaultProfile values become configurable defaults: a value merely shared by the deployment profiles
+    // would silently point the migrated project at one of those environments.
+    public record ModulePropertyDefaults(Map<String, String> defaultProfile,
+                                         Map<String, String> agreedAcrossProfiles) {
+
+        public static final ModulePropertyDefaults NONE = new ModulePropertyDefaults(Map.of(), Map.of());
+
+        public ModulePropertyDefaults {
+            defaultProfile = Map.copyOf(defaultProfile);
+            agreedAcrossProfiles = Map.copyOf(agreedAcrossProfiles);
+        }
+
+        public @NotNull Optional<String> resolved(String propName) {
+            return Optional.ofNullable(defaultProfile.get(propName))
+                    .or(() -> Optional.ofNullable(agreedAcrossProfiles.get(propName)));
+        }
     }
 
     private static @NotNull Map<String, String> parseModuleProperties(LoggingContext cx, Path profile) {
@@ -363,6 +391,10 @@ public class TibcoToBalConverter {
                     .getElementsByTagNameNS("*", "globalVariable");
             for (int i = 0; i < globalVariables.getLength(); i++) {
                 Element globalVariable = (Element) globalVariables.item(i);
+                // A Password property's value is obfuscated by TIBCO, so it is never a usable default.
+                if (childText(globalVariable, "type").filter(PASSWORD_PROPERTY_TYPE::equals).isPresent()) {
+                    continue;
+                }
                 Optional<String> name = childText(globalVariable, "name");
                 Optional<String> value = childText(globalVariable, "value").filter(text -> !text.isBlank());
                 if (name.isPresent() && value.isPresent()) {
@@ -600,46 +632,67 @@ public class TibcoToBalConverter {
 
     public enum JavaDependencies {
         JDBC_H2("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "h2"
                 version = "2.0.206"
                 groupId = "com.h2database"
                 """),
         JDBC_POSTGRESQL("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "postgresql"
                 version = "42.7.2"
                 groupId = "org.postgresql"
                 """),
         JDBC_MYSQL("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "mysql-connector-java"
                 version = "8.0.33"
                 groupId = "mysql"
                 """),
         JDBC_ORACLE("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "ojdbc8"
                 version = "21.9.0.0"
                 groupId = "com.oracle.database.jdbc"
                 """),
         JDBC_MARIADB("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "mariadb-java-client"
                 version = "3.1.4"
                 groupId = "org.mariadb.jdbc"
                 """),
         JDBC_MSSQL("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "mssql-jdbc"
                 version = "12.8.1.jre11"
                 groupId = "com.microsoft.sqlserver"
                 """),
         JDBC_DB2("""
-                [[platform.java17.dependency]]
+                [[platform.java21.dependency]]
                 artifactId = "jcc"
                 version = "11.5.9.0"
                 groupId = "com.ibm.db2"
+                """),
+        // SAP distributes JCo only through the SAP Support Portal, so ballerinax/sap.jco declares it with provided
+        // scope and the project cannot build until these paths point at the downloaded jars.
+        SAP_JCO("""
+                # TODO: Download SAP JCo 3.1 from the SAP Support Portal and set the path to sapjco3.jar. The native
+                # library (sapjco3.dll / libsapjco3.so / libsapjco3.jnilib) must also be on the library path at runtime.
+                [[platform.java21.dependency]]
+                path = "<path-to-sapjco3.jar>"
+                groupId = "com.sap"
+                artifactId = "com.sap.conn.jco"
+                version = "3.1.*"
+                scope = "provided"
+                """),
+        SAP_IDOC("""
+                # TODO: Set the path to sapidoc3.jar from the SAP Java IDoc Class Library.
+                [[platform.java21.dependency]]
+                path = "<path-to-sapidoc3.jar>"
+                groupId = "com.sap"
+                artifactId = "com.sap.conn.idoc"
+                version = "3.1.*"
+                scope = "provided"
                 """);
 
         public final String dependencyParam;

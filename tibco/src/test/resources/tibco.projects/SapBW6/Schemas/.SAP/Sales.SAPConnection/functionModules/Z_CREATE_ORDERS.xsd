@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xsd:schema xmlns:tns="http://www.tibco.com/xmlns/sap/Sales.SAPConnection/Z_CREATE_ORDERS" elementFormDefault="unqualified" targetNamespace="http://www.tibco.com/xmlns/sap/Sales.SAPConnection/Z_CREATE_ORDERS" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:element name="RequestInputType" type="tns:RequestInputTypeParam"/>
+    <xsd:complexType name="RequestInputTypeParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="sessionID" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="timeout" type="xsd:long"/>
+            <xsd:element name="RfcRequest" type="tns:Z_CREATE_ORDERS_RequestParam"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="RfcRequest" type="tns:Z_CREATE_ORDERS_RequestParam"/>
+    <xsd:complexType name="Z_CREATE_ORDERS_RequestParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="I_MODE" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="I_HEADER" type="tns:ORDER_HEADER"/>
+            <xsd:element minOccurs="1" name="I_ORDERS" type="tns:sequence_lsqb_ORDER_LINE_rsqb_"/>
+            <xsd:element minOccurs="0" name="I_EMPTY" type="tns:sequence_lsqb_ORDER_LINE_rsqb_"/>
+            <xsd:element minOccurs="0" name="CS_STATUS" type="tns:ORDER_STATUS"/>
+            <xsd:element minOccurs="0" name="T_MESSAGES" type="tns:sequence_lsqb_ORDER_MESSAGE_rsqb_"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="RequestOutputType" type="tns:RequestOutputTypeParam"/>
+    <xsd:complexType name="RequestOutputTypeParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="sessionID" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="CPIC_ID" type="xsd:string"/>
+            <xsd:element name="RfcResponse" type="tns:Z_CREATE_ORDERS_ResponseParam"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:element name="RfcResponse" type="tns:Z_CREATE_ORDERS_ResponseParam"/>
+    <xsd:complexType name="Z_CREATE_ORDERS_ResponseParam">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="E_COMPANY" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="CS_STATUS" type="tns:ORDER_STATUS"/>
+            <xsd:element minOccurs="0" name="T_MESSAGES" type="tns:sequence_lsqb_ORDER_MESSAGE_rsqb_"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ORDER_HEADER">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="SALES_ORG" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="CHANNEL" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ORDER_STATUS">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="STATUS" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="sequence_lsqb_ORDER_LINE_rsqb_">
+        <xsd:sequence>
+            <xsd:element form="unqualified" maxOccurs="unbounded" minOccurs="0" name="item" type="tns:ORDER_LINE"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ORDER_LINE">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="ORDER_ID" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="QUANTITY" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="sequence_lsqb_ORDER_MESSAGE_rsqb_">
+        <xsd:sequence>
+            <xsd:element form="unqualified" maxOccurs="unbounded" minOccurs="0" name="item" type="tns:ORDER_MESSAGE"/>
+        </xsd:sequence>
+    </xsd:complexType>
+    <xsd:complexType name="ORDER_MESSAGE">
+        <xsd:sequence>
+            <xsd:element minOccurs="0" name="TYPE" type="xsd:string"/>
+            <xsd:element minOccurs="0" name="TEXT" type="xsd:string"/>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:schema>
