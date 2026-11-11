@@ -189,14 +189,12 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
             char c = xPath.charAt(index);
             switch (c) {
                 case '\'' -> {
-                    index = incrementWhile(xPath, index + 1, Predicate.not((chr) -> chr.equals('\'')));
+                    index = skipLiteral(xPath, index, "'");
                     continue;
                 }
-                // Attribute values are raw XML text, so a double-quoted XPath literal appears as &quot;...&quot;
                 case '&' -> {
                     if (xPath.startsWith(QUOT_ENTITY, index)) {
-                        int literalEnd = xPath.indexOf(QUOT_ENTITY, index + QUOT_ENTITY.length());
-                        index = literalEnd == -1 ? xPath.length() : literalEnd + QUOT_ENTITY.length();
+                        index = skipLiteral(xPath, index, QUOT_ENTITY);
                         continue;
                     }
                 }
@@ -244,6 +242,11 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
         }
 
         return new ParseResult(paths, parameters);
+    }
+
+    private static int skipLiteral(String xPath, int literalStart, String delimiter) {
+        int literalEnd = xPath.indexOf(delimiter, literalStart + delimiter.length());
+        return literalEnd == -1 ? xPath.length() : literalEnd + delimiter.length();
     }
 
 }
