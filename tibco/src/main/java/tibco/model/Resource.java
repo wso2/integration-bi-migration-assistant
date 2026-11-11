@@ -48,6 +48,7 @@ public sealed interface Resource {
         HTTP_CLIENT,
         JMS_SHARED,
         SFTP,
+        SAP_CONNECTION,
         DATA_FORMAT,
         SHARED_VARIABLE
     }
@@ -121,6 +122,19 @@ public sealed interface Resource {
         @Override
         public @NotNull ResourceKind kind() {
             return ResourceKind.SFTP;
+        }
+    }
+
+    record SAPConnectionResource(String name, String path, Map<String, String> configuration,
+                                 Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+
+        public SAPConnectionResource {
+            assert path != null && !path.isEmpty() : "SAP connection resource path must not be empty";
+        }
+
+        @Override
+        public @NotNull ResourceKind kind() {
+            return ResourceKind.SAP_CONNECTION;
         }
     }
 

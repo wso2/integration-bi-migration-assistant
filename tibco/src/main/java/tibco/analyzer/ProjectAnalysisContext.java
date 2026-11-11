@@ -77,6 +77,7 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>(),
+            new HashSet<>(),
             new HashSet<>());
     private Set<Process> currentProcesses = new HashSet<>();
 
@@ -217,6 +218,8 @@ public class ProjectAnalysisContext implements LoggingContext {
                 capturedResources.jmsSharedResource().add(jmsSharedResource);
             case Resource.SFTPResource sftpResource ->
                 capturedResources.sftpResources().add(sftpResource);
+            case Resource.SAPConnectionResource sapConnectionResource ->
+                capturedResources.sapConnectionResources().add(sapConnectionResource);
             case Resource.DataFormatResource dataFormatResource ->
                 capturedResources.dataFormatResources().add(dataFormatResource);
             case Resource.SharedVariable sharedVariable ->

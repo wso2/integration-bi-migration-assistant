@@ -67,6 +67,14 @@ public class ActivityContext implements LoggingContext {
         return processContext.getAnalysisResult().from(activity).functionName();
     }
 
+    /**
+     * Resolves a name the way TIBCO does when this activity refers to another one: within this activity's scope
+     * first, then the scopes around it.
+     */
+    Optional<Scope.Flow.Activity> findActivityInScope(String name) {
+        return processContext.getAnalysisResult().findActivityInScopeOf(activity, name);
+    }
+
     BallerinaModel.Expression.VariableReference contextVarRef() {
         return processContext.contextVarRef();
     }
@@ -214,6 +222,14 @@ public class ActivityContext implements LoggingContext {
 
     public @NotNull String getSftpPutFilesFunction() {
         return processContext.getSftpPutFilesFunction();
+    }
+
+    public @NotNull String getSapRfcParametersFunction() {
+        return processContext.getSapRfcParametersFunction();
+    }
+
+    public @NotNull String getSapRfcToXmlFunction() {
+        return processContext.getSapRfcToXmlFunction();
     }
 
     public String getFilesInPathFunction() {
