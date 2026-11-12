@@ -33,6 +33,7 @@ import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
@@ -80,6 +81,8 @@ import static common.LoggingUtils.Level.WARN;
 public final class XmlToTibcoModelParser {
 
     private static final String GROUP_START_NODE = "start";
+    private static final Set<String> CRITICAL_SECTION_DEFAULT_SETTINGS =
+            Set.of("groupType=criticalSection", "serializable=false");
     private static final String DELIMITED_DATA_FORMAT = "Delimiter separated";
     private static final String SINGLE_SEPARATOR_PARSE_RULE =
             "Treat all characters as entered as a single column separator string";
@@ -565,6 +568,7 @@ public final class XmlToTibcoModelParser {
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(cx, element, name, inputBinding);
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding, cx.fileName());
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
+            case CRITICAL_SECTION_GROUP -> parseCriticalSectionGroup(cx, element, name, inputBinding);
             case REST -> parseREST(cx, element, name, inputBinding);
             case CATCH -> new InlineActivity.Catch(element, name, inputBinding, cx.fileName());
             case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(cx, element, name, inputBinding);
@@ -781,6 +785,21 @@ public final class XmlToTibcoModelParser {
                 tryGetInlineActivityConfigValue(element, "suspendAfterErrorRetry")
                         .map(Boolean::parseBoolean).orElse(false),
                 parseGroupBody(cx, element), cx.fileName());
+    }
+
+    // Only the default critical section (scoped to this group) maps cleanly to a Ballerina lock; any other setting,
+    // such as a shared lock object, still gets a lock that serializes this group alone.
+    private static @NotNull CriticalSectionGroup parseCriticalSectionGroup(ProcessContext cx, Element element,
+            String name, Flow.Activity.InputBinding inputBinding) {
+        tryGetFirstChildWithTag(element, "config").stream()
+                .flatMap(config -> ElementIterable.of(config).stream())
+                .filter(setting -> !setting.getTextContent().isBlank())
+                .filter(setting -> !CRITICAL_SECTION_DEFAULT_SETTINGS.contains(
+                        getTagNameWithoutNameSpace(setting) + "=" + setting.getTextContent().strip()))
+                .forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '"
+                        + getTagNameWithoutNameSpace(setting) + "', which is not supported; "
+                        + "the converted lock only serializes concurrent runs of this group"));
+        return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element), cx.fileName());
     }
 
     private static @NotNull String escapeXmlAttribute(String value) {

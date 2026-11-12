@@ -228,6 +228,8 @@ final class ActivityConverter {
                     convertLoopGroup(cx, result, loopGroup);
             case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
                     convertErrorLoopGroup(cx, errorLoopGroup);
+            case Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup criticalSectionGroup ->
+                    convertCriticalSectionGroup(cx, criticalSectionGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -1245,6 +1247,31 @@ final class ActivityConverter {
                 cx.contextVarRef(), addToContext(cx, new XMLTemplate(ERROR_LOOP_ERROR_REPORT.formatted(error)),
                         ERROR_LOOP_ERROR_VARIABLE),
                 conditionOutput, retryLimitReached, retryLimitReached.ref())));
+        return new ActivityConversionResult(resultValue.ref(), body);
+    }
+
+    // jBallerina gives a lock statement that touches no module-level variable a lock of its own, so this serializes
+    // concurrent runs of this group only, which matches TIBCO's default single-group critical section.
+    // The group exposes no output of its own, so the body's last result is passed through.
+    private static ActivityConversionResult convertCriticalSectionGroup(
+            ActivityContext cx, Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup criticalSection) {
+        List<Statement> body = new ArrayList<>();
+        if (criticalSection.hasInputBinding()) {
+            cx.log(WARN, "critical section group '" + criticalSection.name()
+                    + "' has input bindings, which are not supported; they are ignored.");
+            body.add(new Comment("FIXME: input bindings of critical section groups are not supported "
+                    + "and have been ignored"));
+        }
+        body.add(stmtFrom("""
+                lock {
+                    check %s(%s);
+                }
+                """.formatted(
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(criticalSection.body()).scopeFn(),
+                cx.contextVarRef())));
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
+        body.add(resultValue);
         return new ActivityConversionResult(resultValue.ref(), body);
     }
 
