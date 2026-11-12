@@ -113,6 +113,7 @@ public class ProjectContext implements LoggingContext {
     private final Map<String, Resource.DataFormatResource> dataFormatResources = new HashMap<>();
     private final Set<String> unqualifiedFieldDataFormats = new HashSet<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
+    private final Map<String, VariableReference> criticalSectionLocks = new HashMap<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<String, Resource.JMSSharedResource> jmsResourceMap = new HashMap<>();
@@ -661,6 +662,21 @@ public class ProjectContext implements LoggingContext {
         var ref = new BallerinaModel.Expression.VariableReference(clientName);
         httpClients.put(path, ref);
         return ref;
+    }
+
+    // jBallerina infers one shared lock for all lock statements that access the same module-level variable, so
+    // critical sections that name the same TIBCO lock object exclude each other through this variable. It is final
+    // because a mutable one would make the calling service non-isolated, so Ballerina would stop dispatching
+    // concurrent requests to it, and an isolated one would forbid passing the mutable context into the lock.
+    public @NotNull VariableReference getCriticalSectionLock(String lockPath) {
+        assert lockPath != null && !lockPath.isBlank() : "lock path must not be blank";
+        return criticalSectionLocks.computeIfAbsent(lockPath, path -> {
+            String name = ConversionUtils.getSanitizedUniqueIdentifier(
+                    "criticalSectionLock_" + path.replaceFirst("^/", "").replaceFirst("\\.sharedLock$", ""),
+                    unavailableModuleVarNames());
+            utilityVars.put(name, new BallerinaModel.ModuleVar(name, "final " + INT, exprFrom("0")));
+            return new VariableReference(name);
+        });
     }
 
     public String getConfigVarName(String varName) {

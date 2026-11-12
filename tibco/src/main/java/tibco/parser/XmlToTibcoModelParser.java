@@ -81,8 +81,8 @@ import static common.LoggingUtils.Level.WARN;
 public final class XmlToTibcoModelParser {
 
     private static final String GROUP_START_NODE = "start";
-    private static final Set<String> CRITICAL_SECTION_DEFAULT_SETTINGS =
-            Set.of("groupType=criticalSection", "serializable=false");
+    private static final Set<String> CRITICAL_SECTION_SETTINGS =
+            Set.of("groupType", "serializable", "scope", "criticalSectionLock");
     private static final String DELIMITED_DATA_FORMAT = "Delimiter separated";
     private static final String SINGLE_SEPARATOR_PARSE_RULE =
             "Treat all characters as entered as a single column separator string";
@@ -787,19 +787,69 @@ public final class XmlToTibcoModelParser {
                 parseGroupBody(cx, element), cx.fileName());
     }
 
-    // Only the default critical section (scoped to this group) maps cleanly to a Ballerina lock; any other setting,
-    // such as a shared lock object, still gets a lock that serializes this group alone.
     private static @NotNull CriticalSectionGroup parseCriticalSectionGroup(ProcessContext cx, Element element,
             String name, Flow.Activity.InputBinding inputBinding) {
         tryGetFirstChildWithTag(element, "config").stream()
                 .flatMap(config -> ElementIterable.of(config).stream())
                 .filter(setting -> !setting.getTextContent().isBlank())
-                .filter(setting -> !CRITICAL_SECTION_DEFAULT_SETTINGS.contains(
-                        getTagNameWithoutNameSpace(setting) + "=" + setting.getTextContent().strip()))
-                .forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '"
-                        + getTagNameWithoutNameSpace(setting) + "', which is not supported; "
-                        + "the converted lock only serializes concurrent runs of this group"));
-        return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element), cx.fileName());
+                .map(XmlToTibcoModelParser::getTagNameWithoutNameSpace)
+                .filter(Predicate.not(CRITICAL_SECTION_SETTINGS::contains))
+                .forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '" + setting
+                        + "', which is not supported and has been ignored"));
+        if (tryGetInlineActivityConfigValue(element, "serializable").map(Boolean::parseBoolean).orElse(false)) {
+            cx.log(WARN, "critical section group '" + name + "' sets 'serializable', which is not supported and "
+                    + "has been ignored");
+        }
+        return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element),
+                parseCriticalSectionLockObject(cx, element, name), cx.fileName());
+    }
+
+    private static @NotNull Optional<CriticalSectionGroup.LockObject> parseCriticalSectionLockObject(
+            ProcessContext cx, Element element, String name) {
+        String scope = tryGetInlineActivityConfigValue(element, "scope")
+                .map(value -> value.strip().toLowerCase(Locale.ROOT)).orElse("single");
+        Optional<String> lockPath = tryGetInlineActivityConfigValue(element, "criticalSectionLock")
+                .map(path -> "/" + path.strip().replace('\\', '/').replaceFirst("^/+", ""))
+                .filter(path -> path.length() > 1);
+        if (!scope.equals("multiple")) {
+            if (!scope.equals("single")) {
+                cx.log(WARN, "critical section group '" + name + "' has unknown scope '" + scope
+                        + "'; it is converted as a single-group critical section");
+            }
+            lockPath.ifPresent(path -> cx.log(WARN, "critical section group '" + name + "' names lock object '"
+                    + path + "' without multiple-group scope; the lock object is ignored"));
+            return Optional.empty();
+        }
+        if (lockPath.isEmpty()) {
+            cx.log(WARN, "critical section group '" + name + "' has multiple-group scope but no lock object; "
+                    + "it is converted as a single-group critical section");
+            return Optional.empty();
+        }
+        return Optional.of(new CriticalSectionGroup.LockObject(lockPath.get(),
+                isMultiEngineLock(cx, lockPath.get())));
+    }
+
+    // Lock paths are relative to the BW project root, whose folder on disk may or may not carry the project name.
+    private static boolean isMultiEngineLock(ProcessContext cx, String lockPath) {
+        Path projectPath = Path.of(cx.projectPath());
+        Optional<Path> lockFile = Stream.of(projectPath.resolve(lockPath.replaceFirst("^/", "")),
+                        projectPath.resolve("..").resolve(lockPath.replaceFirst("^/", "")))
+                .filter(Files::isRegularFile)
+                .findFirst();
+        if (lockFile.isEmpty()) {
+            cx.log(WARN, "could not find lock resource '" + lockPath + "'; assuming it is not multi-engine");
+            return false;
+        }
+        try {
+            return tryGetFirstChildWithTag(TibcoToBalConverter.parseXmlFile(lockFile.get().toString()), "config")
+                    .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
+                    .map(multiEngine -> Boolean.parseBoolean(multiEngine.getTextContent().strip()))
+                    .orElse(false);
+        } catch (Exception e) {
+            cx.log(WARN, "could not parse lock resource '" + lockPath + "': " + e.getMessage()
+                    + "; assuming it is not multi-engine");
+            return false;
+        }
     }
 
     private static @NotNull String escapeXmlAttribute(String value) {
@@ -811,7 +861,7 @@ public final class XmlToTibcoModelParser {
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "activity" -> {
+                case "activity", "group" -> {
                     transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
                 }
                 case "transition" -> {

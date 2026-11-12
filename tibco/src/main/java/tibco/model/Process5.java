@@ -154,11 +154,20 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
             }
 
             record CriticalSectionGroup(Element element, String name, InputBinding inputBinding,
-                                        ExplicitTransitionGroup body, String fileName)
+                                        ExplicitTransitionGroup body, Optional<LockObject> lockObject,
+                                        String fileName)
                     implements ExplicitTransitionGroup.NestedGroup {
 
                 public CriticalSectionGroup {
                     assert body != null : "critical section group must have a body";
+                    assert lockObject != null : "use Optional.empty() for single group critical sections";
+                }
+
+                public record LockObject(String path, boolean multiEngine) {
+
+                    public LockObject {
+                        assert path != null && !path.isBlank() : "lock object path must not be blank";
+                    }
                 }
 
                 @Override
