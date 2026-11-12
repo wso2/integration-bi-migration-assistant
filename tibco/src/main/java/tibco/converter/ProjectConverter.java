@@ -50,7 +50,8 @@ public class ProjectConverter {
             Collection<Resource.SFTPResource> sftpResources,
             Collection<Resource.SAPConnectionResource> sapConnectionResources,
             Collection<Resource.DataFormatResource> dataFormatResources,
-            Collection<Resource.SharedVariable> sharedVariables
+            Collection<Resource.SharedVariable> sharedVariables,
+            Collection<Resource.SharedLock> sharedLocks
     ) {
 
         /**
@@ -69,7 +70,8 @@ public class ProjectConverter {
                     sftpResources,
                     sapConnectionResources,
                     dataFormatResources,
-                    sharedVariables).flatMap(Collection::stream);
+                    sharedVariables,
+                    sharedLocks).flatMap(Collection::stream);
         }
 
         /**
@@ -91,7 +93,8 @@ public class ProjectConverter {
                     mergeCollections(first.sftpResources, second.sftpResources),
                     mergeCollections(first.sapConnectionResources, second.sapConnectionResources),
                     mergeCollections(first.dataFormatResources, second.dataFormatResources),
-                    mergeCollections(first.sharedVariables, second.sharedVariables));
+                    mergeCollections(first.sharedVariables, second.sharedVariables),
+                    mergeCollections(first.sharedLocks, second.sharedLocks));
         }
 
         private static <T> Collection<T> mergeCollections(Collection<T> first, Collection<T> second) {
@@ -259,6 +262,9 @@ public class ProjectConverter {
         }
         for (Resource.SharedVariable resource : projectResources.sharedVariables) {
             cx.addSharedVariable(resource);
+        }
+        for (Resource.SharedLock resource : projectResources.sharedLocks) {
+            cx.addSharedLock(resource);
         }
     }
 

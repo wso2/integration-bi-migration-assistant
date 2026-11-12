@@ -340,6 +340,17 @@ public final class XmlToTibcoModelParser {
         }
     }
 
+    public static @NotNull Optional<Resource.SharedLock> parseSharedLock(ResourceContext cx, Element root) {
+        cx.logState("Parsing SharedLock: " + cx.getResourcePath());
+        String name = tryGetFirstChildWithTag(root, "name").map(Element::getTextContent).map(String::strip)
+                .orElse("");
+        boolean multiEngine = tryGetFirstChildWithTag(root, "config")
+                .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
+                .map(value -> Boolean.parseBoolean(value.getTextContent().strip()))
+                .orElse(false);
+        return Optional.of(new Resource.SharedLock(name, cx.getResourcePath(), multiEngine));
+    }
+
     public static @NotNull Optional<Resource.DataFormatResource> parseDataFormatResource(ResourceContext cx,
                                                                                          Element root) {
         cx.log(INFO, "Start parsing DataFormatResource");
@@ -801,10 +812,10 @@ public final class XmlToTibcoModelParser {
                     + "has been ignored");
         }
         return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element),
-                parseCriticalSectionLockObject(cx, element, name), cx.fileName());
+                parseCriticalSectionLockPath(cx, element, name), cx.fileName());
     }
 
-    private static @NotNull Optional<CriticalSectionGroup.LockObject> parseCriticalSectionLockObject(
+    private static @NotNull Optional<String> parseCriticalSectionLockPath(
             ProcessContext cx, Element element, String name) {
         String scope = tryGetInlineActivityConfigValue(element, "scope")
                 .map(value -> value.strip().toLowerCase(Locale.ROOT)).orElse("single");
@@ -823,33 +834,8 @@ public final class XmlToTibcoModelParser {
         if (lockPath.isEmpty()) {
             cx.log(WARN, "critical section group '" + name + "' has multiple-group scope but no lock object; "
                     + "it is converted as a single-group critical section");
-            return Optional.empty();
         }
-        return Optional.of(new CriticalSectionGroup.LockObject(lockPath.get(),
-                isMultiEngineLock(cx, lockPath.get())));
-    }
-
-    // Lock paths are relative to the BW project root, whose folder on disk may or may not carry the project name.
-    private static boolean isMultiEngineLock(ProcessContext cx, String lockPath) {
-        Path projectPath = Path.of(cx.projectPath());
-        Optional<Path> lockFile = Stream.of(projectPath.resolve(lockPath.replaceFirst("^/", "")),
-                        projectPath.resolve("..").resolve(lockPath.replaceFirst("^/", "")))
-                .filter(Files::isRegularFile)
-                .findFirst();
-        if (lockFile.isEmpty()) {
-            cx.log(WARN, "could not find lock resource '" + lockPath + "'; assuming it is not multi-engine");
-            return false;
-        }
-        try {
-            return tryGetFirstChildWithTag(TibcoToBalConverter.parseXmlFile(lockFile.get().toString()), "config")
-                    .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
-                    .map(multiEngine -> Boolean.parseBoolean(multiEngine.getTextContent().strip()))
-                    .orElse(false);
-        } catch (Exception e) {
-            cx.log(WARN, "could not parse lock resource '" + lockPath + "': " + e.getMessage()
-                    + "; assuming it is not multi-engine");
-            return false;
-        }
+        return lockPath;
     }
 
     private static @NotNull String escapeXmlAttribute(String value) {

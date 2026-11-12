@@ -50,7 +50,8 @@ public sealed interface Resource {
         SFTP,
         SAP_CONNECTION,
         DATA_FORMAT,
-        SHARED_VARIABLE
+        SHARED_VARIABLE,
+        SHARED_LOCK
     }
 
     record ResourceIdentifier(ResourceKind kind, String path) {
@@ -201,6 +202,23 @@ public sealed interface Resource {
         @Override
         public ResourceKind kind() {
             return ResourceKind.SHARED_VARIABLE;
+        }
+    }
+
+    record SharedLock(String name, String path, boolean multiEngine) implements Resource {
+
+        public SharedLock {
+            assert path != null && !path.isBlank() : "lock resource path must not be blank";
+        }
+
+        @Override
+        public Collection<SubstitutionBinding> substitutionBindings() {
+            return List.of();
+        }
+
+        @Override
+        public ResourceKind kind() {
+            return ResourceKind.SHARED_LOCK;
         }
     }
 }

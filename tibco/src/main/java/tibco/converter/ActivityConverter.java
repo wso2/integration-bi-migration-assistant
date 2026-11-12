@@ -1262,15 +1262,16 @@ final class ActivityConverter {
                     + "not supported; they are ignored.");
             body.add(new Comment("FIXME: input bindings of critical section groups are not supported and ignored"));
         }
-        criticalSection.lockObject().filter(CriticalSectionGroup.LockObject::multiEngine).ifPresent(lock -> {
-            cx.log(WARN, "critical section group '" + criticalSection.name() + "' uses multi-engine lock '"
-                    + lock.path() + "'; the converted lock only applies within one Ballerina runtime.");
-            body.add(new Comment("FIXME: multi-engine lock '" + lock.path() + "' only applies within this runtime"));
-        });
-        body.add(stmtFrom("lock { %s check %s(%s); }".formatted(criticalSection.lockObject()
-                        .map(lock -> "_ = %s;".formatted(
-                                cx.processContext.projectContext.getCriticalSectionLock(lock.path())))
-                        .orElse(""),
+        Optional<ProjectContext.CriticalSectionLock> lock = criticalSection.lockPath()
+                .map(cx.processContext.projectContext::getCriticalSectionLock);
+        lock.filter(ProjectContext.CriticalSectionLock::multiEngine).flatMap(ignored -> criticalSection.lockPath())
+                .ifPresent(path -> {
+                    cx.log(WARN, "critical section group '" + criticalSection.name() + "' uses multi-engine lock '"
+                            + path + "'; the converted lock only applies within one Ballerina runtime.");
+                    body.add(new Comment("FIXME: multi-engine lock '" + path + "' only applies within this runtime"));
+                });
+        body.add(stmtFrom("lock { %s check %s(%s); }".formatted(
+                lock.map(each -> "_ = %s;".formatted(each.variable())).orElse(""),
                 cx.processContext.getAnalysisResult().getControlFlowFunctions(criticalSection.body()).scopeFn(),
                 cx.contextVarRef())));
         VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(),

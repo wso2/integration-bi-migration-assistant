@@ -154,20 +154,20 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
             }
 
             record CriticalSectionGroup(Element element, String name, InputBinding inputBinding,
-                                        ExplicitTransitionGroup body, Optional<LockObject> lockObject,
+                                        ExplicitTransitionGroup body, Optional<String> lockPath,
                                         String fileName)
-                    implements ExplicitTransitionGroup.NestedGroup {
+                    implements ExplicitTransitionGroup.NestedGroup, Scope.Flow.ActivityWithResources {
 
                 public CriticalSectionGroup {
                     assert body != null : "critical section group must have a body";
-                    assert lockObject != null : "use Optional.empty() for single group critical sections";
+                    assert lockPath != null : "use Optional.empty() for single group critical sections";
                 }
 
-                public record LockObject(String path, boolean multiEngine) {
-
-                    public LockObject {
-                        assert path != null && !path.isBlank() : "lock object path must not be blank";
-                    }
+                @Override
+                public Collection<Resource.ResourceIdentifier> resources() {
+                    return lockPath.map(path -> List.of(
+                                    new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, path)))
+                            .orElse(List.of());
                 }
 
                 @Override

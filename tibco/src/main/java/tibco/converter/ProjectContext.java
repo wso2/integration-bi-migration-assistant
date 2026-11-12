@@ -114,6 +114,7 @@ public class ProjectContext implements LoggingContext {
     private final Set<String> unqualifiedFieldDataFormats = new HashSet<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
     private final Map<String, VariableReference> criticalSectionLocks = new HashMap<>();
+    private final Set<Resource.SharedLock> sharedLocks = new HashSet<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<String, Resource.JMSSharedResource> jmsResourceMap = new HashMap<>();
@@ -668,15 +669,39 @@ public class ProjectContext implements LoggingContext {
     // critical sections that name the same TIBCO lock object exclude each other through this variable. It is final
     // because a mutable one would make the calling service non-isolated, so Ballerina would stop dispatching
     // concurrent requests to it, and an isolated one would forbid passing the mutable context into the lock.
-    public @NotNull VariableReference getCriticalSectionLock(String lockPath) {
+    // The variable is keyed on the resolved lock resource, so every spelling of its path shares it; groups naming a
+    // lock missing from the project still share one lock. Locks only exclude each other within one generated package.
+    public @NotNull CriticalSectionLock getCriticalSectionLock(String lockPath) {
         assert lockPath != null && !lockPath.isBlank() : "lock path must not be blank";
-        return criticalSectionLocks.computeIfAbsent(lockPath, path -> {
+        Resource.ResourceIdentifier identifier =
+                new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, lockPath);
+        Optional<Resource.SharedLock> lock = sharedLocks.stream()
+                .filter(each -> each.matches(identifier))
+                .findFirst();
+        String projectRelativePath = lock.map(each -> each.path().replaceFirst("^/[^/]+/", ""))
+                .orElse(lockPath.replaceFirst("^/", ""));
+        VariableReference variable = criticalSectionLocks.computeIfAbsent(projectRelativePath, path -> {
+            if (lock.isEmpty()) {
+                log(LoggingUtils.Level.WARN, "lock resource '" + lockPath + "' was not found; critical sections "
+                        + "using it share a lock but are assumed not to be multi-engine");
+            }
             String name = ConversionUtils.getSanitizedUniqueIdentifier(
-                    "criticalSectionLock_" + path.replaceFirst("^/", "").replaceFirst("\\.sharedLock$", ""),
-                    unavailableModuleVarNames());
+                    "criticalSectionLock_" + path.replaceFirst("\\.sharedLock$", ""), unavailableModuleVarNames());
             utilityVars.put(name, new BallerinaModel.ModuleVar(name, "final " + INT, exprFrom("0")));
             return new VariableReference(name);
         });
+        return new CriticalSectionLock(variable, lock.map(Resource.SharedLock::multiEngine).orElse(false));
+    }
+
+    public record CriticalSectionLock(VariableReference variable, boolean multiEngine) {
+
+        public CriticalSectionLock {
+            assert variable != null : "critical section lock must have a variable";
+        }
+    }
+
+    public void addSharedLock(Resource.SharedLock sharedLock) {
+        sharedLocks.add(sharedLock);
     }
 
     public String getConfigVarName(String varName) {
