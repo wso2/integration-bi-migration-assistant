@@ -45,6 +45,7 @@
 - `com.tibco.plugin.xml.XMLRendererActivity`
 - `com.tibco.plugin.xml.XMLParseActivity`
 - `com.tibco.pe.core.LoopGroup`
+- `com.tibco.pe.core.CriticalSectionGroup`
 - `com.tibco.pe.core.WriteToLogActivity`
 - `com.tibco.pe.core.CatchActivity`
 - `com.tibco.plugin.file.FileReadActivity`

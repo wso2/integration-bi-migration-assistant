@@ -113,6 +113,8 @@ public class ProjectContext implements LoggingContext {
     private final Map<String, Resource.DataFormatResource> dataFormatResources = new HashMap<>();
     private final Set<String> unqualifiedFieldDataFormats = new HashSet<>();
     private final Map<String, BallerinaModel.Expression.VariableReference> httpClients = new HashMap<>();
+    private final Map<String, VariableReference> criticalSectionLocks = new HashMap<>();
+    private final Set<Resource.SharedLock> sharedLocks = new HashSet<>();
     private final Map<BallerinaModel.TypeDesc, String> dataBindingFunctions = new HashMap<>();
     private final Map<String, String> renderJsonAsXMLFunction = new HashMap<>();
     private final Map<String, Resource.JMSSharedResource> jmsResourceMap = new HashMap<>();
@@ -661,6 +663,52 @@ public class ProjectContext implements LoggingContext {
         var ref = new BallerinaModel.Expression.VariableReference(clientName);
         httpClients.put(path, ref);
         return ref;
+    }
+
+    // jBallerina infers one shared lock for all lock statements that access the same module-level variable, so
+    // critical sections that name the same TIBCO lock object exclude each other through this variable. It is final
+    // because a mutable one would make the calling service non-isolated, so Ballerina would stop dispatching
+    // concurrent requests to it, and an isolated one would forbid passing the mutable context into the lock.
+    // The variable is keyed on the resolved lock resource, so every spelling of its path shares it; groups naming a
+    // lock missing from the project still share one lock. Locks only exclude each other within one generated package.
+    public @NotNull CriticalSectionLock getCriticalSectionLock(String lockPath) {
+        assert lockPath != null && !lockPath.isBlank() : "lock path must not be blank";
+        String canonicalPath = "/" + lockPath.strip().replace('\\', '/').replaceFirst("^/+", "");
+        Resource.ResourceIdentifier identifier =
+                new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, canonicalPath);
+        List<Resource.SharedLock> matches = sharedLocks.stream()
+                .filter(each -> each.matches(identifier))
+                .sorted(Comparator.comparing(Resource.SharedLock::path))
+                .toList();
+        if (matches.size() > 1) {
+            log(LoggingUtils.Level.WARN, "lock resource '" + lockPath + "' matches several lock resources "
+                    + matches.stream().map(Resource.SharedLock::path).toList() + "; none of them is used");
+        }
+        Optional<Resource.SharedLock> lock = matches.size() == 1 ? Optional.of(matches.getFirst()) : Optional.empty();
+        String projectRelativePath = lock.map(each -> each.path().replaceFirst("^/[^/]+/", ""))
+                .orElse(canonicalPath.substring(1));
+        VariableReference variable = criticalSectionLocks.computeIfAbsent(projectRelativePath, path -> {
+            if (matches.isEmpty()) {
+                log(LoggingUtils.Level.WARN, "lock resource '" + lockPath + "' was not found; critical sections "
+                        + "using it share a lock but are assumed not to be multi-engine");
+            }
+            String name = ConversionUtils.getSanitizedUniqueIdentifier(
+                    "criticalSectionLock_" + path.replaceFirst("\\.sharedLock$", ""), unavailableModuleVarNames());
+            utilityVars.put(name, new BallerinaModel.ModuleVar(name, "final " + INT, exprFrom("0")));
+            return new VariableReference(name);
+        });
+        return new CriticalSectionLock(variable, lock.map(Resource.SharedLock::multiEngine).orElse(false));
+    }
+
+    public record CriticalSectionLock(VariableReference variable, boolean multiEngine) {
+
+        public CriticalSectionLock {
+            assert variable != null : "critical section lock must have a variable";
+        }
+    }
+
+    public void addSharedLock(Resource.SharedLock sharedLock) {
+        sharedLocks.add(sharedLock);
     }
 
     public String getConfigVarName(String varName) {

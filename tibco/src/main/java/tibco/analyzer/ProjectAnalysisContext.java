@@ -78,6 +78,7 @@ public class ProjectAnalysisContext implements LoggingContext {
             new HashSet<>(),
             new HashSet<>(),
             new HashSet<>(),
+            new HashSet<>(),
             new HashSet<>());
     private Set<Process> currentProcesses = new HashSet<>();
 
@@ -224,6 +225,8 @@ public class ProjectAnalysisContext implements LoggingContext {
                 capturedResources.dataFormatResources().add(dataFormatResource);
             case Resource.SharedVariable sharedVariable ->
                 capturedResources.sharedVariables().add(sharedVariable);
+            case Resource.SharedLock sharedLock ->
+                capturedResources.sharedLocks().add(sharedLock);
         }
     }
 
