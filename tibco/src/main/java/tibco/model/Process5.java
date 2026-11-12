@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -164,14 +165,14 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 }
 
                 @Override
-                public Collection<Resource.ResourceIdentifier> resources() {
+                public @NotNull Collection<Resource.ResourceIdentifier> resources() {
                     return lockPath.map(path -> List.of(
                                     new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, path)))
                             .orElse(List.of());
                 }
 
                 @Override
-                public InlineActivityType type() {
+                public @NotNull InlineActivityType type() {
                     return InlineActivityType.CRITICAL_SECTION_GROUP;
                 }
 

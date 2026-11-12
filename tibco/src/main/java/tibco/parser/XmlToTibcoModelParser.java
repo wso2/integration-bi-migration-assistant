@@ -342,13 +342,13 @@ public final class XmlToTibcoModelParser {
 
     public static @NotNull Optional<Resource.SharedLock> parseSharedLock(ResourceContext cx, Element root) {
         cx.logState("Parsing SharedLock: " + cx.getResourcePath());
-        String name = tryGetFirstChildWithTag(root, "name").map(Element::getTextContent).map(String::strip)
-                .orElse("");
-        boolean multiEngine = tryGetFirstChildWithTag(root, "config")
-                .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
-                .map(value -> Boolean.parseBoolean(value.getTextContent().strip()))
-                .orElse(false);
-        return Optional.of(new Resource.SharedLock(name, cx.getResourcePath(), multiEngine));
+        return Optional.of(new Resource.SharedLock(
+                tryGetFirstChildWithTag(root, "name").map(Element::getTextContent).map(String::strip).orElse(""),
+                cx.getResourcePath(),
+                tryGetFirstChildWithTag(root, "config")
+                        .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
+                        .map(value -> Boolean.parseBoolean(value.getTextContent().strip()))
+                        .orElse(false)));
     }
 
     public static @NotNull Optional<Resource.DataFormatResource> parseDataFormatResource(ResourceContext cx,
@@ -800,16 +800,23 @@ public final class XmlToTibcoModelParser {
 
     private static @NotNull CriticalSectionGroup parseCriticalSectionGroup(ProcessContext cx, Element element,
             String name, Flow.Activity.InputBinding inputBinding) {
-        tryGetFirstChildWithTag(element, "config").stream()
+        List<String> unsupportedSettings = tryGetFirstChildWithTag(element, "config").stream()
                 .flatMap(config -> ElementIterable.of(config).stream())
                 .filter(setting -> !setting.getTextContent().isBlank())
                 .map(XmlToTibcoModelParser::getTagNameWithoutNameSpace)
                 .filter(Predicate.not(CRITICAL_SECTION_SETTINGS::contains))
-                .forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '" + setting
-                        + "', which is not supported and has been ignored"));
-        if (tryGetInlineActivityConfigValue(element, "serializable").map(Boolean::parseBoolean).orElse(false)) {
+                .toList();
+        unsupportedSettings.forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '" + setting
+                + "', which is not supported and has been ignored"));
+        boolean serializable = tryGetInlineActivityConfigValue(element, "serializable")
+                .map(value -> Boolean.parseBoolean(value.strip())).orElse(false);
+        if (serializable) {
             cx.log(WARN, "critical section group '" + name + "' sets 'serializable', which is not supported and "
                     + "has been ignored");
+        }
+        if (serializable || !unsupportedSettings.isEmpty()) {
+            cx.registerPartiallySupportedActivity(element, name, InlineActivity.InlineActivityType
+                    .CRITICAL_SECTION_GROUP.toTibcoType());
         }
         return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element),
                 parseCriticalSectionLockPath(cx, element, name), cx.fileName());

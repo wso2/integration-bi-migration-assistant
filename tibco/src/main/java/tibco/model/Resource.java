@@ -212,12 +212,12 @@ public sealed interface Resource {
         }
 
         @Override
-        public Collection<SubstitutionBinding> substitutionBindings() {
+        public @NotNull Collection<SubstitutionBinding> substitutionBindings() {
             return List.of();
         }
 
         @Override
-        public ResourceKind kind() {
+        public @NotNull ResourceKind kind() {
             return ResourceKind.SHARED_LOCK;
         }
     }

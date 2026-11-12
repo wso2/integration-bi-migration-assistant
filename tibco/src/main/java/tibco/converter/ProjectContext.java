@@ -673,15 +673,22 @@ public class ProjectContext implements LoggingContext {
     // lock missing from the project still share one lock. Locks only exclude each other within one generated package.
     public @NotNull CriticalSectionLock getCriticalSectionLock(String lockPath) {
         assert lockPath != null && !lockPath.isBlank() : "lock path must not be blank";
+        String canonicalPath = "/" + lockPath.strip().replace('\\', '/').replaceFirst("^/+", "");
         Resource.ResourceIdentifier identifier =
-                new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, lockPath);
-        Optional<Resource.SharedLock> lock = sharedLocks.stream()
+                new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, canonicalPath);
+        List<Resource.SharedLock> matches = sharedLocks.stream()
                 .filter(each -> each.matches(identifier))
-                .findFirst();
+                .sorted(Comparator.comparing(Resource.SharedLock::path))
+                .toList();
+        if (matches.size() > 1) {
+            log(LoggingUtils.Level.WARN, "lock resource '" + lockPath + "' matches several lock resources "
+                    + matches.stream().map(Resource.SharedLock::path).toList() + "; none of them is used");
+        }
+        Optional<Resource.SharedLock> lock = matches.size() == 1 ? Optional.of(matches.getFirst()) : Optional.empty();
         String projectRelativePath = lock.map(each -> each.path().replaceFirst("^/[^/]+/", ""))
-                .orElse(lockPath.replaceFirst("^/", ""));
+                .orElse(canonicalPath.substring(1));
         VariableReference variable = criticalSectionLocks.computeIfAbsent(projectRelativePath, path -> {
-            if (lock.isEmpty()) {
+            if (matches.isEmpty()) {
                 log(LoggingUtils.Level.WARN, "lock resource '" + lockPath + "' was not found; critical sections "
                         + "using it share a lock but are assumed not to be multi-engine");
             }

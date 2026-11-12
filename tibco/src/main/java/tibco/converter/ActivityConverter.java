@@ -196,7 +196,7 @@ final class ActivityConverter {
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
         body.add(inputDecl);
         VariableReference result;
-        if (inlineActivity.hasInputBinding()) {
+        if (inlineActivity.hasInputBinding() && !(inlineActivity instanceof CriticalSectionGroup)) {
             InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(),
                     List.of(inlineActivity.inputBinding()));
             body.addAll(inputBindings.statements());
@@ -1254,7 +1254,7 @@ final class ActivityConverter {
     // jBallerina gives a lock statement that touches no module-level variable a lock of its own, which matches
     // TIBCO's single-group scope; groups sharing a lock object read the same module-level variable so that they
     // share one lock. The group exposes no output of its own, so the body's last result is passed through.
-    private static ActivityConversionResult convertCriticalSectionGroup(
+    private static @NotNull ActivityConversionResult convertCriticalSectionGroup(
             ActivityContext cx, CriticalSectionGroup criticalSection) {
         List<Statement> body = new ArrayList<>();
         if (criticalSection.hasInputBinding()) {

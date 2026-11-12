@@ -214,7 +214,7 @@ This will create a Ballerina package with organization name `myorg` and project 
 - `com.tibco.plugin.xml.XMLRendererActivity`
 - `com.tibco.plugin.xml.XMLParseActivity`
 - `com.tibco.pe.core.LoopGroup`
-- `com.tibco.pe.core.CriticalSectionGroup` (single-group and lock-object scopes; multi-engine locks only apply within one runtime)
+- `com.tibco.pe.core.CriticalSectionGroup`
 - `com.tibco.pe.core.WriteToLogActivity`
 - `com.tibco.pe.core.CatchActivity`
 - `com.tibco.plugin.file.FileReadActivity`
