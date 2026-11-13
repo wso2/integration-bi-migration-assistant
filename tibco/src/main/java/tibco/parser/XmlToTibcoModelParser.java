@@ -774,13 +774,17 @@ public final class XmlToTibcoModelParser {
                 // The condition is evaluated as a stylesheet so that its $variable references bind like any other
                 // mapping.
                 tryGetInlineActivityConfigValue(element, "errorCondition")
-                        .map(condition -> wrapInStyleSheet(cx,
-                                "<%1$s><xsl:value-of select=\"boolean(%2$s)\"/></%1$s>".formatted(
-                                        ErrorLoopGroup.CONDITION_RESULT, escapeXmlAttribute(condition))))
+                        .map(condition -> booleanStyleSheet(cx, ErrorLoopGroup.CONDITION_RESULT, condition))
                         .orElseThrow(() -> new ParserException("errorLoop group has no error condition", element)),
                 tryGetInlineActivityConfigValue(element, "suspendAfterErrorRetry")
                         .map(Boolean::parseBoolean).orElse(false),
                 parseGroupBody(cx, element), cx.fileName());
+    }
+
+    private static Flow.Activity.Expression.@NotNull XSLT booleanStyleSheet(ProcessContext cx, String resultElement,
+            String xPath) {
+        return wrapInStyleSheet(cx, "<%1$s><xsl:value-of select=\"boolean(%2$s)\"/></%1$s>".formatted(
+                resultElement, escapeXmlAttribute(xPath)));
     }
 
     private static @NotNull String escapeXmlAttribute(String value) {
@@ -1014,7 +1018,28 @@ public final class XmlToTibcoModelParser {
     private static Transition parseTransition(ProcessContext cx, Element element) {
         String from = getFirstChildWithTag(element, "from").getTextContent();
         String to = getFirstChildWithTag(element, "to").getTextContent();
-        return new Transition(from, to);
+        return new Transition(from, to, parseTransitionCondition(cx, element));
+    }
+
+    private static Transition.@NotNull Condition parseTransitionCondition(ProcessContext cx, Element element) {
+        String conditionType = tryGetFirstChildWithTag(element, "conditionType")
+                .map(Element::getTextContent).map(String::strip).orElse("always");
+        return switch (conditionType) {
+            case "always" -> new Transition.Condition.Always();
+            case "xpath" -> tryGetFirstChildWithTag(element, "xpath").map(Element::getTextContent)
+                    .filter(xPath -> !xPath.isBlank())
+                    .<Transition.Condition>map(xPath -> new Transition.Condition.XPath(booleanStyleSheet(cx,
+                            Transition.Condition.XPath.CONDITION_RESULT, xPath)))
+                    .orElseGet(() -> unsupportedTransitionCondition(cx, element));
+            case "otherwise" -> new Transition.Condition.Otherwise();
+            case "error" -> new Transition.Condition.Error();
+            default -> unsupportedTransitionCondition(cx, element);
+        };
+    }
+
+    private static Transition.@NotNull Condition unsupportedTransitionCondition(ProcessContext cx, Element element) {
+        cx.registerUnsupportedTransition(element);
+        return new Transition.Condition.Unsupported();
     }
 
     // TODO: fill this

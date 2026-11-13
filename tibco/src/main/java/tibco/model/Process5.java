@@ -154,8 +154,43 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
             }
         }
 
-        public record Transition(String from, String to) {
+        public record Transition(String from, String to, Condition condition) {
 
+            public Transition {
+                assert from != null && to != null : "transition must have both ends";
+                assert condition != null : "transition must have a condition";
+            }
+
+            public sealed interface Condition {
+
+                record Always() implements Condition {
+
+                }
+
+                // The predicate is a stylesheet that writes the boolean value of the TIBCO XPath condition into a
+                // CONDITION_RESULT element, so its $variables bind like a mapping's.
+                record XPath(Scope.Flow.Activity.Expression.XSLT predicate) implements Condition {
+
+                    public static final String CONDITION_RESULT = "transitionConditionResult";
+
+                    public XPath {
+                        assert predicate != null : "xpath transition must have a predicate";
+                    }
+                }
+
+                record Otherwise() implements Condition {
+
+                }
+
+                record Error() implements Condition {
+
+                }
+
+                // Taken like Always so the activities it connects keep their order; the runner flags it.
+                record Unsupported() implements Condition {
+
+                }
+            }
         }
 
         public sealed interface InlineActivity extends Scope.Flow.Activity {

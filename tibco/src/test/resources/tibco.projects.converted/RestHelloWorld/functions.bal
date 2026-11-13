@@ -370,7 +370,7 @@ function Loop(Context cx) returns error? {
     xml var1 = xml `<root></root>`;
     xml var2 = getFromContext(cx, "Mapper");
     var2 = check xmldata:transform(var2, `foo/bar`);
-    int var3 = -1;
+    int var3 = 0;
     addToContext(cx, "element", xml `<root></root>`);
     foreach xml each in var2 {
         var3 = var3 + 1;

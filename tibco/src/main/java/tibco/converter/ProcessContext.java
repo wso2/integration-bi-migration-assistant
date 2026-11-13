@@ -26,6 +26,7 @@ import tibco.LoggingContext;
 import tibco.analyzer.AnalysisResult;
 import tibco.model.NameSpace;
 import tibco.model.Process;
+import tibco.model.Process5;
 import tibco.model.Resource;
 import tibco.model.Scope;
 import tibco.model.Variable;
@@ -63,6 +64,8 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
     // when the activity flow is generated.
     private final Map<Scope.Flow.Activity.Source.Predicate, String> predicateToFunctionMap =
             new IdentityHashMap<>();
+    private final Map<Process5.ExplicitTransitionGroup.Transition.Condition.XPath, String>
+            transitionPredicateToFunctionMap = new IdentityHashMap<>();
     private final Map<String, String> propertyVariableToResourceMap = new HashMap<>();
 
     private DefaultClientDetails processClient;
@@ -342,6 +345,12 @@ public class ProcessContext implements ContextWithFile, LoggingContext {
 
     boolean isFirstPredicateFunctionUse(Scope.Flow.Activity.Source.Predicate predicate) {
         return !predicateToFunctionMap.containsKey(predicate);
+    }
+
+    @NotNull String transitionPredicateFunction(Process5.ExplicitTransitionGroup.Transition.Condition.XPath condition) {
+        return transitionPredicateToFunctionMap.computeIfAbsent(condition,
+                c -> ConversionUtils.sanitizes(process.name()) + "_transitionPredicate_"
+                        + transitionPredicateToFunctionMap.size());
     }
 
     String getConfigVarName(String varName) {

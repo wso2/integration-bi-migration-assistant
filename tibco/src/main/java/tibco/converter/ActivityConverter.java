@@ -139,6 +139,28 @@ final class ActivityConverter {
         }
     }
 
+    static @NotNull BallerinaModel.Function convertTransitionPredicate(
+            ProcessContext processContext, Process5.ExplicitTransitionGroup.Transition.Condition.XPath condition) {
+        ActivityContext cx = new ActivityContext(processContext, null);
+        List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", XML),
+                ConversionUtils.activityFnType(processContext).parameters().getFirst());
+        List<Statement> body = new ArrayList<>();
+        try {
+            VarDeclStatment output =
+                    evaluateBooleanStyleSheet(cx, new VariableReference("input"), condition.predicate(), body);
+            body.add(output);
+            body.add(new Statement.Return<>(booleanStyleSheetHolds(output)));
+        } catch (Exception e) {
+            cx.log(SEVERE, "Failed to convert transition condition: " + e.getMessage());
+            body.clear();
+            body.add(new Comment("FIXME: failed to convert transition condition"));
+            body.add(new Statement.Return<>(new FunctionCall("error",
+                    List.of(new StringConstant("Unsupported transition condition")))));
+        }
+        return new BallerinaModel.Function(processContext.transitionPredicateFunction(condition), parameters,
+                UnionTypeDesc.of(BOOLEAN, ERROR), body);
+    }
+
     private static BallerinaModel.Function convertActivity(ActivityContext cx, Activity activity) {
         List<Statement> body;
         try {
@@ -1156,7 +1178,7 @@ final class ActivityConverter {
                                     List.of(loopSequence.ref(),
                                             exprFrom("`%s`".formatted(xPath)))))));
         }
-        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("-1"));
+        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
         body.add(indexValue);
         loopGroup.elementSlot().map(elementSlot -> addToContext(cx, defaultEmptyXml(), elementSlot))
                 .ifPresent(body::add);
@@ -1215,12 +1237,10 @@ final class ActivityConverter {
         VarDeclStatment index = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
         body.add(index);
         String error = cx.getAnnonVarName();
-        XsltTransformResult condition = xsltTransform(cx, resultValue.ref(), errorLoop.errorCondition());
-        addNonStandardXsltWarning(condition.nonStandardFunctions(), body);
-        body.addAll(condition.statements());
-        VarDeclStatment conditionOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), condition.expression());
+        VarDeclStatment conditionOutput =
+                evaluateBooleanStyleSheet(cx, resultValue.ref(), errorLoop.errorCondition(), body);
         VarDeclStatment retryLimitReached = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
-                exprFrom("(%s/*).toString().trim() == \"true\"".formatted(conditionOutput.ref())));
+                booleanStyleSheetHolds(conditionOutput));
         String publishIndex = errorLoop.indexSlot()
                 .map(indexSlot -> addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(index.ref())),
                         indexSlot).toString())
@@ -1246,6 +1266,21 @@ final class ActivityConverter {
                         ERROR_LOOP_ERROR_VARIABLE),
                 conditionOutput, retryLimitReached, retryLimitReached.ref())));
         return new ActivityConversionResult(resultValue.ref(), body);
+    }
+
+    // The stylesheet is parsed once into `preamble`; the returned declaration runs it, so callers can place it
+    // wherever the condition must be re-evaluated.
+    private static @NotNull VarDeclStatment evaluateBooleanStyleSheet(ActivityContext cx, VariableReference input,
+            Activity.Expression.XSLT styleSheet, List<Statement> preamble) {
+        XsltTransformResult result = xsltTransform(cx, input, styleSheet);
+        addNonStandardXsltWarning(result.nonStandardFunctions(), preamble);
+        preamble.addAll(result.statements());
+        return new VarDeclStatment(XML, cx.getAnnonVarName(), result.expression());
+    }
+
+    // A boolean stylesheet writes the condition's value as the text of its single result element.
+    private static @NotNull BallerinaModel.Expression booleanStyleSheetHolds(VarDeclStatment output) {
+        return exprFrom("(%s/*).toString().trim() == \"true\"".formatted(output.ref()));
     }
 
     private static ActivityConversionResult convertREST(
