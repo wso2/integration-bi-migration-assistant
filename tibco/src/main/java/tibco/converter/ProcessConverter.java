@@ -576,7 +576,12 @@ public class ProcessConverter {
                                 "generateExplicitTransitionBlockScopeFunction"))
                 .map(data -> tryGenerateFunction(data.fn, cx, group, data.functionName))
                 .flatMap(Optional::stream);
-        return Stream.concat(functions, childFunctions);
+        Stream<BallerinaModel.Function> transitionPredicates = group.transitions().stream()
+                .map(ExplicitTransitionGroup.Transition::condition)
+                .filter(ExplicitTransitionGroup.Transition.Condition.XPath.class::isInstance)
+                .map(condition -> ActivityConverter.convertTransitionPredicate(cx,
+                        (ExplicitTransitionGroup.Transition.Condition.XPath) condition));
+        return Stream.of(functions, transitionPredicates, childFunctions).flatMap(Function.identity());
     }
 
 private static Optional<BallerinaModel.Function> tryGenerateFunction(
@@ -697,8 +702,8 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         List<Parameter> parameters = activityFnType.parameters();
         assert parameters.size() == 1 : "Activity function type should have exactly one parameter";
 
-        return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction,
-                activityFnType.returnType(), Check::new, parameters);
+        return new BallerinaModel.Function(activityRunnerFunction, parameters, activityFnType.returnType(),
+                ActivityFlowGenerator.generate(cx, group, activities, Check::new));
     }
 
     private static @NotNull List<Activity> withoutMisplacedRethrows(ProcessContext cx, List<Activity> activities) {
@@ -741,7 +746,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             return defaultErrorHandlerFunction(cx, errorHandlerFunction);
         }
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
-        List<Statement> body = new ArrayList<>(ActivityFlowGenerator.generate(cx, activities.stream()
+        List<Statement> body = new ArrayList<>(ActivityFlowGenerator.generate(cx, group, activities.stream()
                         .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
                         .toList(),
                 Check::new));
