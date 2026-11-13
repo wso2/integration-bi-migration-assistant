@@ -32,6 +32,7 @@ import common.BallerinaModel.Statement;
 import common.BallerinaModel.Statement.CallStatement;
 import common.BallerinaModel.Statement.Comment;
 import common.BallerinaModel.Statement.IfElseStatement;
+import common.BallerinaModel.Statement.Return;
 import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
@@ -122,13 +123,47 @@ final class ActivityFlowGenerator {
         return generate(cx, new TransitionLinks(cx, group), activities, callHandler);
     }
 
+    // A Rethrow returns the caught error, and a return in the middle of the runner would make every later statement
+    // unreachable, so the return is emitted last, guarded by whether any Rethrow was reached.
+    static @NotNull List<Statement> generateErrorFlow(ProcessContext cx, ExplicitTransitionGroup group,
+                                                      List<Activity> activities, VariableReference caughtError) {
+        ActivityFlowGenerator generator = generator(cx, new TransitionLinks(cx, group), activities, Check::new);
+        List<Optional<Expression>> rethrowReached = new ArrayList<>();
+        for (Activity activity : activities) {
+            if (activity instanceof InlineActivity.Rethrow) {
+                rethrowReached.add(generator.reachedCondition(activity));
+                generator.firedLinks.put(activity, Map.of());
+            } else {
+                generator.generateActivity(activity);
+            }
+        }
+        if (rethrowReached.stream().anyMatch(Optional::isEmpty)) {
+            generator.body.add(new Return<>(caughtError));
+        } else {
+            List<Expression> reachable = rethrowReached.stream().map(Optional::orElseThrow)
+                    .filter(reached -> reached != NEVER).toList();
+            if (!reachable.isEmpty()) {
+                generator.body.add(IfElseStatement.ifStatement(anyOf(reachable),
+                        List.of(new Return<>(caughtError))));
+            }
+        }
+        return generator.body;
+    }
+
     private static @NotNull List<Statement> generate(ProcessContext cx, FlowLinks links, List<Activity> activities,
                                                      Function<FunctionCall, Expression> callHandler) {
+        ActivityFlowGenerator generator = generator(cx, links, activities, callHandler);
+        activities.forEach(generator::generateActivity);
+        return generator.body;
+    }
+
+    private static @NotNull ActivityFlowGenerator generator(ProcessContext cx, FlowLinks links,
+                                                            List<Activity> activities,
+                                                            Function<FunctionCall, Expression> callHandler) {
         ActivityFlowGenerator generator = new ActivityFlowGenerator(cx, links, activities, callHandler);
         generator.firedEntryLinks.putAll(generator.firedLinks(links.linksFromFlowStart(), Optional.empty(),
                 Optional.empty()));
-        activities.forEach(generator::generateActivity);
-        return generator.body;
+        return generator;
     }
 
     // Empty activities have no function, so one that no live activity in the flow depends on needs neither its
@@ -239,11 +274,12 @@ final class ActivityFlowGenerator {
         body.add(IfElseStatement.ifStatement(condition, List.of(statement)));
     }
 
-    // An error is only handled here when its error path continues inside this flow; otherwise it must still
-    // propagate to the enclosing scope's fault handler.
+    // An error is only handled here when its error path continues inside this flow or ends the flow; otherwise it
+    // must still propagate to the enclosing scope's fault handler.
     private List<OutLink> errorLinksIntoFlow(Activity activity) {
         return links.outgoing(activity).stream()
-                .filter(link -> link.rule() instanceof Rule.Error && linksIntoFlow.contains(link.name()))
+                .filter(link -> link.rule() instanceof Rule.Error
+                        && (link.endsFlow() || linksIntoFlow.contains(link.name())))
                 .toList();
     }
 
@@ -274,6 +310,9 @@ final class ActivityFlowGenerator {
         Map<String, Optional<Expression>> fired = new HashMap<>();
         // Conditional links come first, since an "otherwise" link is taken exactly when none of them is.
         List<Expression> conditionalTaken = new ArrayList<>();
+        // An unconditional success link is taken whenever its source succeeds, which leaves "otherwise" nothing.
+        boolean hasUnconditionalSibling = outgoing.stream()
+                .anyMatch(link -> link.rule() instanceof Rule.Success || link.rule() instanceof Rule.Unsupported);
         for (OutLink link : outgoing) {
             if (!(link.rule() instanceof Rule.Condition(Supplier<String> predicateFunction))) {
                 continue;
@@ -296,7 +335,8 @@ final class ActivityFlowGenerator {
                 continue;
             }
             // Neither an Empty activity nor the flow's entry runs anything, so their error links never fire.
-            if (link.rule() instanceof Rule.Error && result.isEmpty()) {
+            if ((link.rule() instanceof Rule.Error && result.isEmpty())
+                    || (link.rule() instanceof Rule.Otherwise && hasUnconditionalSibling)) {
                 fired.put(link.name(), Optional.of(NEVER));
                 continue;
             }
@@ -396,7 +436,7 @@ final class ActivityFlowGenerator {
     }
 
     private record OutLink(String name, Rule rule, List<String> faultDetailsVariables,
-                           List<String> faultNameVariables) {
+                           List<String> faultNameVariables, boolean endsFlow) {
 
     }
 
@@ -430,7 +470,7 @@ final class ActivityFlowGenerator {
             }
             return withSources.sources().stream()
                     .map(each -> new OutLink(each.linkName(), rule(each.condition()),
-                            each.faultDetailsVar().stream().toList(), each.faultNameVar().stream().toList()))
+                            each.faultDetailsVar().stream().toList(), each.faultNameVar().stream().toList(), false))
                     .toList();
         }
 
@@ -486,20 +526,21 @@ final class ActivityFlowGenerator {
             return name;
         }
 
-        // Mappings read the fault of a specific activity as `$_error_<activity>`, with spaces written as '-'.
+        // Mappings read the fault of a specific activity as `$_error_<activity>`, with spaces written as '-'. A
+        // transition to anything other than an activity of the group goes to the group's end node.
         private OutLink outLink(String name, Transition transition) {
-            return switch (transition.condition()) {
-                case Transition.Condition.Always ignored ->
-                        new OutLink(name, new Rule.Success(), List.of(), List.of());
-                case Transition.Condition.XPath xPath -> new OutLink(name,
-                        new Rule.Condition(() -> cx.transitionPredicateFunction(xPath)), List.of(), List.of());
-                case Transition.Condition.Otherwise ignored ->
-                        new OutLink(name, new Rule.Otherwise(), List.of(), List.of());
-                case Transition.Condition.Error ignored -> new OutLink(name, new Rule.Error(),
-                        List.of(ERROR_VARIABLE_PREFIX + transition.from().replace(' ', '-')), List.of());
-                case Transition.Condition.Unsupported ignored ->
-                        new OutLink(name, new Rule.Unsupported(), List.of(), List.of());
+            Rule rule = switch (transition.condition()) {
+                case Transition.Condition.Always ignored -> new Rule.Success();
+                case Transition.Condition.XPath xPath ->
+                        new Rule.Condition(() -> cx.transitionPredicateFunction(xPath));
+                case Transition.Condition.Otherwise ignored -> new Rule.Otherwise();
+                case Transition.Condition.Error ignored -> new Rule.Error();
+                case Transition.Condition.Unsupported ignored -> new Rule.Unsupported();
             };
+            List<String> faultDetailsVariables = rule instanceof Rule.Error
+                    ? List.of(ERROR_VARIABLE_PREFIX + transition.from().replace(' ', '-'))
+                    : List.of();
+            return new OutLink(name, rule, faultDetailsVariables, List.of(), !activityNames.contains(transition.to()));
         }
 
         @Override

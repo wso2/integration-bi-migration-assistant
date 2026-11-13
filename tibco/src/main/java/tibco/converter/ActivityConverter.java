@@ -1178,7 +1178,7 @@ final class ActivityConverter {
                                     List.of(loopSequence.ref(),
                                             exprFrom("`%s`".formatted(xPath)))))));
         }
-        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("-1"));
+        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
         body.add(indexValue);
         loopGroup.elementSlot().map(elementSlot -> addToContext(cx, defaultEmptyXml(), elementSlot))
                 .ifPresent(body::add);

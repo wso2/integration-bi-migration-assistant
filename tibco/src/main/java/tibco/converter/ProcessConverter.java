@@ -746,20 +746,15 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             return defaultErrorHandlerFunction(cx, errorHandlerFunction);
         }
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
-        List<Statement> body = new ArrayList<>(ActivityFlowGenerator.generate(cx, group, activities.stream()
-                        .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
-                        .toList(),
-                Check::new));
-        // Statements after a return are unreachable, so a rethrow runs once every other handler activity has.
-        if (activities.stream().anyMatch(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)) {
-            if (group.activities().stream()
-                    .filter(ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity.class::isInstance)
-                    .count() > 1) {
-                cx.log(LoggingUtils.Level.WARN, "Error handler \"" + errorHandlerFunction
-                        + "\" merges several catches, so its rethrow applies to faults from all of them.");
-            }
-            body.add(returnCaughtError());
+        if (activities.stream().anyMatch(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)
+                && group.activities().stream()
+                        .filter(ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity.class::isInstance)
+                        .count() > 1) {
+            cx.log(LoggingUtils.Level.WARN, "Error handler \"" + errorHandlerFunction
+                    + "\" merges several catches, so its rethrow applies to faults from all of them.");
         }
+        List<Statement> body = ActivityFlowGenerator.generateErrorFlow(cx, group, activities,
+                errorFlowFnType.parameters().getFirst().ref());
         return new BallerinaModel.Function(errorHandlerFunction, errorFlowFnType.parameters(),
                 errorFlowFnType.returnType(), body);
     }
