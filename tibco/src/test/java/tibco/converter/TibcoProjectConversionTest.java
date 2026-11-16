@@ -794,6 +794,9 @@ public class TibcoProjectConversionTest {
         }
         Assert.assertTrue(functionBody(functions, "start_Processes_Sub_process").contains("$M/root/Greeting"),
                 "Sub return bindings lost the reference to M");
+        // $Start follows a quoted literal in concat('Hello ', $Start/name).
+        Assert.assertTrue(functionBody(functions, "M").contains("<xsl:param name=\"Start\"/>"),
+                "M stylesheet does not declare the Start parameter it uses");
     }
 
     private String functionBody(String generated, String functionName) {
