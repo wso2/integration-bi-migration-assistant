@@ -23,6 +23,7 @@ import mule.v4.ConversionUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static common.BallerinaModel.Function;
@@ -37,6 +38,7 @@ public class MELConverter {
     private static final Pattern UNBRACED_OBJECT_KEY =
             Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
     private static final Pattern DEFAULT_OPERATOR = Pattern.compile("default(?![\\w.])");
+    private static final Set<String> STRING_COERCIBLE_TYPES = Set.of("String", "Boolean", "Number");
 
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
@@ -166,6 +168,9 @@ public class MELConverter {
             // Build tokens for identifiers and keywords
             if (isTokenChar(currentChar)) {
                 token.append(currentChar);
+            } else if (addToStringCalls && "as".contentEquals(token)) {
+                i = skipStringTypeCoercion(melExpr, i);
+                token.setLength(0);
             } else {
                 switch (token.toString()) {
                     case "and" -> result.append("&&");
@@ -192,6 +197,33 @@ public class MELConverter {
         processToken(token, result, addToStringCalls);
 
         return result.toString();
+    }
+
+    // A whole value that ends up as a string is not changed by a coercion to one of these types. Inside a larger
+    // expression the coerced type matters, and a format option changes the value, so neither can be dropped.
+    private static int skipStringTypeCoercion(String melExpr, int startPos) {
+        int i = skipWhitespace(melExpr, startPos);
+        int typeStart = i;
+        while (i < melExpr.length() && isTokenChar(melExpr.charAt(i))) {
+            i++;
+        }
+        String type = melExpr.substring(typeStart, i);
+        if (!STRING_COERCIBLE_TYPES.contains(type)) {
+            throw new UnsupportedOperationException("type coercion to '" + type + "' not supported");
+        }
+        int next = skipWhitespace(melExpr, i);
+        if (next < melExpr.length() && ",}".indexOf(melExpr.charAt(next)) < 0) {
+            throw new UnsupportedOperationException("type coercion is only supported on a whole value");
+        }
+        return i - 1;
+    }
+
+    private static int skipWhitespace(String expr, int startPos) {
+        int i = startPos;
+        while (i < expr.length() && Character.isWhitespace(expr.charAt(i))) {
+            i++;
+        }
+        return i;
     }
 
     // An object key keeps its name, and a default needs an optional operand
