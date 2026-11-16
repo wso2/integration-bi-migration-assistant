@@ -16,12 +16,15 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
             <http:headers><![CDATA[#[output application/java
 ---
 {
-    "enrichProducts": p('backend.enrich') as Boolean
+    "enrichProducts": p('backend.enrich') as Boolean,
+    "traceId": attributes.headers.'x-trace-id' as String,
+    "region": (p('backend.region') as String)
 }]]]></http:headers>
             <http:query-params><![CDATA[#[output application/java
 ---
 {
-    "limit": p('backend.limit') as String
+    "limit": p('backend.limit') as String,
+    "page": (attributes.queryParams.page) as Number
 }]]]></http:query-params>
         </http:request>
     </flow>

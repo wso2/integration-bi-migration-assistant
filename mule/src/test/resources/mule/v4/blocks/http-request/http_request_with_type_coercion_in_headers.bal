@@ -14,6 +14,7 @@ public type Context record {|
 |};
 
 configurable string backend_enrich = ?;
+configurable string backend_region = ?;
 configurable string backend_limit = ?;
 public listener http:Listener listener_config = new (8081);
 
@@ -27,13 +28,16 @@ service /mule4 on listener_config {
         // http client request
         http:Client backend = check new ("localhost:8082");
         map<string?> headers_nilable = {
-            "enrichProducts": backend_enrich
+            "enrichProducts": backend_enrich,
+            "traceId": getOptionalHeader(<http:Request>ctx.attributes.request, "x-trace-id"),
+            "region": (backend_region)
         };
         map<string> headers = map from string key in headers_nilable.keys()
             where headers_nilable.get(key) is string
             select [key, <string>headers_nilable.get(key)];
         map<string?> queryParams_nilable = {
-            "limit": backend_limit
+            "limit": backend_limit,
+            "page": ((<http:Request>ctx.attributes.request).getQueryParamValue("page"))
         };
         map<string> queryParams = map from string key in queryParams_nilable.keys()
             where queryParams_nilable.get(key) is string
@@ -56,4 +60,9 @@ function getCorrelationId(http:Request request) returns string {
         id = request.getHeader("MULE_CORRELATION_ID");
     }
     return id is string ? id : uuid:createType4AsString();
+}
+
+function getOptionalHeader(http:Request req, string name) returns string? {
+    string|http:HeaderNotFoundError value = req.getHeader(name);
+    return value is string ? value : ();
 }
