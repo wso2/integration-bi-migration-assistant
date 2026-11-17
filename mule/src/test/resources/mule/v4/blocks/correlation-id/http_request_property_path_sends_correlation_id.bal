@@ -1,5 +1,6 @@
 import ballerina/http;
 import ballerina/lang.regexp;
+import ballerina/url;
 import ballerina/uuid;
 
 public type Attributes record {|
@@ -61,8 +62,12 @@ function pathBuilder0(string path, map<string> uriParams, map<string> queryParam
     foreach var [key, value] in uriParams.entries() {
         requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
     }
+    string[] queryParts = [];
     foreach var [key, value] in queryParams.entries() {
-        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+        queryParts.push(string `${check url:encode(key, "UTF-8")}=${check url:encode(value, "UTF-8")}`);
+    }
+    if queryParts.length() > 0 {
+        requestPath += (requestPath.includes("?") ? "&" : "?") + string:'join("&", ...queryParts);
     }
     return requestPath;
 }
@@ -73,8 +78,12 @@ function pathBuilder1(string path, map<string> uriParams, map<string> queryParam
     foreach var [key, value] in uriParams.entries() {
         requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
     }
+    string[] queryParts = [];
     foreach var [key, value] in queryParams.entries() {
-        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+        queryParts.push(string `${check url:encode(key, "UTF-8")}=${check url:encode(value, "UTF-8")}`);
+    }
+    if queryParts.length() > 0 {
+        requestPath += (requestPath.includes("?") ? "&" : "?") + string:'join("&", ...queryParts);
     }
     return requestPath;
 }
