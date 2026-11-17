@@ -134,7 +134,10 @@ public class MuleToBalConverter {
         List<Listener> listeners = new ArrayList<>();
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
             listeners.add(new Listener.HTTPListener(ConversionUtils.convertToBalIdentifier(httpListenerConfig.name()),
-                            getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
+                    exprFrom(getAttrValInt(ctx, httpListenerConfig.port())),
+                    httpListenerConfig.host().isEmpty() || httpListenerConfig.host().equals("0.0.0.0")
+                            ? Optional.empty()
+                            : Optional.of(exprFrom(getAttrVal(ctx, httpListenerConfig.host())))));
         }
 
         // Add module vars

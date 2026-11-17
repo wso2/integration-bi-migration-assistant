@@ -1583,6 +1583,57 @@ service / on HTTP_Listener_Configuration {
 
 ```
 
+- ### Http Listener With Host Property
+
+**Input (http_listener_with_host_property.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" host="${http.host}" port="8081" basePath="/mule3" doc:name="HTTP Listener Configuration"/>
+    <flow name="demoFlow">
+        <http:listener config-ref="config" path="/demo" allowedMethods="GET" doc:name="HTTP"/>
+        <logger message="xxx: logger invoked" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
+
+```
+**Output (http_listener_with_host_property.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type InboundProperties record {|
+    http:Request request;
+    http:Response response;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    InboundProperties inboundProperties;
+|};
+
+configurable string http_host = ?;
+public listener http:Listener config = new (8081, {host: http_host});
+
+service /mule3 on config {
+    resource function get demo(http:Request request) returns http:Response|error {
+        Context ctx = {inboundProperties: {request, response: new}};
+        log:printInfo("xxx: logger invoked");
+
+        ctx.inboundProperties.response.setPayload(ctx.payload);
+        return ctx.inboundProperties.response;
+    }
+}
+
+```
+
 - ### Http Listener With Localhost
 
 **Input (http_listener_with_localhost.xml):**

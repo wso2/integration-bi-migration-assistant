@@ -197,7 +197,10 @@ public class MuleToBalConverter {
         // Add global HTTP listeners from configs
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {
             listeners.add(new Listener.HTTPListener(convertToBalIdentifier(httpListenerConfig.name()),
-                    getAttrValInt(ctx, httpListenerConfig.port()), httpListenerConfig.host()));
+                    exprFrom(getAttrValInt(ctx, httpListenerConfig.port())),
+                    httpListenerConfig.host().isEmpty() || httpListenerConfig.host().equals("0.0.0.0")
+                            ? Optional.empty()
+                            : Optional.of(exprFrom(getAttrVal(ctx, httpListenerConfig.host())))));
         }
 
         // Add module vars
