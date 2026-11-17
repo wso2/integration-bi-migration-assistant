@@ -1,5 +1,6 @@
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 import ballerina/uuid;
 
 public type Vars record {|
@@ -23,9 +24,11 @@ public function demoFlow(Context ctx) {
     // http client request
     http:Client http_request_config = check new ("orders.example.com:80");
     map<string?> headers_nilable = {
-        "baseSiteId": ctx.vars?.marketId.toString().toLowerAscii(),
-        "region": ctx.vars?.region.toString().toUpperAscii(),
-        "channel": ctx.vars?.channel.toString().trim()
+        "baseSiteId": (ctx.vars?.marketId is () ? () : ctx.vars?.marketId.toString().toLowerAscii()),
+        "region": (ctx.vars?.region is () ? () : ctx.vars?.region.toString().toUpperAscii()),
+        "channel": (ctx.vars?.channel is () ? () : ctx.vars?.channel.toString().trim()),
+        "label": (ctx.vars?.channel.toString() + " (beta)").trim(),
+        "requestedAt": time:utcToString(time:utcNow())
     };
     map<string> headers = map from string key in headers_nilable.keys()
         where headers_nilable.get(key) is string

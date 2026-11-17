@@ -147,7 +147,10 @@ public class MELConverter {
                     continue;
                 }
                 if (STRING_FUNCTIONS.containsKey(tokenStr)) {
-                    var res = processStringFunction(ctx, melExpr, i, STRING_FUNCTIONS.get(tokenStr));
+                    String before = melExpr.substring(0, i).stripTrailing();
+                    var res = processStringFunction(ctx, melExpr,
+                            before.substring(0, before.length() - tokenStr.length()), i,
+                            STRING_FUNCTIONS.get(tokenStr));
                     result.append(res.expression);
                     token.setLength(0);
                     i = res.next;
@@ -164,14 +167,15 @@ public class MELConverter {
                     token.setLength(0);
                     continue;
                 }
-                if (tokenStr.equals("now") && melExpr.startsWith("()", i)) {
+                ParenthesisContent args = extractParenthesisContent(melExpr, i);
+                if (tokenStr.equals("now") && args.content.isEmpty()) {
                     ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
                     result.append("time:utcToString(time:utcNow())");
                     token.setLength(0);
-                    i++;
+                    i = args.endIndex - 1;
                     continue;
                 }
-                if (!tokenStr.isEmpty() && !KEYWORDS_BEFORE_PARENTHESIS.contains(tokenStr)) {
+                if (isFunctionName(tokenStr)) {
                     throw new UnsupportedOperationException("function call not supported: " + tokenStr);
                 }
             }
@@ -191,6 +195,9 @@ public class MELConverter {
             // Build tokens for identifiers and keywords
             if (isTokenChar(currentChar)) {
                 token.append(currentChar);
+            } else if (Character.isWhitespace(currentChar) && isFunctionName(tokenStr)
+                    && melExpr.substring(i).stripLeading().startsWith("(")) {
+                continue;
             } else {
                 switch (token.toString()) {
                     case "and" -> result.append("&&");
@@ -219,13 +226,27 @@ public class MELConverter {
         return result.toString();
     }
 
-    // The operand is always stringified because these Ballerina methods are defined only on string.
-    private static ExpressionResult processStringFunction(Context ctx, String melExpr, int openParenPos,
-                                                          String balMethod) throws ScriptConversionException {
+    // The operand is stringified because these Ballerina methods are defined only on string. Like a header access, a
+    // nil operand stays nil where keepsNil allows it, since DataWeave's string functions return null for null.
+    private static ExpressionResult processStringFunction(Context ctx, String melExpr, String beforeCall,
+                                                          int openParenPos, String balMethod)
+            throws ScriptConversionException {
         ParenthesisContent content = extractParenthesisContent(melExpr, openParenPos);
         String operand = melToBalExpr(ctx, true, content.content);
         String receiver = DWUtils.parenthesisNeeded(operand) ? "(" + operand + ")" : operand;
-        return new ExpressionResult("%s.%s()".formatted(receiver, balMethod), content.endIndex - 1);
+        String call = "%s.%s()".formatted(receiver, balMethod);
+        if (keepsNil(beforeCall, melExpr.substring(content.endIndex))) {
+            String nilableOperand = melToBalExpr(ctx, false, content.content);
+            if (!DWUtils.parenthesisNeeded(nilableOperand)) {
+                call = "(%s is () ? () : %s)".formatted(nilableOperand, call);
+            }
+        }
+        return new ExpressionResult(call, content.endIndex - 1);
+    }
+
+    private static boolean isFunctionName(String token) {
+        return !token.isEmpty() && (Character.isLetter(token.charAt(0)) || token.charAt(0) == '_')
+                && !KEYWORDS_BEFORE_PARENTHESIS.contains(token);
     }
 
     // An object key keeps its name, and a default needs an optional operand
@@ -367,9 +388,18 @@ public class MELConverter {
         int depth = 0;
         int i = startPos;
         int startFirst = i;
+        char openQuote = 0;
         while (i < expr.length()) {
             char c = expr.charAt(i);
-            if (c == '(') {
+            if (openQuote != 0) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == openQuote) {
+                    openQuote = 0;
+                }
+            } else if (isQuote(c)) {
+                openQuote = c;
+            } else if (c == '(') {
                 depth++;
             } else if (c == ')') {
                 depth--;

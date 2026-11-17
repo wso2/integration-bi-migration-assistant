@@ -14,9 +14,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
             <http:headers><![CDATA[#[output application/java
 ---
 {
-	"baseSiteId" : lower(vars.marketId),
+	"baseSiteId" : lower (vars.marketId),
 	"region" : upper(vars.region),
-	"channel" : trim(vars.channel)
+	"channel" : trim(vars.channel),
+	"label" : trim(vars.channel ++ " (beta)"),
+	"requestedAt" : now( )
 }]]]></http:headers>
         </http:request>
     </flow>
