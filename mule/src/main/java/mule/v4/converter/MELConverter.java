@@ -20,12 +20,16 @@ package mule.v4.converter;
 import mule.v4.Constants;
 import mule.v4.Context;
 import mule.v4.ConversionUtils;
+import mule.v4.dataweave.converter.DWUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static common.BallerinaModel.Function;
+import static common.BallerinaModel.Import;
 import static common.BallerinaModel.Parameter;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
@@ -37,6 +41,10 @@ public class MELConverter {
     private static final Pattern UNBRACED_OBJECT_KEY =
             Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
     private static final Pattern DEFAULT_OPERATOR = Pattern.compile("default(?![\\w.])");
+    private static final Map<String, String> STRING_FUNCTIONS =
+            Map.of("lower", "toLowerAscii", "upper", "toUpperAscii", "trim", "trim");
+    private static final Set<String> KEYWORDS_BEFORE_PARENTHESIS =
+            Set.of("if", "else", "unless", "and", "or", "not", "default", "map", "filter", "do");
 
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
@@ -138,6 +146,13 @@ public class MELConverter {
                     i = res.next;
                     continue;
                 }
+                if (STRING_FUNCTIONS.containsKey(tokenStr)) {
+                    var res = processStringFunction(ctx, melExpr, i, STRING_FUNCTIONS.get(tokenStr));
+                    result.append(res.expression);
+                    token.setLength(0);
+                    i = res.next;
+                    continue;
+                }
                 if (i + 1 < melExpr.length() && isQuote(melExpr.charAt(i + 1)) && tokenStr.equals("p")) {
                     i = processPPropAccess(ctx, melExpr, i, tokenStr, result);
                     token.setLength(0);
@@ -148,6 +163,16 @@ public class MELConverter {
                     i = processExceptionCausedBy(melExpr, i, tokenStr, result);
                     token.setLength(0);
                     continue;
+                }
+                if (tokenStr.equals("now") && melExpr.startsWith("()", i)) {
+                    ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_TIME));
+                    result.append("time:utcToString(time:utcNow())");
+                    token.setLength(0);
+                    i++;
+                    continue;
+                }
+                if (!tokenStr.isEmpty() && !KEYWORDS_BEFORE_PARENTHESIS.contains(tokenStr)) {
+                    throw new UnsupportedOperationException("function call not supported: " + tokenStr);
                 }
             }
 
@@ -192,6 +217,15 @@ public class MELConverter {
         processToken(token, result, addToStringCalls);
 
         return result.toString();
+    }
+
+    // The operand is always stringified because these Ballerina methods are defined only on string.
+    private static ExpressionResult processStringFunction(Context ctx, String melExpr, int openParenPos,
+                                                          String balMethod) throws ScriptConversionException {
+        ParenthesisContent content = extractParenthesisContent(melExpr, openParenPos);
+        String operand = melToBalExpr(ctx, true, content.content);
+        String receiver = DWUtils.parenthesisNeeded(operand) ? "(" + operand + ")" : operand;
+        return new ExpressionResult("%s.%s()".formatted(receiver, balMethod), content.endIndex - 1);
     }
 
     // An object key keeps its name, and a default needs an optional operand
