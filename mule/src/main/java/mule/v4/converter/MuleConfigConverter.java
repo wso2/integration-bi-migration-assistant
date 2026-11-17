@@ -828,7 +828,7 @@ public class MuleConfigConverter {
             String queryPathVarName = "queryPath";
 
             stmts.add(stmtFrom(
-                    "string %s = %s(%s);".formatted(queryPathVarName, pathBuilderFn, String.join(", ", params))));
+                    "string %s = check %s(%s);".formatted(queryPathVarName, pathBuilderFn, String.join(", ", params))));
             List<String> callArgs = new ArrayList<>();
             callArgs.add(queryPathVarName);
             if (headersVar != null) {
@@ -930,7 +930,8 @@ public class MuleConfigConverter {
                 List.of(new Parameter(pathParam, BallerinaModel.TypeDesc.BuiltinType.STRING),
                         new Parameter(uriParam, stringMapTD),
                         new Parameter(queryParam, stringMapTD)),
-                BallerinaModel.TypeDesc.BuiltinType.STRING, body));
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(BallerinaModel.TypeDesc.BuiltinType.STRING,
+                        BallerinaModel.TypeDesc.BuiltinType.ERROR), body));
         return functionName;
     }
 

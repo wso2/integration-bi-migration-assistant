@@ -26,7 +26,7 @@ service / on listener_config {
 
         // http client request
         http:Client request_config = check new ("localhost:8082");
-        string queryPath = pathBuilder0(string `${orders_path}`, {}, {});
+        string queryPath = check pathBuilder0(string `${orders_path}`, {}, {});
         http:Response clientResult0 = check request_config->get(queryPath, headers = {"X-Correlation-ID": ctx.correlationId});
         ctx.payload = check clientResult0.getJsonPayload();
 
@@ -46,7 +46,7 @@ service / on listener_config {
         if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
             headers["X-Correlation-ID"] = ctx.correlationId;
         }
-        string queryPath = pathBuilder1(string `${orders_path}`, {}, {});
+        string queryPath = check pathBuilder1(string `${orders_path}`, {}, {});
         http:Response clientResult1 = check request_config->get(queryPath, headers);
         ctx.payload = check clientResult1.getJsonPayload();
 
@@ -55,7 +55,7 @@ service / on listener_config {
     }
 }
 
-function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string {
+function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string|error {
     // TODO: Instead try to use clientResult0->request_config./basePath/.get
     string requestPath = path;
     foreach var [key, value] in uriParams.entries() {
@@ -67,7 +67,7 @@ function pathBuilder0(string path, map<string> uriParams, map<string> queryParam
     return requestPath;
 }
 
-function pathBuilder1(string path, map<string> uriParams, map<string> queryParams) returns string {
+function pathBuilder1(string path, map<string> uriParams, map<string> queryParams) returns string|error {
     // TODO: Instead try to use clientResult1->request_config./basePath/.get
     string requestPath = path;
     foreach var [key, value] in uriParams.entries() {
