@@ -257,7 +257,7 @@ public class TibcoToBalConverter {
             @Override
             public Set<E> parse(ProjectContext pcx)
                     throws IOException, ParserConfigurationException, SAXException {
-                Set<E> elements = new HashSet<>();
+                Set<E> elements = new LinkedHashSet<>();
                 for (String s : fileFinder.findFiles(pcx.projectPath())) {
                     Element element = parseXmlFile(s);
                     Optional<E> parsedElement = parsingFn.apply(contextSupplier.apply(pcx, s), element);
