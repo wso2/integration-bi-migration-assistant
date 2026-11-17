@@ -8180,6 +8180,74 @@ service / on HTTP_Listener_config {
 
 ```
 
+- ### Raise Error In On Error Propagate
+
+**Input (raise_error_in_on_error_propagate.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="order-lookup-flow">
+        <http:listener config-ref="HTTP_Listener_config" path="/orders"/>
+        <logger level="INFO" message="Looking up order"/>
+        <error-handler>
+            <on-error-propagate type="ANY">
+                <logger level="ERROR" message="Order lookup failed"/>
+                <raise-error type="APP:FAILED" description="Order lookup failed"/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+</mule>
+
+```
+**Output (raise_error_in_on_error_propagate.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type APP__FAILED distinct error;
+
+public listener http:Listener HTTP_Listener_config = new (8081);
+
+service / on HTTP_Listener_config {
+    function init() returns error? {
+    }
+
+    resource function default orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        do {
+            log:printInfo("Looking up order");
+        } on fail error err {
+            // on-error-propagate
+            log:printError("Order lookup failed");
+            fail error APP__FAILED("Order lookup failed");
+        }
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
 ## Scatter Gather
 
 - ### Basic Scatter-Gather

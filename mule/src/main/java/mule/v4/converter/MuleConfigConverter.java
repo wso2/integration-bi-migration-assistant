@@ -1463,6 +1463,10 @@ public class MuleConfigConverter {
         List<Statement> errorBlocks = convertMuleRegularBlocks(ctx, onErrorPropagate.errorBlocks()).statements();
         stmts.addAll(errorBlocks);
 
+        // A trailing raise-error already fails, and the failure reaches the listener as a 500 response
+        if (endsWithRaiseError(onErrorPropagate.errorBlocks())) {
+            return new WorkerStatementResult(stmts);
+        }
         if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
             stmts.add(stmtFrom("%s response = <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE,
                     Constants.HTTP_RESPONSE_TYPE,
@@ -1475,6 +1479,10 @@ public class MuleConfigConverter {
         }
 
         return new WorkerStatementResult(stmts);
+    }
+
+    private static boolean endsWithRaiseError(List<MuleRecord> blocks) {
+        return !blocks.isEmpty() && blocks.getLast() instanceof RaiseError;
     }
 
     private static WorkerStatementResult convertRaiseError(Context ctx, RaiseError raiseError) {
