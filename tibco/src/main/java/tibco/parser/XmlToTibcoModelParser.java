@@ -33,6 +33,7 @@ import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
@@ -80,6 +81,8 @@ import static common.LoggingUtils.Level.WARN;
 public final class XmlToTibcoModelParser {
 
     private static final String GROUP_START_NODE = "start";
+    private static final Set<String> CRITICAL_SECTION_SETTINGS =
+            Set.of("groupType", "serializable", "scope", "criticalSectionLock");
     private static final String DELIMITED_DATA_FORMAT = "Delimiter separated";
     private static final String SINGLE_SEPARATOR_PARSE_RULE =
             "Treat all characters as entered as a single column separator string";
@@ -337,6 +340,17 @@ public final class XmlToTibcoModelParser {
         }
     }
 
+    public static @NotNull Optional<Resource.SharedLock> parseSharedLock(ResourceContext cx, Element root) {
+        cx.logState("Parsing SharedLock: " + cx.getResourcePath());
+        return Optional.of(new Resource.SharedLock(
+                tryGetFirstChildWithTag(root, "name").map(Element::getTextContent).map(String::strip).orElse(""),
+                cx.getResourcePath(),
+                tryGetFirstChildWithTag(root, "config")
+                        .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
+                        .map(value -> Boolean.parseBoolean(value.getTextContent().strip()))
+                        .orElse(false)));
+    }
+
     public static @NotNull Optional<Resource.DataFormatResource> parseDataFormatResource(ResourceContext cx,
                                                                                          Element root) {
         cx.log(INFO, "Start parsing DataFormatResource");
@@ -565,6 +579,7 @@ public final class XmlToTibcoModelParser {
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(cx, element, name, inputBinding);
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding, cx.fileName());
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
+            case CRITICAL_SECTION_GROUP -> parseCriticalSectionGroup(cx, element, name, inputBinding);
             case REST -> parseREST(cx, element, name, inputBinding);
             case CATCH -> new InlineActivity.Catch(element, name, inputBinding, cx.fileName());
             case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(cx, element, name, inputBinding);
@@ -783,6 +798,53 @@ public final class XmlToTibcoModelParser {
                 parseGroupBody(cx, element), cx.fileName());
     }
 
+    private static @NotNull CriticalSectionGroup parseCriticalSectionGroup(ProcessContext cx, Element element,
+            String name, Flow.Activity.InputBinding inputBinding) {
+        List<String> unsupportedSettings = tryGetFirstChildWithTag(element, "config").stream()
+                .flatMap(config -> ElementIterable.of(config).stream())
+                .filter(setting -> !setting.getTextContent().isBlank())
+                .map(XmlToTibcoModelParser::getTagNameWithoutNameSpace)
+                .filter(Predicate.not(CRITICAL_SECTION_SETTINGS::contains))
+                .toList();
+        unsupportedSettings.forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '" + setting
+                + "', which is not supported and has been ignored"));
+        boolean serializable = tryGetInlineActivityConfigValue(element, "serializable")
+                .map(value -> Boolean.parseBoolean(value.strip())).orElse(false);
+        if (serializable) {
+            cx.log(WARN, "critical section group '" + name + "' sets 'serializable', which is not supported and "
+                    + "has been ignored");
+        }
+        if (serializable || !unsupportedSettings.isEmpty()) {
+            cx.registerPartiallySupportedActivity(element, name, InlineActivity.InlineActivityType
+                    .CRITICAL_SECTION_GROUP.toTibcoType());
+        }
+        return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element),
+                parseCriticalSectionLockPath(cx, element, name), cx.fileName());
+    }
+
+    private static @NotNull Optional<String> parseCriticalSectionLockPath(
+            ProcessContext cx, Element element, String name) {
+        String scope = tryGetInlineActivityConfigValue(element, "scope")
+                .map(value -> value.strip().toLowerCase(Locale.ROOT)).orElse("single");
+        Optional<String> lockPath = tryGetInlineActivityConfigValue(element, "criticalSectionLock")
+                .map(path -> "/" + path.strip().replace('\\', '/').replaceFirst("^/+", ""))
+                .filter(path -> path.length() > 1);
+        if (!scope.equals("multiple")) {
+            if (!scope.equals("single")) {
+                cx.log(WARN, "critical section group '" + name + "' has unknown scope '" + scope
+                        + "'; it is converted as a single-group critical section");
+            }
+            lockPath.ifPresent(path -> cx.log(WARN, "critical section group '" + name + "' names lock object '"
+                    + path + "' without multiple-group scope; the lock object is ignored"));
+            return Optional.empty();
+        }
+        if (lockPath.isEmpty()) {
+            cx.log(WARN, "critical section group '" + name + "' has multiple-group scope but no lock object; "
+                    + "it is converted as a single-group critical section");
+        }
+        return lockPath;
+    }
+
     private static @NotNull String escapeXmlAttribute(String value) {
         return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
@@ -792,7 +854,7 @@ public final class XmlToTibcoModelParser {
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "activity" -> {
+                case "activity", "group" -> {
                     transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
                 }
                 case "transition" -> {
