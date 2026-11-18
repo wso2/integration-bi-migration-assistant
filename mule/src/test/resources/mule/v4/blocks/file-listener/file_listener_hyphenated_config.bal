@@ -11,9 +11,9 @@ public type Context record {|
     Attributes attributes;
 |};
 
-configurable string file\-configWorkingDir = ?;
+configurable string file_configWorkingDir = ?;
 public listener file:Listener file\-config = new (
-    path = file\-configWorkingDir,
+    path = file_configWorkingDir,
     recursive = false
 );
 
