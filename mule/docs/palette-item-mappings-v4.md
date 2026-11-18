@@ -3200,14 +3200,14 @@ service on file_config {
 
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
+        if regex:matches(event.name, ".*\\.csv") {
             fileListnerFlow(ctx);
         }
     }
 
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
+        if regex:matches(event.name, ".*\\.csv") {
             fileListnerFlow(ctx);
         }
     }
@@ -3275,14 +3275,14 @@ service on file_config {
 
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
+        if regex:matches(event.name, ".*\\.csv") {
             fileListnerFlow(ctx);
         }
     }
 
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
+        if regex:matches(event.name, ".*\\.csv") {
             fileListnerFlow(ctx);
         }
     }
@@ -3354,14 +3354,14 @@ service on file_config {
 
     remote function onCreate(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
+        if regex:matches(event.name, ".*\\.csv") {
             fileListnerFlow(ctx);
         }
     }
 
     remote function onModify(file:FileEvent event) {
         Context ctx = {attributes: {}};
-        if regex:matches(event.name, ".*\.csv") {
+        if regex:matches(event.name, ".*\\.csv") {
             fileListnerFlow(ctx);
         }
     }
