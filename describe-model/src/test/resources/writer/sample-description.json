@@ -1,0 +1,537 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "orders",
+    "platform": "mule",
+    "platformVersion": "4.6.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "order-events",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/orders.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "queueMessage",
+        "name": "Subscribe to orders",
+        "connector": "anypoint-mq",
+        "connection": "mq-config",
+        "destination": "${secure::queue.name}",
+        "source": {
+          "file": "src/main/mule/orders.xml",
+          "element": "anypoint-mq:subscriber",
+          "position": "/mule/flow[1]/anypoint-mq:subscriber[1]"
+        }
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "name": "Log START",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.1"
+          },
+          "migration": {
+            "status": "notConverted",
+            "reasons": [
+              {
+                "kind": "unsupportedElement",
+                "text": "json-logger:logger"
+              }
+            ]
+          }
+        },
+        {
+          "id": "f1.2",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "name": "Set Variables",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.2"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "vars.source"
+          ],
+          "dataweave": {
+            "lines": 3,
+            "script": "%dw 2.0\noutput application/java\n---\n'x'"
+          }
+        },
+        {
+          "id": "f1.3",
+          "type": "decides",
+          "coverage": "described",
+          "level": 1,
+          "name": "Is source = billing?",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.3"
+          },
+          "paths": [
+            {
+              "when": "#[vars.source == 'billing']",
+              "steps": [
+                {
+                  "id": "f1.3.b1.1",
+                  "type": "looksUp",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Translate",
+                  "source": {
+                    "file": "src/main/mule/orders.xml",
+                    "element": "element",
+                    "position": "/mule/flow[1]/f1.3.b1.1"
+                  },
+                  "migration": {
+                    "status": "notConverted",
+                    "reasons": [
+                      {
+                        "kind": "unsupportedElement",
+                        "text": "code-client:translate"
+                      }
+                    ]
+                  },
+                  "system": {
+                    "connector": "code-client",
+                    "connection": "code-config",
+                    "operation": "translate"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/orders.xml",
+                "element": "when",
+                "position": "/mule/flow[1]/choice[1]/when[1]"
+              }
+            },
+            {
+              "otherwise": true,
+              "steps": [
+                {
+                  "id": "f1.3.b2.1",
+                  "type": "callsFlow",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Publish",
+                  "source": {
+                    "file": "src/main/mule/orders.xml",
+                    "element": "element",
+                    "position": "/mule/flow[1]/f1.3.b2.1"
+                  },
+                  "calls": {
+                    "flow": "f2"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "f1.4",
+          "type": "atTheSameTime",
+          "coverage": "described",
+          "level": 1,
+          "name": "Scatter-Gather",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.4"
+          },
+          "paths": [
+            {
+              "steps": [
+                {
+                  "id": "f1.4.b1.1",
+                  "type": "sendsTo",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Call API",
+                  "source": {
+                    "file": "src/main/mule/orders.xml",
+                    "element": "element",
+                    "position": "/mule/flow[1]/f1.4.b1.1"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  },
+                  "system": {
+                    "connector": "http",
+                    "connection": "api-config",
+                    "operation": "POST",
+                    "target": "${secure::api.path}"
+                  }
+                }
+              ]
+            },
+            {
+              "steps": [
+                {
+                  "id": "f1.4.b2.1",
+                  "type": "sendsTo",
+                  "coverage": "flagged",
+                  "level": 1,
+                  "name": "Insert records",
+                  "element": "db:bulk-insert",
+                  "connector": "db",
+                  "source": {
+                    "file": "src/main/mule/orders.xml",
+                    "element": "db:bulk-insert",
+                    "position": "/mule/flow[1]/f1.4.b2.1"
+                  },
+                  "migration": {
+                    "status": "notConverted",
+                    "reasons": [
+                      {
+                        "kind": "unsupportedElement",
+                        "text": "db:bulk-insert"
+                      }
+                    ]
+                  },
+                  "system": {
+                    "connector": "db",
+                    "connection": "db-config",
+                    "operation": "bulk-insert"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "f1.5",
+          "type": "triesEachUntilOneWorks",
+          "coverage": "described",
+          "level": 1,
+          "name": "First successful",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.5"
+          },
+          "paths": [
+            {
+              "steps": []
+            }
+          ]
+        },
+        {
+          "id": "f1.6",
+          "type": "continuesInBackground",
+          "coverage": "described",
+          "level": 1,
+          "name": "Async",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.6"
+          },
+          "steps": [
+            {
+              "id": "f1.6.1",
+              "type": "callsFlow",
+              "coverage": "described",
+              "level": 1,
+              "name": "error handler",
+              "source": {
+                "file": "src/main/mule/orders.xml",
+                "element": "element",
+                "position": "/mule/flow[1]/f1.6.1"
+              },
+              "calls": {
+                "external": "commonErrors"
+              }
+            }
+          ]
+        },
+        {
+          "id": "f1.7",
+          "type": "repeatsForEach",
+          "coverage": "described",
+          "level": 1,
+          "name": "For Each",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.7"
+          },
+          "over": "#[payload]",
+          "steps": []
+        },
+        {
+          "id": "f1.8",
+          "type": "ifItFails",
+          "coverage": "described",
+          "level": 1,
+          "name": "Try",
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "element",
+            "position": "/mule/flow[1]/f1.8"
+          },
+          "steps": [],
+          "onError": [
+            {
+              "id": "f1.8.e1",
+              "handling": "continue",
+              "errorTypes": [
+                "HTTP:NOT_FOUND"
+              ],
+              "steps": [],
+              "source": {
+                "file": "src/main/mule/orders.xml",
+                "element": "on-error-continue",
+                "position": "/mule/flow[1]/try[1]/error-handler[1]/on-error-continue[1]"
+              }
+            }
+          ]
+        }
+      ],
+      "onError": [
+        {
+          "id": "f1.e1",
+          "handling": "propagate",
+          "errorTypes": [],
+          "steps": [
+            {
+              "id": "f1.e1.1",
+              "type": "ifItFails",
+              "coverage": "described",
+              "level": 1,
+              "name": "Raise error",
+              "source": {
+                "file": "src/main/mule/orders.xml",
+                "element": "element",
+                "position": "/mule/flow[1]/f1.e1.1"
+              },
+              "raises": {
+                "type": "BILLING:UNAVAILABLE"
+              }
+            }
+          ],
+          "source": {
+            "file": "src/main/mule/orders.xml",
+            "element": "on-error-propagate",
+            "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "remoteMethod",
+        "name": "onMessage",
+        "service": "\"mq-config\"",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "publish",
+      "kind": "subFlow",
+      "source": {
+        "file": "src/main/mule/orders.xml",
+        "element": "sub-flow",
+        "position": "/mule/sub-flow[1]"
+      },
+      "steps": [],
+      "ballerina": {
+        "construct": "function",
+        "name": "publish",
+        "found": false
+      }
+    },
+    {
+      "id": "f3",
+      "name": "get:\\orders\\(id):api-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/orders.xml",
+        "element": "flow",
+        "position": "/mule/flow[2]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "GET",
+        "path": "/orders/{id}"
+      },
+      "steps": [],
+      "ballerina": {
+        "construct": "resource",
+        "method": "get",
+        "path": "orders/[string id]",
+        "found": true
+      }
+    },
+    {
+      "id": "f4",
+      "name": "import",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/orders.xml",
+        "element": "flow",
+        "position": "/mule/flow[3]"
+      },
+      "startsWhen": {
+        "kind": "newFile",
+        "connection": "file-config",
+        "directory": "${input.dir}",
+        "poll": {
+          "kind": "fixedFrequency",
+          "every": "${poll.frequency}",
+          "unit": "SECONDS"
+        },
+        "source": {
+          "file": "src/main/mule/orders.xml",
+          "element": "file:listener",
+          "position": "/mule/flow[3]/file:listener[1]"
+        }
+      },
+      "steps": []
+    },
+    {
+      "id": "f5",
+      "name": "nightly",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/orders.xml",
+        "element": "flow",
+        "position": "/mule/flow[4]"
+      },
+      "startsWhen": {
+        "kind": "schedule",
+        "schedule": {
+          "kind": "cron",
+          "understood": false
+        },
+        "source": {
+          "file": "src/main/mule/orders.xml",
+          "element": "scheduler",
+          "position": "/mule/flow[4]/scheduler[1]"
+        }
+      },
+      "steps": []
+    },
+    {
+      "id": "f6",
+      "name": "status",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/orders.xml",
+        "element": "flow",
+        "position": "/mule/flow[5]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "connection": "http-listener-config",
+        "path": "/status",
+        "source": {
+          "file": "src/main/mule/orders.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[5]/http:listener[1]"
+        }
+      },
+      "steps": []
+    }
+  ],
+  "apis": [
+    {
+      "id": "a1",
+      "config": "api-config",
+      "spec": {
+        "file": "src/main/resources/api/orders.raml",
+        "title": "Orders API",
+        "version": "v1"
+      },
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/orders/{id}",
+          "description": "Get one order",
+          "flow": "f3"
+        },
+        {
+          "method": "POST",
+          "path": "/orders",
+          "flow": null
+        }
+      ],
+      "policies": {
+        "autodiscovery": "${api.id}",
+        "traits": [
+          "client-id-enforcement"
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "name": "api-config",
+      "connector": "http",
+      "element": "http:request-config",
+      "understood": true,
+      "properties": [
+        "secure::api.host"
+      ]
+    },
+    {
+      "connector": "core",
+      "element": "configuration",
+      "understood": false
+    }
+  ],
+  "properties": [
+    {
+      "name": "secure::queue.name",
+      "secure": true
+    },
+    {
+      "name": "input.dir",
+      "secure": false
+    }
+  ],
+  "imports": [
+    {
+      "file": "common-errors.xml",
+      "found": false
+    }
+  ],
+  "coverage": {
+    "counts": {
+      "described": 12,
+      "hidden": 1,
+      "flagged": 1
+    },
+    "flagged": [
+      {
+        "step": "f1.4.b2.1",
+        "element": "db:bulk-insert",
+        "connector": "db"
+      }
+    ],
+    "failedFiles": [],
+    "testFiles": [
+      "src/test/munit/orders-test.xml"
+    ],
+    "linkUnknown": [
+      "f2"
+    ]
+  }
+}

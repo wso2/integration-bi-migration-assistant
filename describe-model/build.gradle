@@ -1,0 +1,50 @@
+plugins {
+    id 'java-library'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '6.5.11'
+}
+
+group 'com.wso2'
+version '0.1.0-SNAPSHOT'
+
+// Platform-neutral description model; no Ballerina dependency, so other platform adapters can reuse it
+dependencies {
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${fasterXmlVersion}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: "${fasterXmlVersion}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${fasterXmlVersion}"
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8', version: "${fasterXmlVersion}"
+    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
+
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    // Kept here, not in gradle.properties, so the POC does not touch another upstream file
+    testImplementation group: 'com.networknt', name: 'json-schema-validator', version: '1.5.6'
+    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+}
+
+build {
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
+}

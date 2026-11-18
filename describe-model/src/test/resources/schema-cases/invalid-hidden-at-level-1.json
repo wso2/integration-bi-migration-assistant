@@ -1,0 +1,432 @@
+{
+ "schemaVersion": "0.1",
+ "generator": {
+  "name": "mule-migration-assistant",
+  "version": "0.1.0-SNAPSHOT"
+ },
+ "project": {
+  "name": "invoice-sync",
+  "platform": "mule",
+  "platformVersion": "4.6.0"
+ },
+ "flows": [
+  {
+   "id": "f1",
+   "name": "queue-invoice-events",
+   "kind": "flow",
+   "source": {
+    "file": "src/main/mule/queue-invoice-events.xml",
+    "element": "flow",
+    "position": "/mule/flow[1]"
+   },
+   "startsWhen": {
+    "kind": "queueMessage",
+    "name": "Subscribe to QUEUE.INVOICE.CREATED",
+    "connector": "anypoint-mq",
+    "connection": "invoice-mq-config",
+    "destination": "${secure::invoice.queue.name}.${anypoint.environment}",
+    "source": {
+     "file": "src/main/mule/queue-invoice-events.xml",
+     "element": "anypoint-mq:subscriber",
+     "position": "/mule/flow[1]/anypoint-mq:subscriber[1]"
+    }
+   },
+   "steps": [
+    {
+     "id": "f1.1",
+     "type": "technical",
+     "coverage": "hidden",
+     "level": 1,
+     "name": "Log START",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "json-logger:logger",
+      "position": "/mule/flow[1]/json-logger:logger[1]"
+     },
+     "migration": {
+      "status": "notConverted",
+      "reasons": [
+       {
+        "kind": "unsupportedElement",
+        "text": "json-logger:logger"
+       }
+      ]
+     }
+    },
+    {
+     "id": "f1.2",
+     "type": "converts",
+     "coverage": "described",
+     "level": 1,
+     "name": "Set Variables",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "ee:transform",
+      "position": "/mule/flow[1]/ee:transform[1]"
+     },
+     "writes": [
+      "vars.correlationId",
+      "vars.attributes",
+      "vars.source"
+     ],
+     "dataweave": {
+      "lines": 3,
+      "script": "%dw 2.0\noutput application/java\n---\nattributes.headers.'x-correlation-id'"
+     },
+     "migration": {
+      "status": "converted"
+     }
+    },
+    {
+     "id": "f1.3",
+     "type": "decides",
+     "coverage": "described",
+     "level": 1,
+     "name": "Is source = billing-portal?",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "choice",
+      "position": "/mule/flow[1]/choice[1]"
+     },
+     "paths": [
+      {
+       "when": "#[vars.source == p('secure::billing.source')]",
+       "source": {
+        "file": "src/main/mule/queue-invoice-events.xml",
+        "element": "when",
+        "position": "/mule/flow[1]/choice[1]/when[1]"
+       },
+       "steps": [
+        {
+         "id": "f1.3.b1.3",
+         "type": "looksUp",
+         "coverage": "described",
+         "level": 1,
+         "name": "Look up the invoice filter",
+         "source": {
+          "file": "src/main/mule/queue-invoice-events.xml",
+          "element": "code-client:translate",
+          "position": "/mule/flow[1]/choice[1]/when[1]/code-client:translate[1]"
+         },
+         "system": {
+          "connector": "code-client",
+          "connection": "code-client-config",
+          "operation": "translate"
+         },
+         "migration": {
+          "status": "notConverted",
+          "reasons": [
+           {
+            "kind": "unsupportedElement",
+            "text": "code-client:translate"
+           }
+          ]
+         }
+        },
+        {
+         "id": "f1.3.b1.4",
+         "type": "callsFlow",
+         "coverage": "described",
+         "level": 1,
+         "name": "publish-invoice-event",
+         "source": {
+          "file": "src/main/mule/queue-invoice-events.xml",
+          "element": "flow-ref",
+          "position": "/mule/flow[1]/choice[1]/when[1]/flow-ref[1]"
+         },
+         "calls": {
+          "flow": "f4"
+         },
+         "migration": {
+          "status": "converted"
+         }
+        }
+       ]
+      },
+      {
+       "otherwise": true,
+       "steps": [
+        {
+         "id": "f1.3.b2.4",
+         "type": "decides",
+         "coverage": "described",
+         "level": 1,
+         "name": "Choice",
+         "source": {
+          "file": "src/main/mule/queue-invoice-events.xml",
+          "element": "choice",
+          "position": "/mule/flow[1]/choice[1]/otherwise[1]/choice[1]"
+         },
+         "paths": [
+          {
+           "when": "#[vars.lookup.invoice_filter]",
+           "steps": []
+          },
+          {
+           "otherwise": true,
+           "steps": [
+            {
+             "id": "f1.3.b2.4.b2.1",
+             "type": "callsFlow",
+             "coverage": "described",
+             "level": 1,
+             "name": "Publish invoice",
+             "source": {
+              "file": "src/main/mule/queue-invoice-events.xml",
+              "element": "flow-ref",
+              "position": "/mule/flow[1]/choice[1]/otherwise[1]/choice[1]/otherwise[1]/flow-ref[1]"
+             },
+             "calls": {
+              "flow": "f2"
+             }
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "migration": {
+      "status": "partlyConverted",
+      "reasons": [
+       {
+        "kind": "todo",
+        "text": "TODO: failed to convert #[vars.lookup.invoice_filter]"
+       }
+      ]
+     }
+    },
+    {
+     "id": "f1.4",
+     "type": "technical",
+     "coverage": "hidden",
+     "level": 2,
+     "name": "Ack",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "anypoint-mq:ack",
+      "position": "/mule/flow[1]/anypoint-mq:ack[1]"
+     }
+    }
+   ],
+   "onError": [
+    {
+     "id": "f1.e1",
+     "handling": "propagate",
+     "errorTypes": [],
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "on-error-propagate",
+      "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]"
+     },
+     "steps": [
+      {
+       "id": "f1.e1.1",
+       "type": "unknown",
+       "coverage": "flagged",
+       "level": 1,
+       "name": "Nack",
+       "element": "anypoint-mq:nack",
+       "connector": "anypoint-mq",
+       "source": {
+        "file": "src/main/mule/queue-invoice-events.xml",
+        "element": "anypoint-mq:nack",
+        "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]/anypoint-mq:nack[1]"
+       }
+      },
+      {
+       "id": "f1.e1.3",
+       "type": "callsFlow",
+       "coverage": "described",
+       "level": 1,
+       "name": "error handler",
+       "source": {
+        "file": "src/main/mule/queue-invoice-events.xml",
+        "element": "flow-ref",
+        "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]/flow-ref[1]"
+       },
+       "calls": {
+        "external": "commonErrors"
+       }
+      },
+      {
+       "id": "f1.e1.5",
+       "type": "ifItFails",
+       "coverage": "described",
+       "level": 1,
+       "name": "Raise error",
+       "source": {
+        "file": "src/main/mule/queue-invoice-events.xml",
+        "element": "raise-error",
+        "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]/raise-error[1]"
+       },
+       "raises": {
+        "type": "BILLING:UNAVAILABLE"
+       }
+      }
+     ]
+    }
+   ],
+   "ballerina": {
+    "construct": "remoteMethod",
+    "name": "onMessage",
+    "service": "\"invoice-mq-config\"",
+    "found": true
+   }
+  },
+  {
+   "id": "f2",
+   "name": "send-to-billing",
+   "kind": "subFlow",
+   "source": {
+    "file": "src/main/mule/queue-invoice-events.xml",
+    "element": "sub-flow",
+    "position": "/mule/sub-flow[1]"
+   },
+   "steps": [
+    {
+     "id": "f2.5",
+     "type": "sendsTo",
+     "coverage": "described",
+     "level": 1,
+     "name": "Call the billing API",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "http:request",
+      "position": "/mule/sub-flow[1]/choice[3]/when[1]/http:request[1]"
+     },
+     "system": {
+      "connector": "http",
+      "connection": "billing-http-request-config",
+      "operation": "POST",
+      "target": "${secure::billing.requester.statusEndpoint}"
+     }
+    },
+    {
+     "id": "f2.6",
+     "type": "repeatsForEach",
+     "coverage": "described",
+     "level": 1,
+     "name": "For Each",
+     "over": "#[vars.invoiceLines]",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "foreach",
+      "position": "/mule/sub-flow[1]/foreach[1]"
+     },
+     "steps": []
+    },
+    {
+     "id": "f2.7",
+     "type": "ifItFails",
+     "coverage": "described",
+     "level": 1,
+     "name": "Try",
+     "source": {
+      "file": "src/main/mule/queue-invoice-events.xml",
+      "element": "try",
+      "position": "/mule/sub-flow[1]/try[1]"
+     },
+     "steps": [],
+     "onError": [
+      {
+       "id": "f2.7.e1",
+       "handling": "continue",
+       "errorTypes": [
+        "HTTP:NOT_FOUND"
+       ],
+       "steps": [],
+       "source": {
+        "file": "src/main/mule/queue-invoice-events.xml",
+        "element": "on-error-continue",
+        "position": "/mule/sub-flow[1]/try[1]/error-handler[1]/on-error-continue[1]"
+       }
+      }
+     ]
+    }
+   ],
+   "ballerina": {
+    "construct": "function",
+    "name": "sendToBilling",
+    "found": true
+   }
+  },
+  {
+   "id": "f4",
+   "name": "publish-invoice-event",
+   "kind": "subFlow",
+   "source": {
+    "file": "src/main/mule/queue-invoice-events.xml",
+    "element": "sub-flow",
+    "position": "/mule/sub-flow[3]"
+   },
+   "steps": [],
+   "ballerina": {
+    "construct": "function",
+    "name": "publishInvoiceEvent",
+    "found": false
+   }
+  }
+ ],
+ "apis": [],
+ "connections": [
+  {
+   "name": "billing-http-request-config",
+   "connector": "http",
+   "element": "http:request-config",
+   "understood": true,
+   "properties": [
+    "secure::billing.requester.host"
+   ]
+  },
+  {
+   "name": "object-store",
+   "connector": "os",
+   "element": "os:object-store",
+   "understood": false
+  },
+  {
+   "connector": "core",
+   "element": "configuration",
+   "understood": false
+  }
+ ],
+ "properties": [
+  {
+   "name": "secure::billing.requester.postInvoiceEndpoint",
+   "secure": true
+  },
+  {
+   "name": "anypoint.environment",
+   "secure": false
+  }
+ ],
+ "imports": [
+  {
+   "file": "common-errors.xml",
+   "found": false
+  }
+ ],
+ "coverage": {
+  "counts": {
+   "described": 9,
+   "hidden": 2,
+   "flagged": 1
+  },
+  "flagged": [
+   {
+    "step": "f1.e1.1",
+    "element": "anypoint-mq:nack",
+    "connector": "anypoint-mq"
+   }
+  ],
+  "failedFiles": [],
+  "testFiles": [
+   "src/test/munit/queue-invoice-events-test.xml"
+  ],
+  "linkUnknown": [
+   "f4"
+  ]
+ }
+}

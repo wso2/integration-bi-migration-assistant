@@ -23,6 +23,8 @@ include ':cli-tibco'
 include ':cli-synapse'
 include 'cli-logicapps'
 include 'cli-mirth'
+include ':describe-model'
+include ':describe-mule'
 
 project(':common').projectDir = file('common')
 project(':mule').projectDir = file('mule')
@@ -34,3 +36,5 @@ project(':cli-tibco').projectDir = file('cli-tibco')
 project(':cli-synapse').projectDir = file('cli-synapse')
 project(':cli-logicapps').projectDir = file('cli-logicapps')
 project(':cli-mirth').projectDir = file('cli-mirth')
+project(':describe-model').projectDir = file('describe-model')
+project(':describe-mule').projectDir = file('describe-mule')

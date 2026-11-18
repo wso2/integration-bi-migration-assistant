@@ -1,0 +1,492 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:integration-description:schema:0.1",
+  "title": "Integration description v0.1",
+  "description": "A platform-neutral description of an integration project, written by the migration assistant's --describe option. It holds facts only; the plain-language wording is written by a separate AI step, keyed by step ID.",
+  "$comment": "Rules a schema cannot check, enforced by the writer and its tests: (1) IDs are unique in the document. (2) Files are sorted by relative path, flows keep document order inside a file, and keys keep a fixed order, so the same project always gives the same bytes. (3) No timestamps and no absolute paths. (4) No property values or secrets: placeholders appear as written (${...}), and password-like attributes are dropped. (5) Every step's id is its position: f<N> flow, .<n> step, .b<n> branch, .e<n> error handler.",
+  "type": "object",
+  "required": ["schemaVersion", "generator", "project", "flows", "apis", "connections", "properties", "imports", "coverage"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "generator": { "$ref": "#/$defs/generator" },
+    "project": { "$ref": "#/$defs/project" },
+    "flows": { "type": "array", "items": { "$ref": "#/$defs/flow" } },
+    "apis": { "type": "array", "items": { "$ref": "#/$defs/api" } },
+    "connections": { "type": "array", "items": { "$ref": "#/$defs/connection" } },
+    "properties": { "type": "array", "items": { "$ref": "#/$defs/propertyRef" } },
+    "imports": { "type": "array", "items": { "$ref": "#/$defs/import" } },
+    "coverage": { "$ref": "#/$defs/coverage" }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "flowId": { "type": "string", "pattern": "^f[1-9][0-9]*$" },
+    "stepId": { "type": "string", "pattern": "^f[1-9][0-9]*(\\.([be][1-9][0-9]*|[1-9][0-9]*))+$" },
+    "errorHandlerId": { "type": "string", "pattern": "^f[1-9][0-9]*(\\.([be][1-9][0-9]*|[1-9][0-9]*))*\\.e[1-9][0-9]*$" },
+    "apiId": { "type": "string", "pattern": "^a[1-9][0-9]*$" },
+    "httpMethod": { "type": "string", "pattern": "^[A-Z]+$" },
+
+    "generator": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/text" },
+        "version": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "project": {
+      "type": "object",
+      "required": ["name", "platform"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/text" },
+        "platform": { "$ref": "#/$defs/text", "examples": ["mule"] },
+        "platformVersion": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "sourceRef": {
+      "description": "Where an element is in the source. file is relative to the project root, with '/' separators. position is an element path, used when there is no docId.",
+      "type": "object",
+      "required": ["file", "element", "position"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "pattern": "^[^/\\\\][^\\\\]*$" },
+        "element": { "$ref": "#/$defs/text" },
+        "position": { "type": "string", "pattern": "^/" },
+        "docName": { "type": "string" },
+        "docId": { "type": "string" }
+      }
+    },
+
+    "migration": {
+      "description": "What the Ballerina converter did with the element. Present only when conversion ran.",
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["converted", "partlyConverted", "notConverted"] },
+        "reasons": { "type": "array", "items": { "$ref": "#/$defs/migrationReason" } }
+      },
+      "if": { "properties": { "status": { "const": "converted" } } },
+      "then": { "properties": { "reasons": { "maxItems": 0 } } },
+      "else": { "required": ["reasons"], "properties": { "reasons": { "minItems": 1 } } }
+    },
+
+    "migrationReason": {
+      "type": "object",
+      "required": ["kind", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["unsupportedElement", "dataweave", "todo", "conversionError"] },
+        "text": { "$ref": "#/$defs/text" }
+      }
+    },
+
+    "schedule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "every"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "fixedFrequency" },
+            "every": { "$ref": "#/$defs/text", "description": "As written; a placeholder stays a placeholder and is never shown as a number." },
+            "unit": { "type": "string" },
+            "startDelay": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "understood"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "cron" },
+            "understood": { "const": false }
+          }
+        }
+      ]
+    },
+
+    "trigger": {
+      "description": "The 'starts when' of a flow. It lives on the flow, because an APIkit operation has no trigger element of its own.",
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["apiOperation", "httpRequest", "queueMessage", "newFile", "schedule"] },
+        "name": { "type": "string" },
+        "source": { "$ref": "#/$defs/sourceRef" },
+        "api": { "$ref": "#/$defs/apiId" },
+        "method": { "$ref": "#/$defs/httpMethod" },
+        "path": { "type": "string" },
+        "connector": { "$ref": "#/$defs/text" },
+        "connection": { "type": "string" },
+        "destination": { "type": "string" },
+        "directory": { "type": "string" },
+        "poll": { "$ref": "#/$defs/schedule" },
+        "schedule": { "$ref": "#/$defs/schedule" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "apiOperation" } } }, "then": { "required": ["api", "method", "path"] } },
+        { "if": { "properties": { "kind": { "const": "httpRequest" } } }, "then": { "required": ["connection", "path"] } },
+        { "if": { "properties": { "kind": { "const": "queueMessage" } } }, "then": { "required": ["connector", "connection", "destination"] } },
+        { "if": { "properties": { "kind": { "const": "newFile" } } }, "then": { "required": ["connection", "directory"] } },
+        { "if": { "properties": { "kind": { "const": "schedule" } } }, "then": { "required": ["schedule"] } }
+      ]
+    },
+
+    "ballerinaLink": {
+      "description": "The Ballerina construct this flow became. found=false means 'link unknown'. No file name: codeGen() names are not the written file names.",
+      "type": "object",
+      "required": ["construct", "found"],
+      "additionalProperties": false,
+      "properties": {
+        "construct": { "enum": ["function", "resource", "remoteMethod", "jobClass"] },
+        "name": { "type": "string" },
+        "service": { "type": "string" },
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "found": { "type": "boolean" }
+      }
+    },
+
+    "flow": {
+      "type": "object",
+      "required": ["id", "name", "kind", "source", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/flowId" },
+        "name": { "$ref": "#/$defs/text" },
+        "kind": { "enum": ["flow", "subFlow"] },
+        "source": { "$ref": "#/$defs/sourceRef" },
+        "startsWhen": { "$ref": "#/$defs/trigger" },
+        "steps": { "$ref": "#/$defs/stepList" },
+        "onError": { "type": "array", "items": { "$ref": "#/$defs/errorHandler" } },
+        "ballerina": { "$ref": "#/$defs/ballerinaLink" }
+      },
+      "if": { "properties": { "kind": { "const": "subFlow" } } },
+      "then": { "not": { "required": ["startsWhen"] } }
+    },
+
+    "stepList": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+
+    "errorHandler": {
+      "description": "One on-error-continue or on-error-propagate branch. The error-handler element itself has no entry; its status comes from these branches.",
+      "type": "object",
+      "required": ["id", "handling", "errorTypes", "steps", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/errorHandlerId" },
+        "handling": { "enum": ["continue", "propagate"] },
+        "errorTypes": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "when": { "type": "string" },
+        "steps": { "$ref": "#/$defs/stepList" },
+        "source": { "$ref": "#/$defs/sourceRef" },
+        "migration": { "$ref": "#/$defs/migration" }
+      }
+    },
+
+    "decisionPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["when", "steps"],
+          "additionalProperties": false,
+          "properties": {
+            "when": { "$ref": "#/$defs/text" },
+            "steps": { "$ref": "#/$defs/stepList" },
+            "source": { "$ref": "#/$defs/sourceRef" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["otherwise", "steps"],
+          "additionalProperties": false,
+          "properties": {
+            "otherwise": { "const": true },
+            "steps": { "$ref": "#/$defs/stepList" },
+            "source": { "$ref": "#/$defs/sourceRef" }
+          }
+        }
+      ]
+    },
+
+    "parallelPath": {
+      "type": "object",
+      "required": ["steps"],
+      "additionalProperties": false,
+      "properties": {
+        "steps": { "$ref": "#/$defs/stepList" },
+        "source": { "$ref": "#/$defs/sourceRef" }
+      }
+    },
+
+    "system": {
+      "type": "object",
+      "required": ["connector"],
+      "additionalProperties": false,
+      "properties": {
+        "connector": { "$ref": "#/$defs/text" },
+        "connection": { "type": "string" },
+        "operation": { "type": "string" },
+        "target": { "type": "string", "description": "Path, queue or table as written; placeholders stay placeholders." }
+      }
+    },
+
+    "calls": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["flow"],
+          "additionalProperties": false,
+          "properties": { "flow": { "$ref": "#/$defs/flowId" } }
+        },
+        {
+          "type": "object",
+          "required": ["external"],
+          "additionalProperties": false,
+          "properties": { "external": { "$ref": "#/$defs/text" } }
+        }
+      ]
+    },
+
+    "step": {
+      "description": "One source element in a flow body. Type-specific fields are allowed only for their type.",
+      "type": "object",
+      "required": ["id", "type", "coverage", "level", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/stepId" },
+        "type": {
+          "enum": [
+            "decides", "converts", "looksUp", "sendsTo", "atTheSameTime", "triesEachUntilOneWorks",
+            "continuesInBackground", "repeatsForEach", "ifItFails", "checks", "combines", "responds",
+            "callsFlow", "technical", "unknown"
+          ],
+          "$comment": "checks, combines and responds are reserved: no Mule kind maps to them in v0.1."
+        },
+        "coverage": { "enum": ["described", "hidden", "flagged"] },
+        "level": { "enum": [1, 2, 3], "description": "The first level that shows the step." },
+        "name": { "type": "string" },
+        "source": { "$ref": "#/$defs/sourceRef" },
+        "migration": { "$ref": "#/$defs/migration" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "coverage": { "const": "hidden" } }, "required": ["coverage"] },
+          "then": { "properties": { "level": { "minimum": 2 } } }
+        },
+        {
+          "if": { "properties": { "coverage": { "const": "flagged" } }, "required": ["coverage"] },
+          "then": {
+            "required": ["element"],
+            "properties": { "element": { "$ref": "#/$defs/text" }, "connector": { "$ref": "#/$defs/text" } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "unknown" } }, "required": ["type"] },
+          "then": {
+            "required": ["element", "connector"],
+            "properties": { "element": { "$ref": "#/$defs/text" }, "connector": { "$ref": "#/$defs/text" } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "decides" } }, "required": ["type"] },
+          "then": {
+            "required": ["paths"],
+            "properties": { "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/decisionPath" } } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "enum": ["atTheSameTime", "triesEachUntilOneWorks"] } }, "required": ["type"] },
+          "then": {
+            "required": ["paths"],
+            "properties": { "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/parallelPath" } } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "repeatsForEach" } }, "required": ["type"] },
+          "then": {
+            "required": ["over", "steps"],
+            "properties": { "over": { "$ref": "#/$defs/text" }, "steps": { "$ref": "#/$defs/stepList" } }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "continuesInBackground" } }, "required": ["type"] },
+          "then": { "required": ["steps"], "properties": { "steps": { "$ref": "#/$defs/stepList" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "ifItFails" } }, "required": ["type"] },
+          "then": {
+            "properties": {
+              "steps": { "$ref": "#/$defs/stepList" },
+              "onError": { "type": "array", "items": { "$ref": "#/$defs/errorHandler" } },
+              "raises": {
+                "type": "object",
+                "required": ["type"],
+                "additionalProperties": false,
+                "properties": { "type": { "$ref": "#/$defs/text" }, "description": { "type": "string" } }
+              }
+            },
+            "oneOf": [
+              { "required": ["steps", "onError"], "not": { "required": ["raises"] } },
+              { "required": ["raises"], "not": { "anyOf": [{ "required": ["steps"] }, { "required": ["onError"] }] } }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "type": { "enum": ["looksUp", "sendsTo"] } }, "required": ["type"] },
+          "then": { "required": ["system"], "properties": { "system": { "$ref": "#/$defs/system" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "converts" } }, "required": ["type"] },
+          "then": {
+            "required": ["writes"],
+            "properties": {
+              "writes": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+              "dataweave": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "lines": { "type": "integer", "minimum": 0 },
+                  "resource": { "type": "string" },
+                  "script": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "callsFlow" } }, "required": ["type"] },
+          "then": { "required": ["calls"], "properties": { "calls": { "$ref": "#/$defs/calls" } } }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "api": {
+      "type": "object",
+      "required": ["id", "config", "spec", "operations"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/apiId" },
+        "config": { "$ref": "#/$defs/text" },
+        "spec": {
+          "type": "object",
+          "required": ["file"],
+          "additionalProperties": false,
+          "properties": {
+            "file": { "type": "string" },
+            "title": { "type": "string" },
+            "version": { "type": "string" }
+          }
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["method", "path", "flow"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "$ref": "#/$defs/httpMethod" },
+              "path": { "type": "string", "pattern": "^/" },
+              "displayName": { "type": "string" },
+              "description": { "type": "string" },
+              "flow": {
+                "description": "null means 'in the spec, no flow'.",
+                "anyOf": [{ "$ref": "#/$defs/flowId" }, { "type": "null" }]
+              }
+            }
+          }
+        },
+        "policies": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "autodiscovery": { "type": "string" },
+            "traits": { "type": "array", "items": { "$ref": "#/$defs/text" } }
+          }
+        }
+      }
+    },
+
+    "connection": {
+      "description": "A global config element, by name only. No values, no passwords. name is missing for elements that have none, such as <configuration>.",
+      "type": "object",
+      "required": ["connector", "element", "understood"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "connector": { "$ref": "#/$defs/text" },
+        "element": { "$ref": "#/$defs/text" },
+        "understood": { "type": "boolean" },
+        "properties": { "type": "array", "items": { "$ref": "#/$defs/text" } }
+      }
+    },
+
+    "propertyRef": {
+      "type": "object",
+      "required": ["name", "secure"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/text" },
+        "secure": { "type": "boolean" }
+      }
+    },
+
+    "import": {
+      "description": "An <import> of another config file. found=false means the file is not in the project, for example a shared library such as common-errors.xml.",
+      "type": "object",
+      "required": ["file", "found"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "$ref": "#/$defs/text" },
+        "found": { "type": "boolean" }
+      }
+    },
+
+    "coverage": {
+      "type": "object",
+      "required": ["counts", "flagged", "failedFiles", "testFiles", "linkUnknown"],
+      "additionalProperties": false,
+      "properties": {
+        "counts": {
+          "type": "object",
+          "required": ["described", "hidden", "flagged"],
+          "additionalProperties": false,
+          "properties": {
+            "described": { "type": "integer", "minimum": 0 },
+            "hidden": { "type": "integer", "minimum": 0 },
+            "flagged": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "flagged": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step", "element"],
+            "additionalProperties": false,
+            "properties": {
+              "step": { "$ref": "#/$defs/stepId" },
+              "element": { "$ref": "#/$defs/text" },
+              "connector": { "type": "string" }
+            }
+          }
+        },
+        "failedFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file"],
+            "additionalProperties": false,
+            "properties": { "file": { "$ref": "#/$defs/text" }, "reason": { "type": "string" } }
+          }
+        },
+        "testFiles": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "linkUnknown": { "type": "array", "items": { "$ref": "#/$defs/flowId" } }
+      }
+    }
+  }
+}

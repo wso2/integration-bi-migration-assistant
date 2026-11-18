@@ -1,0 +1,43 @@
+plugins {
+    id 'java-library'
+    id 'checkstyle'
+    id 'com.github.spotbugs' version '6.5.11'
+}
+
+group 'com.wso2'
+version '0.1.0-SNAPSHOT'
+
+// Mule 4 adapter for --describe. `mule` uses common and raml-to-openapi as implementation dependencies,
+// so they are not visible here unless declared.
+dependencies {
+    implementation project(path: ':mule')
+    implementation project(path: ':describe-model')
+    implementation project(path: ':common')
+    implementation project(path: ':raml-to-openapi')
+    implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
+
+    testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
+}
+
+checkstyle {
+    toolVersion = '10.12.5'
+    config = resources.text.fromUri('https://raw.githubusercontent.com/wso2/code-quality-tools/v1.4/checkstyle/jdk-17/checkstyle.xml')
+}
+
+spotbugs {
+    reportLevel = 'high'
+    excludeFilter = file("${rootProject.projectDir}/spotbugs-exclude.xml")
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+    }
+}
+
+build {
+    dependsOn checkstyleMain
+    dependsOn spotbugsMain
+}

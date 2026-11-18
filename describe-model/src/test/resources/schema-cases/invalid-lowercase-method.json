@@ -1,0 +1,139 @@
+{
+ "schemaVersion": "0.1",
+ "generator": {
+  "name": "mule-migration-assistant",
+  "version": "0.1.0-SNAPSHOT"
+ },
+ "project": {
+  "name": "rates-api",
+  "platform": "mule"
+ },
+ "flows": [
+  {
+   "id": "f3",
+   "name": "get:\\rates\\(currency):rates-api-config",
+   "kind": "flow",
+   "source": {
+    "file": "src/main/mule/get-rates.xml",
+    "element": "flow",
+    "position": "/mule/flow[1]"
+   },
+   "startsWhen": {
+    "kind": "apiOperation",
+    "api": "a1",
+    "method": "get",
+    "path": "/rates/{currency}"
+   },
+   "steps": [],
+   "ballerina": {
+    "construct": "resource",
+    "method": "get",
+    "path": "rates/[string currency]",
+    "found": true
+   }
+  },
+  {
+   "id": "f5",
+   "name": "import-rates-flow",
+   "kind": "flow",
+   "source": {
+    "file": "src/main/mule/import-rates.xml",
+    "element": "flow",
+    "position": "/mule/flow[1]"
+   },
+   "startsWhen": {
+    "kind": "newFile",
+    "connection": "file-config",
+    "directory": "${rates.input.dir}",
+    "poll": {
+     "kind": "fixedFrequency",
+     "every": "${rates.poll.frequency}"
+    }
+   },
+   "steps": [
+    {
+     "id": "f5.4",
+     "type": "sendsTo",
+     "coverage": "flagged",
+     "level": 1,
+     "name": "Insert the rates into the database",
+     "element": "db:bulk-insert",
+     "connector": "db",
+     "source": {
+      "file": "src/main/mule/import-rates.xml",
+      "element": "db:bulk-insert",
+      "position": "/mule/flow[1]/db:bulk-insert[1]"
+     },
+     "system": {
+      "connector": "db",
+      "connection": "rates-db-config",
+      "operation": "bulk-insert"
+     },
+     "migration": {
+      "status": "notConverted",
+      "reasons": [
+       {
+        "kind": "unsupportedElement",
+        "text": "db:bulk-insert"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "apis": [
+  {
+   "id": "a1",
+   "config": "rates-api-config",
+   "spec": {
+    "file": "src/main/resources/api/rates-api.raml",
+    "title": "Rates API",
+    "version": "v1"
+   },
+   "operations": [
+    {
+     "method": "GET",
+     "path": "/rates/{currency}",
+     "description": "Get the latest rate for one currency.",
+     "flow": "f3"
+    },
+    {
+     "method": "POST",
+     "path": "/rates/convert",
+     "flow": null
+    }
+   ],
+   "policies": {
+    "autodiscovery": "${anypoint.rates-api.apiId}",
+    "traits": [
+     "client-id-enforcement"
+    ]
+   }
+  }
+ ],
+ "connections": [],
+ "properties": [],
+ "imports": [
+  {
+   "file": "common-errors.xml",
+   "found": false
+  }
+ ],
+ "coverage": {
+  "counts": {
+   "described": 0,
+   "hidden": 0,
+   "flagged": 1
+  },
+  "flagged": [
+   {
+    "step": "f5.4",
+    "element": "db:bulk-insert"
+   }
+  ],
+  "failedFiles": [],
+  "testFiles": [],
+  "linkUnknown": []
+ }
+}
