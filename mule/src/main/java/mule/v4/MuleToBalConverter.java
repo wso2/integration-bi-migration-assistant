@@ -686,8 +686,9 @@ public class MuleToBalConverter {
             ctx.logger.logSevere("failed to find the file config: " + fileListener.configRef());
         }
 
-        String workingDirVar = convertToBalIdentifier(fileListener.configRef() + "WorkingDir");
-        ConversionUtils.addConfigVarEntry(ctx, workingDirVar, fileConfig != null ? fileConfig.workingDir() : null);
+        String rawWorkingDirVar = fileListener.configRef() + "WorkingDir";
+        ConversionUtils.addConfigVarEntry(ctx, rawWorkingDirVar, fileConfig != null ? fileConfig.workingDir() : null);
+        String workingDirVar = convertToBalIdentifier(rawWorkingDirVar);
 
         String listenerName = convertToBalIdentifier(fileListener.configRef());
 
