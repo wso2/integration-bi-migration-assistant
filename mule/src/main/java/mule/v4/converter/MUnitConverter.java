@@ -120,7 +120,7 @@ public class MUnitConverter {
             bodyLines.addAll(convertMUnitRecordsToLines(ctx, imports, test.validation()));
         }
 
-        String funcName = ConversionUtils.convertToBalIdentifier(test.name());
+        String funcName = common.ConversionUtils.convertToCamelCaseIdentifier(test.name());
         StringBuilder sb = new StringBuilder();
         sb.append("@test:Config {}\n");
         sb.append("function ").append(funcName).append("() returns error? {\n");
@@ -134,7 +134,7 @@ public class MUnitConverter {
     private static String buildAnnotatedFunction(Context ctx, Set<Import> imports,
                                                  LifecycleBlock block, String annotation) {
         List<String> bodyLines = convertMUnitRecordsToLines(ctx, imports, block.processors());
-        String funcName = ConversionUtils.convertToBalIdentifier(block.name());
+        String funcName = common.ConversionUtils.convertToCamelCaseIdentifier(block.name());
 
         StringBuilder sb = new StringBuilder();
         sb.append(annotation).append("\n");
