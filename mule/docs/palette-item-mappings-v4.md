@@ -511,6 +511,100 @@ service / on listener\-config {
 
 ```
 
+- ### Raise Error In Error Handler
+
+**Input (raise_error_in_error_handler.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
+    <http:listener-config name="listener-config" doc:name="HTTP Listener">
+        <http:listener-connection host="0.0.0.0" port="8080"/>
+    </http:listener-config>
+    <apikit:config name="api-config" api="api.raml"/>
+
+    <flow name="api-main">
+        <http:listener config-ref="listener-config" path="/*" allowedMethods="GET">
+            <http:error-response statusCode="#[vars.httpStatus default 500]"/>
+        </http:listener>
+        <apikit:router config-ref="api-config"/>
+        <error-handler>
+            <on-error-propagate type="ANY">
+                <logger level="ERROR" message="Order lookup failed"/>
+                <raise-error type="APP:FAILED" description="Order lookup failed"/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+    <flow name="get:\orders\(id):api-config">
+        <logger level="INFO" message="Get order"/>
+    </flow>
+</mule>
+
+```
+**Output (raise_error_in_error_handler.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+public type APIKIT__NOT_FOUND distinct error;
+
+public type APP__FAILED distinct error;
+
+public listener http:Listener listener\-config = new (8080);
+
+service http:InterceptableService / on listener\-config {
+    function init() returns error? {
+    }
+
+    public function createInterceptors() returns [MuleResponseErrorInterceptor0] {
+        return [new MuleResponseErrorInterceptor0()];
+    }
+
+    resource function get [string... path](http:Request request) returns http:Response|error {
+        return error APIKIT__NOT_FOUND("APIKIT:NOT_FOUND");
+    }
+
+    resource function get orders/[string id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+        log:printInfo("Get order");
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+service class MuleResponseErrorInterceptor0 {
+    *http:ResponseErrorInterceptor;
+
+    remote function interceptResponseError(http:RequestContext requestContext, http:Response interceptedResponse, error err) returns http:Response|error {
+        Context ctx = {attributes: {response: interceptedResponse}};
+        // on-error-propagate
+        log:printError("Order lookup failed");
+        fail error APP__FAILED("Order lookup failed");
+    }
+}
+
+```
+
 - ### Response Bodies With Any Error Handler
 
 **Input (response_bodies_with_any_error_handler.xml):**

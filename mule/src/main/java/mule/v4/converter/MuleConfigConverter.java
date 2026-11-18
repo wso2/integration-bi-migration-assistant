@@ -219,6 +219,22 @@ public class MuleConfigConverter {
         return statementList;
     }
 
+    /**
+     * Whether the statements of {@link #convertErrorHandlerRecords} always fail, so nothing placed after them runs.
+     *
+     * @param errHandlerRecords the records of an error handler
+     * @return true if every record ends in a raise-error and one of them handles any error
+     */
+    public static boolean alwaysFails(List<ErrorHandlerRecord> errHandlerRecords) {
+        if (errHandlerRecords.isEmpty()) {
+            return false;
+        }
+        // A single record is converted without its condition, and the last one without a condition is the else
+        ErrorHandlerRecord lastErrRec = errHandlerRecords.getLast();
+        return (errHandlerRecords.size() == 1 || lastErrRec.type().isEmpty() && lastErrRec.when().isEmpty())
+                && errHandlerRecords.stream().allMatch(errRec -> endsWithRaiseError(errRec.errorBlocks()));
+    }
+
     private static BallerinaExpression getErrorHandlerRecCondition(Context ctx, ErrorHandlerRecord errRec) {
         StringBuilder conditionExpr = new StringBuilder();
         if (!errRec.type().isEmpty()) {
