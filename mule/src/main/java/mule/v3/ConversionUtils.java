@@ -376,14 +376,17 @@ public class ConversionUtils {
         sb.append("// TODO: ").append(todoDescription).append("\n");
         sb.append("// ------------------------------------------------------------------------\n");
         if (details != null) {
-            sb.append("// ").append(details.strip()).append("\n")
-                    .append("// ------------------------------------------------------------------------\n");
+            appendAsComment(sb, details.strip());
+            sb.append("// ------------------------------------------------------------------------\n");
         }
-        String[] lines = input.stripIndent().split("\n");
-        for (String line : lines) {
-            sb.append("// ").append(line).append("\n");
-        }
+        appendAsComment(sb, input.stripIndent());
         sb.append("// ------------------------------------------------------------------------\n\n");
         return sb.toString();
+    }
+
+    private static void appendAsComment(StringBuilder sb, String text) {
+        for (String line : text.split("\n")) {
+            sb.append("// ").append(line).append("\n");
+        }
     }
 }
