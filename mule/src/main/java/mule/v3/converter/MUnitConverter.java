@@ -43,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,6 +53,7 @@ import static common.ConversionUtils.stmtFrom;
 public class MUnitConverter {
 
     private static final Import TEST_MODULE_IMPORT = new Import("ballerina", "test");
+    private static final String TEST_ANNOTATION_PREFIX = "@test:";
     private static final String TODO_MOCK_DESC =
             "MUNIT MOCK — MANUAL CONVERSION REQUIRED.";
     private static final String TODO_VERIFY_DESC =
@@ -69,18 +71,19 @@ public class MUnitConverter {
         imports.add(TEST_MODULE_IMPORT);
 
         List<String> intrinsics = new ArrayList<>();
+        Set<String> functionNames = new HashSet<>();
 
         testSuite.beforeSuite().ifPresent(block ->
-                intrinsics.add(buildAnnotatedFunction(ctx, block, "@test:BeforeSuite")));
+                intrinsics.add(buildAnnotatedFunction(ctx, functionNames, block, "@test:BeforeSuite")));
         testSuite.afterSuite().ifPresent(block ->
-                intrinsics.add(buildAnnotatedFunction(ctx, block, "@test:AfterSuite")));
+                intrinsics.add(buildAnnotatedFunction(ctx, functionNames, block, "@test:AfterSuite")));
         testSuite.beforeTest().ifPresent(block ->
-                intrinsics.add(buildAnnotatedFunction(ctx, block, "@test:BeforeEach")));
+                intrinsics.add(buildAnnotatedFunction(ctx, functionNames, block, "@test:BeforeEach")));
         testSuite.afterTest().ifPresent(block ->
-                intrinsics.add(buildAnnotatedFunction(ctx, block, "@test:AfterEach")));
+                intrinsics.add(buildAnnotatedFunction(ctx, functionNames, block, "@test:AfterEach")));
 
         for (MUnitTest test : testSuite.tests()) {
-            intrinsics.add(buildTestFunction(ctx, test));
+            intrinsics.add(buildTestFunction(ctx, functionNames, test));
         }
 
         imports.addAll(ctx.currentFileCtx.balConstructs.imports);
@@ -98,7 +101,7 @@ public class MUnitConverter {
                 Collections.emptyList());
     }
 
-    private static String buildTestFunction(Context ctx, MUnitTest test) {
+    private static String buildTestFunction(Context ctx, Set<String> functionNames, MUnitTest test) {
         List<String> bodyLines = new ArrayList<>();
 
         if (!test.description().isEmpty()) {
@@ -122,10 +125,10 @@ public class MUnitConverter {
             bodyLines.addAll(convertMUnitRecordsToLines(ctx, test.validation()));
         }
 
-        String funcName = ConversionUtils.convertToBalIdentifier(test.name());
         StringBuilder sb = new StringBuilder();
         sb.append("@test:Config {}\n");
-        sb.append("function ").append(funcName).append("() returns error? {\n");
+        sb.append("function ").append(uniqueFunctionName(test.name(), "test", functionNames))
+                .append("() returns error? {\n");
         for (String line : bodyLines) {
             sb.append(line).append("\n");
         }
@@ -133,9 +136,12 @@ public class MUnitConverter {
         return sb.toString();
     }
 
-    private static String buildAnnotatedFunction(Context ctx, LifecycleBlock block, String annotation) {
+    private static String buildAnnotatedFunction(Context ctx, Set<String> functionNames, LifecycleBlock block,
+                                                 String annotation) {
         List<String> bodyLines = convertMUnitRecordsToLines(ctx, block.processors());
-        String funcName = ConversionUtils.convertToBalIdentifier(block.name());
+        String funcName = uniqueFunctionName(block.name(),
+                common.ConversionUtils.lowerFirst(annotation.substring(TEST_ANNOTATION_PREFIX.length())),
+                functionNames);
 
         StringBuilder sb = new StringBuilder();
         sb.append(annotation).append("\n");
@@ -145,6 +151,18 @@ public class MUnitConverter {
         }
         sb.append("}");
         return sb.toString();
+    }
+
+    // Names that differ only in punctuation or in the case of their first letter map to the same identifier, and a
+    // name made only of punctuation maps to none, so the function falls back to a name derived from its role.
+    private static String uniqueFunctionName(String muleName, String fallbackName, Set<String> functionNames) {
+        String camelCaseName = common.ConversionUtils.convertToCamelCaseIdentifier(muleName);
+        String baseName = camelCaseName.isEmpty() ? fallbackName : camelCaseName;
+        String funcName = baseName;
+        for (int suffix = 2; !functionNames.add(funcName); suffix++) {
+            funcName = baseName + suffix;
+        }
+        return funcName;
     }
 
     private static List<String> convertMUnitRecordsToLines(Context ctx, List<MUnitRecord> records) {
