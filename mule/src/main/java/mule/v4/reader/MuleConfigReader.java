@@ -238,6 +238,12 @@ public class MuleConfigReader {
     }
 
     public static MuleRecord readBlock(Context ctx, MuleElement muleElement) {
+        MuleRecord muleRecord = readBlockInternal(ctx, muleElement);
+        ctx.registerSource(muleRecord, muleElement.getElement());
+        return muleRecord;
+    }
+
+    private static MuleRecord readBlockInternal(Context ctx, MuleElement muleElement) {
         MuleXMLTag muleXMLTag = MuleXMLTag.fromTag(muleElement.getElement().getTagName());
         switch (muleXMLTag) {
             // Source
@@ -531,6 +537,12 @@ public class MuleConfigReader {
 
     // Scopes
     public static Flow readFlow(Context ctx, MuleElement mFlowElement) {
+        Flow flow = readFlowInternal(ctx, mFlowElement);
+        ctx.registerSource(flow, mFlowElement.getElement());
+        return flow;
+    }
+
+    private static Flow readFlowInternal(Context ctx, MuleElement mFlowElement) {
         Element flowElement = mFlowElement.getElement();
         String flowName = flowElement.getAttribute("name");
 
@@ -579,6 +591,12 @@ public class MuleConfigReader {
     }
 
     public static SubFlow readSubFlow(Context ctx, MuleElement mFlowElement) {
+        SubFlow subFlow = readSubFlowInternal(ctx, mFlowElement);
+        ctx.registerSource(subFlow, mFlowElement.getElement());
+        return subFlow;
+    }
+
+    private static SubFlow readSubFlowInternal(Context ctx, MuleElement mFlowElement) {
         Element flowElement = mFlowElement.getElement();
         String flowName = flowElement.getAttribute("name");
 

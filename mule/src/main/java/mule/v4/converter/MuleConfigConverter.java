@@ -294,6 +294,22 @@ public class MuleConfigConverter {
     }
 
     public static WorkerStatementResult convertMuleRegularBlock(Context ctx, MuleRecord muleRec) {
+        Optional<Context.ConversionObserver> observer = ctx.conversionObserver();
+        if (observer.isEmpty()) {
+            return convertMuleRegularBlockInternal(ctx, muleRec);
+        }
+        observer.get().blockStarted(muleRec);
+        try {
+            WorkerStatementResult result = convertMuleRegularBlockInternal(ctx, muleRec);
+            observer.get().blockConverted(muleRec, result);
+            return result;
+        } catch (RuntimeException e) {
+            observer.get().blockFailed(muleRec);
+            throw e;
+        }
+    }
+
+    private static WorkerStatementResult convertMuleRegularBlockInternal(Context ctx, MuleRecord muleRec) {
         switch (muleRec) {
             case Logger lg -> {
                 return convertLogger(ctx, lg);

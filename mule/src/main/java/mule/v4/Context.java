@@ -30,6 +30,7 @@ import mule.common.apispec.ApiSpec;
 import mule.common.apispec.ApiSpecLoader;
 import mule.common.apispec.ApiSpecResult;
 import mule.common.apispec.ApiTypeGenerator;
+import mule.v4.converter.MuleConfigConverter.ConversionResult.WorkerStatementResult;
 import mule.v4.dataweave.converter.DWConstruct;
 import mule.v4.model.MuleModel;
 import mule.v4.model.MuleModel.AnypointMqConfig;
@@ -37,9 +38,11 @@ import mule.v4.model.MuleModel.ApiKitConfig;
 import mule.v4.model.MuleModel.ApiKitRouter;
 import mule.v4.model.MuleModel.DbConfig;
 import mule.v4.model.MuleModel.HttpListener;
+import mule.v4.model.MuleModel.MuleRecord;
 import mule.v4.model.MuleModel.PubSubConfig;
 import mule.v4.model.ParseResult;
 import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Element;
 
 import java.io.File;
 import java.io.IOException;
@@ -96,6 +99,9 @@ public class Context extends ContextBase {
             new HashMap<>();
     public boolean inServiceGen = false;
     public AttributesOrigin attributesOrigin = AttributesOrigin.UNKNOWN;
+    // Records compare by value: two identical loggers in different flows would share a HashMap entry
+    private final Map<MuleRecord, SourceInfo> sources = new IdentityHashMap<>();
+    private Optional<ConversionObserver> conversionObserver = Optional.empty();
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
                    List<File> propertyFiles, String sourceName, boolean dryRun, boolean keepStructure,
@@ -346,6 +352,38 @@ public class Context extends ContextBase {
     private boolean hasHttpListener(ParseResult parseResult) {
         return parseResult.flows().stream()
                 .anyMatch(flow -> flow.source().filter(source -> source instanceof HttpListener).isPresent());
+    }
+
+    /**
+     * Turns on source recording and conversion observing for --describe. The conversion output does not change.
+     *
+     * @param observer receives each block conversion
+     */
+    public void enableDescribe(@NotNull ConversionObserver observer) {
+        assert observer != null;
+        conversionObserver = Optional.of(observer);
+    }
+
+    public void registerSource(MuleRecord muleRecord, Element element) {
+        if (conversionObserver.isPresent()) {
+            assert muleRecord != null && element != null;
+            sources.put(muleRecord, new SourceInfo(currentFileCtx.filePath, element));
+        }
+    }
+
+    @NotNull
+    public Optional<SourceInfo> sourceOf(MuleRecord muleRecord) {
+        return Optional.ofNullable(sources.get(muleRecord));
+    }
+
+    @NotNull
+    public Map<File, ParseResult> parseResults() {
+        return Collections.unmodifiableMap(parseResults);
+    }
+
+    @NotNull
+    public Optional<ConversionObserver> conversionObserver() {
+        return conversionObserver;
     }
 
     @Override
@@ -654,6 +692,21 @@ public class Context extends ContextBase {
 
     public record JMSMessageProducerLookupKey(String connectionConfig, String destination) {
 
+    }
+
+    public record SourceInfo(String filePath, Element element) {
+    }
+
+    /**
+     * Watches each block conversion for --describe. It only observes: it never changes the conversion.
+     */
+    public interface ConversionObserver {
+
+        void blockStarted(MuleRecord muleRecord);
+
+        void blockConverted(MuleRecord muleRecord, WorkerStatementResult result);
+
+        void blockFailed(MuleRecord muleRecord);
     }
 
     /**
