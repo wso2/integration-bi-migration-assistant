@@ -116,7 +116,8 @@ function Probe(Context cx) returns error? {
 
 function Processes_Guarded_process_transitionPredicate_0(xml input, Context cx) returns boolean|error {
     xml var0 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error"/>     <xsl:template name="Transform6" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error"/>
+     <xsl:template name="Transform6" match="/">
         <transitionConditionResult><xsl:value-of select="boolean(starts-with($_error/root/ns:ErrorReport/Msg, 'fatal'))"/></transitionConditionResult>
     </xsl:template>
 </xsl:stylesheet>`);
@@ -183,7 +184,8 @@ function start_Processes_Guarded_process(Context cx) returns error? {
 function Call_Worker(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Prepare"/>     <xsl:template name="Transform3" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Prepare"/>
+     <xsl:template name="Transform3" match="/">
         <WorkerInput>
                     
     <status>
@@ -206,7 +208,8 @@ function Call_Worker(Context cx) returns error? {
 function Fault(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error_Call-Worker"/>     <xsl:template name="Transform4" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="_error_Call-Worker"/>
+     <xsl:template name="Transform4" match="/">
         <ns1:ActivityInput xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema">
                     
     <message>
@@ -258,7 +261,8 @@ function Log_OK(Context cx) returns error? {
 function Log_Other(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Prepare"/>     <xsl:template name="Transform2" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Prepare"/>
+     <xsl:template name="Transform2" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
     <message>
@@ -279,7 +283,8 @@ function Log_Other(Context cx) returns error? {
 function Prepare(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="post"/>     <xsl:template name="Transform0" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="post"/>
+     <xsl:template name="Transform0" match="/">
         <status>
                     
     <xsl:value-of select="$post/root/item/status" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>
@@ -295,7 +300,8 @@ function Prepare(Context cx) returns error? {
 
 function Processes_Caller_process_transitionPredicate_0(xml input, Context cx) returns boolean|error {
     xml var0 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Prepare"/>     <xsl:template name="Transform5" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Prepare"/>
+     <xsl:template name="Transform5" match="/">
         <transitionConditionResult><xsl:value-of select="boolean($Prepare/root/status = 'OK')"/></transitionConditionResult>
     </xsl:template>
 </xsl:stylesheet>`);
@@ -366,7 +372,8 @@ function Log_First(Context cx) returns error? {
 function Log_Item(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="item"/>     <xsl:template name="Transform3" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="item"/>
+     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                         
     <message>
@@ -403,7 +410,8 @@ function Process_Items(Context cx) returns error? {
 
 function Processes_Worker_process_transitionPredicate_0(xml input, Context cx) returns boolean|error {
     xml var0 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Start"/>     <xsl:template name="Transform5" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="Start"/>
+     <xsl:template name="Transform5" match="/">
         <transitionConditionResult><xsl:value-of select="boolean($Start/root/status = 'REJECT')"/></transitionConditionResult>
     </xsl:template>
 </xsl:stylesheet>`);
@@ -413,7 +421,8 @@ function Processes_Worker_process_transitionPredicate_0(xml input, Context cx) r
 
 function Processes_Worker_process_transitionPredicate_1(xml input, Context cx) returns boolean|error {
     xml var0 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="index"/>     <xsl:template name="Transform4" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" version="2.0"><xsl:param name="index"/>
+     <xsl:template name="Transform4" match="/">
         <transitionConditionResult><xsl:value-of select="boolean($index = 1)"/></transitionConditionResult>
     </xsl:template>
 </xsl:stylesheet>`);
