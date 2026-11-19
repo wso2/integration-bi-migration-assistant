@@ -7563,17 +7563,17 @@ import ballerina/log;
 import ballerina/test;
 
 @test:BeforeSuite
-function before\-suite\-setup() returns error? {
+function beforeSuiteSetup() returns error? {
     log:printInfo("Setting up test suite");
 }
 
 @test:AfterSuite
-function after\-suite\-cleanup() returns error? {
+function afterSuiteCleanup() returns error? {
     log:printInfo("Cleaning up test suite");
 }
 
 @test:Config {}
-function test\-simple\-assert\-equals() returns error? {
+function testSimpleAssertEquals() returns error? {
     // Test: Test with simple assert equals
     // Execution (Act)
     // set payload
@@ -7584,7 +7584,7 @@ function test\-simple\-assert\-equals() returns error? {
 }
 
 @test:Config {}
-function test\-with\-mock() returns error? {
+function testWithMock() returns error? {
     // Test: Test with mock-when
     // Behavior (Setup)
     // TODO: MUNIT MOCK — MANUAL CONVERSION REQUIRED.
@@ -7607,7 +7607,7 @@ function test\-with\-mock() returns error? {
 }
 
 @test:Config {}
-function test\-assert\-fail() returns error? {
+function testAssertFail() returns error? {
     // Test: Test with explicit fail
     // Validation (Assert)
     test:assertFail("This test should not pass");
@@ -8741,6 +8741,63 @@ public function mule6demoFlow(Context ctx) {
     // payload map (item) -> {
     //     intentionally added this line to fail dw parsing
     // }
+    // ------------------------------------------------------------------------
+
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+```
+
+- ### Transform Message With Multiline Dw Parsing Failure
+
+**Input (transform_message_with_multiline_dw_parsing_failure.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <flow name="mule6demoFlow">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::util::Values
+output application/json
+---
+payload update "OrderLine" with (payload.OrderLine filter((orderLine) -> !orderLine.IsReturn))]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
+
+```
+**Output (transform_message_with_multiline_dw_parsing_failure.bal):**
+```ballerina
+public type Vars record {|
+    any _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function mule6demoFlow(Context ctx) {
+
+    // TODO: DATAWEAVE PARSING FAILED.
+    // ------------------------------------------------------------------------
+    // Error details: line 2:7 mismatched input '*' expecting {IDENTIFIER, '*'}
+    // line 5:27 mismatched input 'with' expecting {<EOF>, NEWLINE}
+    // ------------------------------------------------------------------------
+    // %dw 2.0
+    // import * from dw::util::Values
+    // output application/json
+    // ---
+    // payload update "OrderLine" with (payload.OrderLine filter((orderLine) -> !orderLine.IsReturn))
     // ------------------------------------------------------------------------
 
     ctx.vars._dwOutput_ = _dwOutput_;

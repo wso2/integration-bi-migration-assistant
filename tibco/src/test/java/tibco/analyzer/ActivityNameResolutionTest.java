@@ -50,7 +50,7 @@ public class ActivityNameResolutionTest {
     private static AnalysisResult analyse(Scope processScope) {
         ProjectResources resources = new ProjectResources(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-                new ArrayList<>(), new ArrayList<>());
+                new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
         ConversionContext conversionContext = new ConversionContext("test-org", false, false, s -> {
         }, s -> {
         });

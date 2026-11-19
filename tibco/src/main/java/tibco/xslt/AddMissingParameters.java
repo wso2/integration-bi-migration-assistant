@@ -51,7 +51,7 @@ public class AddMissingParameters implements Transform {
         for (String each : missingParameters) {
             sb.append("<xsl:param name=\"%s\"/>".formatted(each));
         }
-        sb.append(content, index + 2, content.length());
+        sb.append(content, index + 1, content.length());
         return sb.toString();
     }
 

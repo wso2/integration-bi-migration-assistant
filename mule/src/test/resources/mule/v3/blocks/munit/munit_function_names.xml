@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd">
+
+    <munit:config name="function-names-suite"/>
+
+    <munit:before-suite name="---">
+        <logger level="INFO" message="Setting up test suite"/>
+    </munit:before-suite>
+
+    <munit:test name="TestOrder">
+        <logger level="INFO" message="first"/>
+    </munit:test>
+
+    <munit:test name="test-order">
+        <logger level="INFO" message="second"/>
+    </munit:test>
+
+    <munit:test name="test_order">
+        <logger level="INFO" message="third"/>
+    </munit:test>
+
+    <munit:test name="!!!">
+        <logger level="INFO" message="fourth"/>
+    </munit:test>
+</mule>

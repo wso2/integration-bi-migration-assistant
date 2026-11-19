@@ -13,7 +13,8 @@ function HTTP_Receiver(Context cx) returns error? {
 function Log(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Parse-JSON"/>     <xsl:template name="Transform3" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Parse-JSON"/>
+     <xsl:template name="Transform3" match="/">
         <ns:ActivityInput xmlns:ns="http://www.tibco.com/pe/EngineTypes">
                     
     <message>
@@ -35,7 +36,8 @@ function Log(Context cx) returns error? {
 function Parse_JSON(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="HTTP-Receiver"/>     <xsl:template name="Transform0" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="HTTP-Receiver"/>
+     <xsl:template name="Transform0" match="/">
         <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
     <jsonString>
@@ -59,7 +61,8 @@ function Parse_JSON(Context cx) returns error? {
 function Parse_Unsupported_JSON(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="HTTP-Receiver"/>     <xsl:template name="Transform2" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="HTTP-Receiver"/>
+     <xsl:template name="Transform2" match="/">
         <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
     <jsonString>
@@ -83,7 +86,8 @@ function Parse_Unsupported_JSON(Context cx) returns error? {
 function Render_JSON(Context cx) returns error? {
     xml var0 = xml `<root></root>`;
     xml var1 = check xml:fromString(string `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Parse-JSON"/>     <xsl:template name="Transform1" match="/">
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="2.0"><xsl:param name="Parse-JSON"/>
+     <xsl:template name="Transform1" match="/">
         <ns1:ActivityInputClass xmlns:ns1="http://www.tibco.com/namespaces/tnt/plugins/json">
                     
     <jsonString>
