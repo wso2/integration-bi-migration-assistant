@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -152,6 +153,34 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                     return inputBinding != null;
                 }
             }
+
+            record CriticalSectionGroup(Element element, String name, InputBinding inputBinding,
+                                        ExplicitTransitionGroup body, Optional<String> lockPath,
+                                        String fileName)
+                    implements ExplicitTransitionGroup.NestedGroup, Scope.Flow.ActivityWithResources {
+
+                public CriticalSectionGroup {
+                    assert body != null : "critical section group must have a body";
+                    assert lockPath != null : "use Optional.empty() for single group critical sections";
+                }
+
+                @Override
+                public @NotNull Collection<Resource.ResourceIdentifier> resources() {
+                    return lockPath.map(path -> List.of(
+                                    new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, path)))
+                            .orElse(List.of());
+                }
+
+                @Override
+                public @NotNull InlineActivityType type() {
+                    return InlineActivityType.CRITICAL_SECTION_GROUP;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
         }
 
         public record Transition(String from, String to) {
@@ -184,6 +213,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 SOAP_SEND_RECEIVE,
                 SOAP_SEND_REPLY,
                 LOOP_GROUP,
+                CRITICAL_SECTION_GROUP,
                 REST,
                 CATCH,
                 JSON_PARSER_ACTIVITY,
@@ -202,7 +232,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 SET_SHARED_VARIABLE,
                 FILE_EVENT_SOURCE,
                 ON_STARTUP,
-                LIST_FILES;
+                LIST_FILES,
+                RETHROW;
 
                 public static ExplicitTransitionGroup.InlineActivity.InlineActivityType parse(String type) {
                     record LookUpData(String suffix,
@@ -219,6 +250,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                                     new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
                                     new LookUpData("XMLTransformActivity", XML_TRANSFORM_ACTIVITY),
                                     new LookUpData("LoopGroup", LOOP_GROUP),
+                                    new LookUpData("CriticalSectionGroup", CRITICAL_SECTION_GROUP),
                                     new LookUpData("WriteToLogActivity", WRITE_LOG),
                                     new LookUpData("CatchActivity", CATCH),
                                     new LookUpData("FileReadActivity", FILE_READ),
@@ -242,7 +274,8 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                                     new LookUpData("JDBCUpdateActivity", JDBC_UPDATE),
                                     new LookUpData("FileEventSource", FILE_EVENT_SOURCE),
                                     new LookUpData("OnStartupEventSource", ON_STARTUP),
-                                    new LookUpData("ListFilesActivity", LIST_FILES))
+                                    new LookUpData("ListFilesActivity", LIST_FILES),
+                                    new LookUpData("RethrowActivity", RETHROW))
                             .filter(each -> type.endsWith(each.suffix)).findFirst()
                             .map(LookUpData::activityType).orElse(UNHANDLED);
                 }
@@ -258,6 +291,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                         case XML_PARSE_ACTIVITY -> "com.tibco.plugin.xml.XMLParseActivity";
                         case XML_TRANSFORM_ACTIVITY -> "com.tibco.plugin.xml.XMLTransformActivity";
                         case LOOP_GROUP -> "com.tibco.pe.core.LoopGroup";
+                        case CRITICAL_SECTION_GROUP -> "com.tibco.pe.core.CriticalSectionGroup";
                         case WRITE_LOG -> "com.tibco.pe.core.WriteToLogActivity";
                         case CATCH -> "com.tibco.pe.core.CatchActivity";
                         case FILE_READ -> "com.tibco.plugin.file.FileReadActivity";
@@ -282,6 +316,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                         case FILE_EVENT_SOURCE -> "com.tibco.plugin.file.FileEventSource";
                         case ON_STARTUP -> "com.tibco.pe.core.OnStartupEventSource";
                         case LIST_FILES -> "com.tibco.plugin.file.ListFilesActivity";
+                        case RETHROW -> "com.tibco.pe.core.RethrowActivity";
                         case UNHANDLED -> "UNHANDLED";
                     };
                 }
@@ -1033,6 +1068,20 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 @Override
                 public boolean hasInputBinding() {
                     return true;
+                }
+            }
+
+            record Rethrow(Element element, String name, InputBinding inputBinding, String fileName)
+                    implements ExplicitTransitionGroup.InlineActivity {
+
+                @Override
+                public InlineActivityType type() {
+                    return InlineActivityType.RETHROW;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
                 }
             }
 

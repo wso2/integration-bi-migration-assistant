@@ -23,6 +23,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import tibco.TibcoToBalConverter;
 import tibco.converter.ConversionUtils;
 import tibco.model.Method;
 import tibco.model.NameSpace;
@@ -32,6 +33,7 @@ import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLParseActivity;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity.XMLRenderActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup;
 import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.LoopGroup.SourceExpression;
@@ -51,13 +53,18 @@ import tibco.model.Variable;
 import tibco.model.XSD;
 import tibco.model.XmlInputStyle;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -74,6 +81,8 @@ import static common.LoggingUtils.Level.WARN;
 public final class XmlToTibcoModelParser {
 
     private static final String GROUP_START_NODE = "start";
+    private static final Set<String> CRITICAL_SECTION_SETTINGS =
+            Set.of("groupType", "serializable", "scope", "criticalSectionLock");
     private static final String DELIMITED_DATA_FORMAT = "Delimiter separated";
     private static final String SINGLE_SEPARATOR_PARSE_RULE =
             "Treat all characters as entered as a single column separator string";
@@ -304,6 +313,44 @@ public final class XmlToTibcoModelParser {
         }
     }
 
+    public static @NotNull Optional<Resource.SAPConnectionResource> parseSAPConnectionResource(ResourceContext cx,
+                                                                                              Element root) {
+        cx.log(INFO, "Start parsing SAPConnectionResource");
+        cx.logState("Start parsing SAPConnectionResource");
+        String name = "";
+        try {
+            name = tryGetAttributeIgnoringNamespace(root, "name").orElse("");
+            Element configuration = getFirstChildWithTag(root, "configuration");
+            Map<String, String> configValues = new HashMap<>();
+            NamedNodeMap attributes = configuration.getAttributes();
+            for (int i = 0; i < attributes.getLength(); i++) {
+                Node attribute = attributes.item(i);
+                configValues.put(getTagNameWithoutNameSpace(attribute.getNodeName()), attribute.getNodeValue());
+            }
+            Collection<Resource.SubstitutionBinding> substitutionBindings = getChildrenWithTag(configuration,
+                    "substitutionBindings")
+                    .map(XmlToTibcoModelParser::parseSubstitutionBinding).toList();
+            cx.log(INFO, "Done parsing SAPConnectionResource: " + name);
+            cx.logState("Parsed SAPConnectionResource: " + name);
+            return Optional.of(new Resource.SAPConnectionResource(name, cx.getResourcePath(), configValues,
+                    substitutionBindings));
+        } catch (Exception ex) {
+            cx.registerUnsupportedResource(root, name);
+            return Optional.empty();
+        }
+    }
+
+    public static @NotNull Optional<Resource.SharedLock> parseSharedLock(ResourceContext cx, Element root) {
+        cx.logState("Parsing SharedLock: " + cx.getResourcePath());
+        return Optional.of(new Resource.SharedLock(
+                tryGetFirstChildWithTag(root, "name").map(Element::getTextContent).map(String::strip).orElse(""),
+                cx.getResourcePath(),
+                tryGetFirstChildWithTag(root, "config")
+                        .flatMap(config -> tryGetFirstChildWithTag(config, "multi-engine"))
+                        .map(value -> Boolean.parseBoolean(value.getTextContent().strip()))
+                        .orElse(false)));
+    }
+
     public static @NotNull Optional<Resource.DataFormatResource> parseDataFormatResource(ResourceContext cx,
                                                                                          Element root) {
         cx.log(INFO, "Start parsing DataFormatResource");
@@ -532,6 +579,7 @@ public final class XmlToTibcoModelParser {
             case SOAP_SEND_RECEIVE -> parseSoapSendReceive(cx, element, name, inputBinding);
             case SOAP_SEND_REPLY -> new InlineActivity.SOAPSendReply(element, name, inputBinding, cx.fileName());
             case LOOP_GROUP -> parseLoopGroup(cx, element, name, inputBinding);
+            case CRITICAL_SECTION_GROUP -> parseCriticalSectionGroup(cx, element, name, inputBinding);
             case REST -> parseREST(cx, element, name, inputBinding);
             case CATCH -> new InlineActivity.Catch(element, name, inputBinding, cx.fileName());
             case JSON_PARSER_ACTIVITY -> parseJSONParserActivity(cx, element, name, inputBinding);
@@ -551,6 +599,7 @@ public final class XmlToTibcoModelParser {
             case ON_STARTUP -> new InlineActivity.OnStartupEventSource(element, name, inputBinding, cx.fileName());
             case LIST_FILES -> parseListFilesActivity(cx, element, name, inputBinding);
             case GENERATE_ERROR -> new InlineActivity.GenerateError(element, name, inputBinding, cx.fileName());
+            case RETHROW -> new InlineActivity.Rethrow(element, name, inputBinding, cx.fileName());
         };
     }
 
@@ -749,6 +798,53 @@ public final class XmlToTibcoModelParser {
                 parseGroupBody(cx, element), cx.fileName());
     }
 
+    private static @NotNull CriticalSectionGroup parseCriticalSectionGroup(ProcessContext cx, Element element,
+            String name, Flow.Activity.InputBinding inputBinding) {
+        List<String> unsupportedSettings = tryGetFirstChildWithTag(element, "config").stream()
+                .flatMap(config -> ElementIterable.of(config).stream())
+                .filter(setting -> !setting.getTextContent().isBlank())
+                .map(XmlToTibcoModelParser::getTagNameWithoutNameSpace)
+                .filter(Predicate.not(CRITICAL_SECTION_SETTINGS::contains))
+                .toList();
+        unsupportedSettings.forEach(setting -> cx.log(WARN, "critical section group '" + name + "' sets '" + setting
+                + "', which is not supported and has been ignored"));
+        boolean serializable = tryGetInlineActivityConfigValue(element, "serializable")
+                .map(value -> Boolean.parseBoolean(value.strip())).orElse(false);
+        if (serializable) {
+            cx.log(WARN, "critical section group '" + name + "' sets 'serializable', which is not supported and "
+                    + "has been ignored");
+        }
+        if (serializable || !unsupportedSettings.isEmpty()) {
+            cx.registerPartiallySupportedActivity(element, name, InlineActivity.InlineActivityType
+                    .CRITICAL_SECTION_GROUP.toTibcoType());
+        }
+        return new CriticalSectionGroup(element, name, inputBinding, parseGroupBody(cx, element),
+                parseCriticalSectionLockPath(cx, element, name), cx.fileName());
+    }
+
+    private static @NotNull Optional<String> parseCriticalSectionLockPath(
+            ProcessContext cx, Element element, String name) {
+        String scope = tryGetInlineActivityConfigValue(element, "scope")
+                .map(value -> value.strip().toLowerCase(Locale.ROOT)).orElse("single");
+        Optional<String> lockPath = tryGetInlineActivityConfigValue(element, "criticalSectionLock")
+                .map(path -> "/" + path.strip().replace('\\', '/').replaceFirst("^/+", ""))
+                .filter(path -> path.length() > 1);
+        if (!scope.equals("multiple")) {
+            if (!scope.equals("single")) {
+                cx.log(WARN, "critical section group '" + name + "' has unknown scope '" + scope
+                        + "'; it is converted as a single-group critical section");
+            }
+            lockPath.ifPresent(path -> cx.log(WARN, "critical section group '" + name + "' names lock object '"
+                    + path + "' without multiple-group scope; the lock object is ignored"));
+            return Optional.empty();
+        }
+        if (lockPath.isEmpty()) {
+            cx.log(WARN, "critical section group '" + name + "' has multiple-group scope but no lock object; "
+                    + "it is converted as a single-group critical section");
+        }
+        return lockPath;
+    }
+
     private static @NotNull String escapeXmlAttribute(String value) {
         return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
@@ -758,7 +854,7 @@ public final class XmlToTibcoModelParser {
         for (Element child : new ElementIterable(element)) {
             String tag = getTagNameWithoutNameSpace(child);
             switch (tag) {
-                case "activity" -> {
+                case "activity", "group" -> {
                     transitionGroup = transitionGroup.append(parseInlineActivity(cx, child));
                 }
                 case "transition" -> {
@@ -1286,13 +1382,11 @@ public final class XmlToTibcoModelParser {
 
     private static Flow.Activity.Reply parseReply(ProcessContext cx, Element element) {
         String name = element.getAttribute("name");
-        var operation = Method.from(
-                element.getAttribute("operation"));
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         ActivityInputOutput result = getActivityInputOutput(element);
-        return new Flow.Activity.Reply(name, operation, partnerLink, portType, result.inputBindings,
-                result.targets, element, cx.fileName());
+        return new Flow.Activity.Reply(name, element.getAttribute("operation"), partnerLink, portType,
+                result.inputBindings, result.targets, element, cx.fileName());
     }
 
     private static Flow.Activity.Empty parseEmpty(ProcessContext cx, Element element) {
@@ -1313,25 +1407,17 @@ public final class XmlToTibcoModelParser {
     }
 
     private static Flow.Activity.Pick.OnMessage parseOnMessage(ProcessContext cx, Element element) {
-        var operation = Method.from(
-                element.getAttribute("operation"));
         String partnerLink = element.getAttribute("partnerLink");
         String portType = element.getAttribute("portType");
         String variable = element.getAttribute("variable");
         Scope scope = parseScope(cx, getFirstChildWithTag(element, "scope"));
-        return new Flow.Activity.Pick.OnMessage(operation, partnerLink, portType, variable, scope, cx.fileName());
+        return new Flow.Activity.Pick.OnMessage(element.getAttribute("operation"), partnerLink, portType, variable,
+                scope, cx.fileName());
     }
 
     private static Flow.Activity.Invoke parseInvoke(ProcessContext cx, Element element) {
         String inputVariable = element.getAttribute("inputVariable");
         String outputVariable = element.getAttribute("outputVariable");
-        Method operation;
-        try {
-            operation = Method.from(element.getAttribute("operation"));
-        } catch (IllegalArgumentException ignored) {
-            // TODO: need to handle this properly, this happens for SOAP operations
-            operation = Method.POST;
-        }
         String partnerLink = element.getAttribute("partnerLink");
         List<Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         Collection<Flow.Activity.Target> targets = new ArrayList<>();
@@ -1355,7 +1441,7 @@ public final class XmlToTibcoModelParser {
                 default -> throw new ParserException("Unsupported invoke element tag: " + tag, element);
             }
         }
-        return new Flow.Activity.Invoke(inputVariable, outputVariable, operation, partnerLink,
+        return new Flow.Activity.Invoke(inputVariable, outputVariable, element.getAttribute("operation"), partnerLink,
                 inputBindings, targets, sources, element, cx.fileName());
     }
 
@@ -1511,7 +1597,7 @@ public final class XmlToTibcoModelParser {
         List<Flow.Activity.InputBinding> inputBindings = new ArrayList<>();
         Optional<Element> inputBindingElement = tryGetFirstChildWithTag(activity, "inputBindings");
         inputBindingElement.ifPresent(elem -> inputBindings.addAll(parseInputBindings(elem)));
-        Config config = parseActivityExtensionConfig(getFirstChildWithTag(activity, "config"));
+        Config config = parseActivityExtensionConfig(cx, getFirstChildWithTag(activity, "config"));
         return new Flow.Activity.ActivityExtension(name, inputVariable, outputVariable, targets,
                 sources, inputBindings, config, activity, cx.fileName());
     }
@@ -1528,8 +1614,7 @@ public final class XmlToTibcoModelParser {
         return new Flow.Activity.Target(each.getAttribute("linkName"));
     }
 
-    private static Config parseActivityExtensionConfig(
-            Element config) {
+    private static Config parseActivityExtensionConfig(ProcessContext cx, Element config) {
         Element activity = getFirstChildWithTag(config, "BWActivity");
         String activityTypeID = activity.getAttribute("activityTypeID");
         Config.ExtensionKind kind = Config.ExtensionKind.fromTypeId(activityTypeID);
@@ -1543,6 +1628,7 @@ public final class XmlToTibcoModelParser {
             case SFTP_DIR -> parseSFTPDir(activity);
             case SFTP_GET -> parseSFTPGet(activity);
             case SFTP_PUT -> parseSFTPPut(activity);
+            case SAP_INVOKE -> parseSAPInvoke(cx, activity);
             case JAVA_INVOKE -> parseJavaInvoke(activity);
             case PARSE_DATA -> parseParseData(activity);
             case RENDER_DATA -> parseRenderData(activity);
@@ -1581,30 +1667,140 @@ public final class XmlToTibcoModelParser {
 
     private static Config.@NotNull SFTPDir parseSFTPDir(Element activity) {
         return new Config.SFTPDir(parseSFTPConnection(activity),
-                Boolean.parseBoolean(sftpActivityValue(activity).getAttribute("nlst")));
+                Boolean.parseBoolean(activityConfigValue(activity).getAttribute("nlst")));
     }
 
     private static Config.@NotNull SFTPGet parseSFTPGet(Element activity) {
-        Element value = sftpActivityValue(activity);
+        Element value = activityConfigValue(activity);
         return new Config.SFTPGet(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
                 Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")));
     }
 
     private static Config.@NotNull SFTPPut parseSFTPPut(Element activity) {
-        Element value = sftpActivityValue(activity);
+        Element value = activityConfigValue(activity);
         return new Config.SFTPPut(parseSFTPConnection(activity), Boolean.parseBoolean(value.getAttribute("binary")),
                 Boolean.parseBoolean(value.getAttribute("overwriteExistingFile")),
                 Boolean.parseBoolean(value.getAttribute("append")));
     }
 
     private static @NotNull String parseSFTPConnection(Element activity) {
-        return sftpActivityValue(activity).getAttribute("sftpConnection");
+        return activityConfigValue(activity).getAttribute("sftpConnection");
     }
 
-    private static @NotNull Element sftpActivityValue(Element activity) {
+    private static @NotNull Element activityConfigValue(Element activity) {
         Element activityConfig = getFirstChildWithTag(activity, "activityConfig");
         Element properties = getFirstChildWithTag(activityConfig, "properties");
         return getFirstChildWithTag(properties, "value");
+    }
+
+    // Only the default synchronous Request/Reply invocation is converted. A transactional call (sessionID chaining),
+    // tRFC/qRFC and dynamic connections are rejected here so the activity is reported as non-migratable.
+    private static Config.@NotNull SAPInvoke parseSAPInvoke(ProcessContext cx, Element activity) {
+        Element value = activityConfigValue(activity);
+        String sapConnection = value.getAttribute("connectionReference");
+        if (sapConnection.isEmpty()) {
+            throw new IllegalArgumentException("SAP Invoke RFC BAPI without an SAP Connection (dynamic connection) "
+                    + "is not supported");
+        }
+        if (isUnsupportedSapInvocation(value)) {
+            throw new IllegalArgumentException("SAP Invoke RFC BAPI is only supported for non-transactional "
+                    + "Request/Reply invocations");
+        }
+        String functionName = value.getAttribute("operation");
+        if (functionName.isEmpty()) {
+            throw new IllegalArgumentException("SAP Invoke RFC BAPI without an RFC/BAPI operation is not supported");
+        }
+        String schemaPath = value.getAttribute("schemaPath");
+        Optional<Element> schema = sapRfcSchema(cx, schemaPath);
+        if (schema.isEmpty()) {
+            cx.log(WARN, "Failed to read the SAP RFC schema '" + schemaPath + "' for " + functionName
+                    + ". All request parameters are passed as import parameters.");
+            return new Config.SAPInvoke(sapConnection, functionName, Set.of(), Set.of(), schemaPath, false);
+        }
+        Map<String, Boolean> requestParameters = sapRfcParameters(schema.get(), "RfcRequest");
+        Set<String> responseParameterNames = sapRfcParameters(schema.get(), "RfcResponse").keySet();
+        // SAP passes TABLES parameters in both directions, so the plug-in lists them under both RfcRequest and
+        // RfcResponse. CHANGING parameters also appear on both sides, which is why the table shape is checked too.
+        Set<String> tableParameters = new LinkedHashSet<>();
+        Set<String> importTableParameters = new LinkedHashSet<>();
+        requestParameters.forEach((name, tableShaped) -> {
+            if (tableShaped) {
+                (responseParameterNames.contains(name) ? tableParameters : importTableParameters).add(name);
+            }
+        });
+        return new Config.SAPInvoke(sapConnection, functionName, tableParameters, importTableParameters, schemaPath,
+                true);
+    }
+
+    // The invocation settings are not documented as attributes, so only attributes whose name points at one of them
+    // are inspected; values of unrelated attributes such as the operation name are ignored.
+    private static boolean isUnsupportedSapInvocation(Element value) {
+        NamedNodeMap attributes = value.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Node attribute = attributes.item(i);
+            String name = getTagNameWithoutNameSpace(attribute.getNodeName()).toLowerCase(Locale.ROOT);
+            String attributeValue = attribute.getNodeValue();
+            if ((name.equals("transactional") && Boolean.parseBoolean(attributeValue))
+                    || ((name.contains("protocol") || name.contains("invocation"))
+                    && attributeValue.toLowerCase(Locale.ROOT).contains("rfc"))
+                    || (name.contains("queue") && !attributeValue.isBlank())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // schemaPath starts with the BW project name, which does not have to match the project's folder name on disk.
+    private static @NotNull Optional<Element> sapRfcSchema(ProcessContext cx, String schemaPath) {
+        Path projectPath = Path.of(cx.projectPath());
+        List<Path> candidates = List.of(projectPath.resolve(schemaPath.replaceFirst("^/[^/]+/", "")),
+                projectPath.resolve("..").resolve(schemaPath.replaceFirst("^/", "")));
+        for (Path candidate : candidates) {
+            if (Files.isRegularFile(candidate)) {
+                try {
+                    return Optional.of(TibcoToBalConverter.parseXmlFile(candidate.toString()));
+                } catch (Exception e) {
+                    return Optional.empty();
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    // Maps each parameter of the RfcRequest/RfcResponse type to whether it is table shaped, i.e. a sequence of
+    // repeated <item> rows (the plug-in's sequence_lsqb_..._rsqb_ types).
+    private static @NotNull Map<String, Boolean> sapRfcParameters(Element schema, String rootElementName) {
+        Map<String, Boolean> parameters = new LinkedHashMap<>();
+        sapComplexType(schema, sapElementType(schema, rootElementName))
+                .flatMap(type -> tryGetFirstChildWithTag(type, "sequence"))
+                .ifPresent(sequence -> getChildrenWithTag(sequence, "element").forEach(element ->
+                        parameters.put(element.getAttribute("name"), sapComplexType(schema,
+                                getTagNameWithoutNameSpace(element.getAttribute("type")))
+                                .map(XmlToTibcoModelParser::isSapTableType)
+                                .orElse(false))));
+        return parameters;
+    }
+
+    private static boolean isSapTableType(Element complexType) {
+        List<Element> rows = tryGetFirstChildWithTag(complexType, "sequence")
+                .map(sequence -> getChildrenWithTag(sequence, "element").toList())
+                .orElse(List.of());
+        return rows.size() == 1 && rows.getFirst().getAttribute("name").equals("item")
+                && rows.getFirst().getAttribute("maxOccurs").equals("unbounded");
+    }
+
+    private static @NotNull String sapElementType(Element schema, String elementName) {
+        return getChildrenWithTag(schema, "element")
+                .filter(element -> element.getAttribute("name").equals(elementName))
+                .map(element -> getTagNameWithoutNameSpace(element.getAttribute("type")))
+                .findFirst()
+                .orElse("");
+    }
+
+    private static @NotNull Optional<Element> sapComplexType(Element schema, String typeName) {
+        return getChildrenWithTag(schema, "complexType")
+                .filter(type -> type.getAttribute("name").equals(typeName))
+                .findFirst();
     }
 
     private static Config.@NotNull JavaInvoke parseJavaInvoke(Element activity) {

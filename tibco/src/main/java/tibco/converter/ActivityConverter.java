@@ -41,6 +41,7 @@ import tibco.analyzer.AnalysisResult;
 import tibco.model.PartnerLink;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup;
 import tibco.model.Resource;
 import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.ActivityExtension;
@@ -127,6 +128,10 @@ final class ActivityConverter {
         if (activity instanceof Empty) {
             return Optional.empty();
         }
+        // The fault handler returns the caught error in place of calling a Rethrow function.
+        if (activity instanceof InlineActivity.Rethrow) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(convertActivity(new ActivityContext(cx, activity), activity));
         } catch (Exception e) {
@@ -191,7 +196,7 @@ final class ActivityConverter {
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
         body.add(inputDecl);
         VariableReference result;
-        if (inlineActivity.hasInputBinding()) {
+        if (inlineActivity.hasInputBinding() && !(inlineActivity instanceof CriticalSectionGroup)) {
             InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(),
                     List.of(inlineActivity.inputBinding()));
             body.addAll(inputBindings.statements());
@@ -224,6 +229,8 @@ final class ActivityConverter {
                     convertLoopGroup(cx, result, loopGroup);
             case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
                     convertErrorLoopGroup(cx, errorLoopGroup);
+            case CriticalSectionGroup criticalSectionGroup ->
+                    convertCriticalSectionGroup(cx, criticalSectionGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -245,6 +252,8 @@ final class ActivityConverter {
             case InlineActivity.ListFilesActivity listFilesActivity ->
                     convertListFilesActivity(cx, result, listFilesActivity);
             case InlineActivity.GenerateError generateError -> convertGenerateError(cx, result, generateError);
+            case InlineActivity.Rethrow ignored ->
+                    throw new IllegalStateException("Rethrow activities have no function body");
             case InlineActivity.JDBCQuery jdbcQuery -> convertJDBCQuery(cx, result, jdbcQuery);
             case InlineActivity.JDBCUpdate jdbcUpdate -> convertJDBCUpdate(cx, result, jdbcUpdate);
         };
@@ -1242,6 +1251,35 @@ final class ActivityConverter {
         return new ActivityConversionResult(resultValue.ref(), body);
     }
 
+    // jBallerina gives a lock statement that touches no module-level variable a lock of its own, which matches
+    // TIBCO's single-group scope; groups sharing a lock object read the same module-level variable so that they
+    // share one lock. The group exposes no output of its own, so the body's last result is passed through.
+    private static @NotNull ActivityConversionResult convertCriticalSectionGroup(
+            ActivityContext cx, CriticalSectionGroup criticalSection) {
+        List<Statement> body = new ArrayList<>();
+        if (criticalSection.hasInputBinding()) {
+            cx.log(WARN, "critical section group '" + criticalSection.name() + "' has input bindings, which are "
+                    + "not supported; they are ignored.");
+            body.add(new Comment("FIXME: input bindings of critical section groups are not supported and ignored"));
+        }
+        Optional<ProjectContext.CriticalSectionLock> lock = criticalSection.lockPath()
+                .map(cx.processContext.projectContext::getCriticalSectionLock);
+        lock.filter(ProjectContext.CriticalSectionLock::multiEngine).flatMap(ignored -> criticalSection.lockPath())
+                .ifPresent(path -> {
+                    cx.log(WARN, "critical section group '" + criticalSection.name() + "' uses multi-engine lock '"
+                            + path + "'; the converted lock only applies within one Ballerina runtime.");
+                    body.add(new Comment("FIXME: multi-engine lock '" + path + "' only applies within this runtime"));
+                });
+        body.add(stmtFrom("lock { %s check %s(%s); }".formatted(
+                lock.map(each -> "_ = %s;".formatted(each.variable())).orElse(""),
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(criticalSection.body()).scopeFn(),
+                cx.contextVarRef())));
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
+        body.add(resultValue);
+        return new ActivityConversionResult(resultValue.ref(), body);
+    }
+
     private static ActivityConversionResult convertREST(
             ActivityContext cx, VariableReference input, InlineActivity.REST rest) {
         if (rest.method() == InlineActivity.REST.Method.GET) {
@@ -1702,6 +1740,7 @@ final class ActivityConverter {
             case ActivityExtension.Config.SFTPDir sftpDir -> createSFTPDirOperation(cx, result, sftpDir);
             case ActivityExtension.Config.SFTPGet sftpGet -> createSFTPGetOperation(cx, result, sftpGet);
             case ActivityExtension.Config.SFTPPut sftpPut -> createSFTPPutOperation(cx, result, sftpPut);
+            case ActivityExtension.Config.SAPInvoke sapInvoke -> createSAPInvokeOperation(cx, result, sapInvoke);
             case ActivityExtension.Config.JavaInvoke javaInvoke -> createJavaInvokeOperation(cx, result, javaInvoke);
             case ActivityExtension.Config.ParseData parseData -> createParseDataOperation(cx, result, parseData);
             case ActivityExtension.Config.RenderData renderData -> createRenderDataOperation(cx, result, renderData);
@@ -1792,8 +1831,7 @@ final class ActivityConverter {
     private static ActivityConversionResult createAccumulateEnd(
             ActivityContext cx, ActivityExtension.Config.AccumulateEnd accumulateEnd,
             String resultName) {
-        AnalysisResult ar = cx.processContext.getAnalysisResult();
-        Activity source = ar.findActivity(accumulateEnd.activityName())
+        Activity source = cx.findActivityInScope(accumulateEnd.activityName())
                 .orElseThrow(() -> new IllegalStateException(
                         "Cannot find activity: " + accumulateEnd.activityName()));
         if (!(source instanceof Activity.ActivityWithOutput activityWithOutput &&
@@ -2103,6 +2141,52 @@ final class ActivityConverter {
         body.add(new Comment("WARNING: Missing SFTP connection resource '" + sftpConnection
                 + "'. Using placeholder client."));
         return declarePlaceholderClient(cx, body, "ftp:Client", Library.FTP, "sftp", sftpConnection);
+    }
+
+    private static @NotNull ActivityConversionResult createSAPInvokeOperation(
+            ActivityContext cx, VariableReference result, ActivityExtension.Config.SAPInvoke sapInvoke) {
+        List<Statement> body = new ArrayList<>();
+        cx.addLibraryImport(Library.SAP_JCO);
+        VariableReference client = sapClient(cx, body, sapInvoke.sapConnection());
+        if (!sapInvoke.schemaResolved()) {
+            body.add(new Comment("WARNING: SAP RFC schema '" + sapInvoke.schemaPath()
+                    + "' not found; table parameters are passed as import parameters."));
+        }
+        VarDeclStatment parameters = new VarDeclStatment(typeFrom("jco:RfcParameters"), cx.getAnnonVarName(),
+                new FunctionCall(cx.getSapRfcParametersFunction(), List.of(result,
+                        sapNameList(sapInvoke.tableParameters()), sapInvoke.schemaResolved()
+                                ? sapNameList(sapInvoke.importTableParameters()) : exprFrom("()"))));
+        body.add(parameters);
+        VarDeclStatment response = new VarDeclStatment(typeFrom("jco:RfcRecord"), cx.getAnnonVarName(),
+                new Check(new RemoteMethodCallAction(client, "execute",
+                        List.of(new StringConstant(ConversionUtils.escapeString(sapInvoke.functionName())),
+                                parameters.ref()))));
+        body.add(response);
+        // The root wrapper stands in for the activity's RequestOutputType element, so downstream XPath reaches the
+        // export and table parameters through RfcResponse as in TIBCO.
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), new XMLTemplate(
+                "<root><RfcResponse>${%s(%s)}</RfcResponse></root>"
+                        .formatted(cx.getSapRfcToXmlFunction(), response.ref())));
+        body.add(output);
+        return new ActivityConversionResult(output.ref(), body);
+    }
+
+    private static @NotNull BallerinaModel.Expression sapNameList(Collection<String> names) {
+        return exprFrom(names.stream()
+                .map(name -> "\"" + ConversionUtils.escapeString(name) + "\"")
+                .collect(Collectors.joining(", ", "[", "]")));
+    }
+
+    private static @NotNull VariableReference sapClient(ActivityContext cx, List<Statement> body,
+                                                       String sapConnection) {
+        Optional<VariableReference> client = cx.client(sapConnection);
+        if (client.isPresent()) {
+            return client.get();
+        }
+        cx.log(SEVERE, "WARNING: Failed to find SAP client for " + sapConnection + ". Creating placeholder client.");
+        body.add(new Comment("WARNING: Missing SAP connection resource '" + sapConnection
+                + "'. Using placeholder client."));
+        return declarePlaceholderClient(cx, body, "jco:Client", Library.SAP_JCO, "sap", sapConnection);
     }
 
     private static @NotNull ActivityConversionResult createJavaInvokeOperation(

@@ -30,30 +30,38 @@ import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc.MapTypeDesc;
 import common.CodeGenerator;
 import common.LoggingUtils;
+import io.ballerina.compiler.syntax.tree.AnnotationNode;
 import io.ballerina.compiler.syntax.tree.ConstantDeclarationNode;
 import io.ballerina.compiler.syntax.tree.EnumDeclarationNode;
 import io.ballerina.compiler.syntax.tree.EnumMemberNode;
 import io.ballerina.compiler.syntax.tree.ExpressionNode;
 import io.ballerina.compiler.syntax.tree.IdentifierToken;
+import io.ballerina.compiler.syntax.tree.ImportDeclarationNode;
+import io.ballerina.compiler.syntax.tree.MappingConstructorExpressionNode;
+import io.ballerina.compiler.syntax.tree.MetadataNode;
 import io.ballerina.compiler.syntax.tree.ModuleMemberDeclarationNode;
 import io.ballerina.compiler.syntax.tree.ModulePartNode;
 import io.ballerina.compiler.syntax.tree.NodeFactory;
+import io.ballerina.compiler.syntax.tree.NodeList;
 import io.ballerina.compiler.syntax.tree.NodeParser;
+import io.ballerina.compiler.syntax.tree.SpecificFieldNode;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.compiler.syntax.tree.SyntaxTree;
 import io.ballerina.compiler.syntax.tree.TreeModifier;
 import io.ballerina.compiler.syntax.tree.TypeDefinitionNode;
 import io.ballerina.tools.text.TextDocuments;
+import io.ballerina.xsd.core.diagnostic.DiagnosticMessage;
+import io.ballerina.xsd.core.diagnostic.XSDDiagnostic;
 import io.ballerina.xsd.core.response.NodeResponse;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import tibco.LoggingContext;
 import tibco.analyzer.ProjectAnalysisContext;
 import tibco.model.Process;
 import tibco.model.Type;
 import tibco.model.Type.WSDLDefinition;
 import tibco.model.Type.WSDLDefinition.PortType.Operation;
+import tibco.parser.XmlToTibcoModelParser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,21 +85,99 @@ import static io.ballerina.xsd.core.XSDToRecord.generateNodes;
 
 public final class TypeConverter {
 
+    private static final Set<String> NAMED_SCHEMA_COMPONENTS =
+            Set.of("element", "complexType", "simpleType", "group", "attributeGroup");
+    private static final Set<String> QNAME_REFERENCE_ATTRIBUTES =
+            Set.of("type", "base", "itemType", "substitutionGroup");
     private static final Set<String> IMPORT_PREFIXES = Arrays.stream(Library.values())
             .map(library -> library.moduleName.substring(library.moduleName.lastIndexOf('.') + 1))
             .collect(Collectors.toUnmodifiableSet());
 
+    private static final Set<String> GLOBAL_TYPE_DECLARATIONS = Set.of("element", "complexType", "simpleType");
+
     private TypeConverter() {
     }
 
+    // xsd-core uses names verbatim as identifiers, so `E-Mail` would not compile. Names are sanitized like
+    // getTypeByName does; colliding ones (`E-Mail` vs `E_Mail`) get a suffix that getTypeByName doesn't know.
     public static @NotNull NodeResponse generateTypes(Collection<Type.Schema> schemas,
                                                       Collection<Process> processes) {
-        NodeResponse response = generateNodes(schemas.stream()
+        List<Element> copies = schemas.stream()
                 .map(schema -> withoutDuplicateEnumerations(schema.element()))
-                .map(ConversionUtils::elementToString)
-                .toArray(String[]::new));
-        return new NodeResponse(withUniqueEnumMemberNames(response.types(), processes), response.diagnostics(),
+                .toList();
+        Map<String, String> identifiers = componentIdentifiers(copies);
+        Map<String, String> renamedRootElements = new HashMap<>();
+        NodeResponse response = generateNodesSkippingUnconvertibleSchemas(copies.stream()
+                .map(schema -> withValidIdentifierNames(schema, identifiers, renamedRootElements))
+                .toList());
+        ModulePartNode types = renamedRootElements.isEmpty() ? response.types() :
+                withXmlNames(response.types(), renamedRootElements);
+        return new NodeResponse(withUniqueEnumMemberNames(types, processes), response.diagnostics(),
                 response.nodeContext());
+    }
+
+    // xsd-core converts the schemas as one batch and returns no types at all when any one of them fails, which would
+    // drop the whole project. Schemas that fail on their own are left out, and their global declarations become
+    // placeholder types so references to them still resolve.
+    private static @NotNull NodeResponse generateNodesSkippingUnconvertibleSchemas(List<Element> schemas) {
+        assert schemas != null : "schemas must not be null";
+        NodeResponse response = generateNodes(toXsdStrings(schemas));
+        if (response.types() != null) {
+            return response;
+        }
+        Map<Boolean, List<StandaloneConversion>> conversions = schemas.stream()
+                .map(schema -> new StandaloneConversion(schema, generateNodes(toXsdStrings(List.of(schema)))))
+                .collect(Collectors.partitioningBy(conversion -> conversion.response().types() != null));
+        List<Element> convertible = conversions.get(true).stream().map(StandaloneConversion::schema).toList();
+        List<Element> skipped = conversions.get(false).stream().map(StandaloneConversion::schema).toList();
+        NodeResponse retried = generateNodes(toXsdStrings(convertible));
+        List<XSDDiagnostic> diagnostics = new ArrayList<>();
+        conversions.get(false).forEach(conversion -> diagnostics.addAll(conversion.response().diagnostics()));
+        diagnostics.addAll(retried.diagnostics());
+        if (retried.types() == null) {
+            schemas.forEach(schema -> diagnostics.add(skippedSchemaDiagnostic(schema)));
+            return new NodeResponse(withPlaceholderTypes(NodeParser.parseModulePart(""), schemas), diagnostics,
+                    null);
+        }
+        skipped.forEach(schema -> diagnostics.add(skippedSchemaDiagnostic(schema)));
+        return new NodeResponse(withPlaceholderTypes(retried.types(), skipped), diagnostics,
+                retried.nodeContext());
+    }
+
+    private record StandaloneConversion(Element schema, NodeResponse response) {
+
+        StandaloneConversion {
+            assert schema != null : "schema must not be null";
+            assert response != null : "response must not be null";
+        }
+    }
+
+    private static @NotNull XSDDiagnostic skippedSchemaDiagnostic(Element schema) {
+        assert schema != null : "schema must not be null";
+        return DiagnosticMessage.xsdToBallerinaError(("Skipped XSD schema with targetNamespace \"%s\"; its global " +
+                "types are replaced with anydata placeholders").formatted(schema.getAttribute("targetNamespace")));
+    }
+
+    private static String @NotNull [] toXsdStrings(List<Element> schemas) {
+        assert schemas != null : "schemas must not be null";
+        return schemas.stream().map(ConversionUtils::elementToString).toArray(String[]::new);
+    }
+
+    private static @NotNull ModulePartNode withPlaceholderTypes(ModulePartNode types, List<Element> skippedSchemas) {
+        assert types != null : "types must not be null";
+        assert skippedSchemas != null : "skippedSchemas must not be null";
+        Set<String> declaredNames = types.members().stream().map(TypeConverter::declaredName)
+                .flatMap(Optional::stream).collect(Collectors.toCollection(HashSet::new));
+        List<ModuleMemberDeclarationNode> members = new ArrayList<>(types.members().stream().toList());
+        skippedSchemas.stream()
+                .flatMap(schema -> childElements(schema).stream())
+                .filter(declaration -> GLOBAL_TYPE_DECLARATIONS.contains(
+                        ConversionUtils.stripNamespace(declaration.getTagName())) && declaration.hasAttribute("name"))
+                .map(declaration -> ConversionUtils.sanitizes(declaration.getAttribute("name")))
+                .filter(declaredNames::add)
+                .map(name -> NodeParser.parseModuleMemberDeclaration("public type %s anydata;".formatted(name)))
+                .forEach(members::add);
+        return types.modify().withMembers(NodeFactory.createNodeList(members)).apply();
     }
 
     // xsd-core emits one enum member per xs:enumeration, so a repeated value becomes a redeclared member.
@@ -114,8 +200,76 @@ public final class TypeConverter {
         }
     }
 
+    private static @NotNull Map<String, String> componentIdentifiers(List<Element> schemas) {
+        assert schemas != null : "schemas must not be null";
+        List<String> names = schemas.stream()
+                .flatMap(schema -> childElements(schema).stream())
+                .filter(component -> NAMED_SCHEMA_COMPONENTS.contains(componentKind(component)))
+                .filter(component -> component.hasAttribute("name"))
+                .map(component -> component.getAttribute("name"))
+                .distinct()
+                .toList();
+        Map<String, String> identifiers = new HashMap<>();
+        Set<String> allocated = new HashSet<>();
+        names.stream().filter(name -> toValidIdentifier(name).equals(name)).forEach(name -> {
+            identifiers.put(name, name);
+            allocated.add(name);
+        });
+        names.stream().filter(name -> !identifiers.containsKey(name)).forEach(name -> {
+            String identifier = ConversionUtils.getSanitizedUniqueName(name, allocated);
+            identifiers.put(name, identifier);
+            allocated.add(identifier);
+        });
+        return identifiers;
+    }
+
+    private static @NotNull Element withValidIdentifierNames(Element schema, Map<String, String> identifiers,
+                                                             Map<String, String> renamedRootElements) {
+        assert schema != null : "schema must not be null";
+        assert identifiers != null : "identifiers must not be null";
+        assert renamedRootElements != null : "renamedRootElements must not be null";
+        for (Element child : childElements(schema)) {
+            if (componentKind(child).equals("element") && child.hasAttribute("name")) {
+                String name = child.getAttribute("name");
+                String identifier = identifiers.get(name);
+                if (!identifier.equals(name)) {
+                    renamedRootElements.put(identifier, name);
+                }
+            }
+        }
+        renameComponents(schema, identifiers, true);
+        return schema;
+    }
+
+    private static void renameComponents(Element parent, Map<String, String> identifiers, boolean topLevel) {
+        for (Element component : childElements(parent)) {
+            String kind = componentKind(component);
+            // Annotation attributes are metadata, not schema names.
+            if (kind.equals("annotation")) {
+                continue;
+            }
+            // Local declarations become fields, not types, so they can't collide.
+            if (NAMED_SCHEMA_COMPONENTS.contains(kind) && component.hasAttribute("name")) {
+                String name = component.getAttribute("name");
+                component.setAttribute("name", topLevel ? identifiers.get(name) : toValidIdentifier(name));
+            }
+            QNAME_REFERENCE_ATTRIBUTES.forEach(attribute -> renameQName(component, attribute, identifiers));
+            // Attributes keep their names, so refs to them must too.
+            if (!kind.equals("attribute")) {
+                renameQName(component, "ref", identifiers);
+            }
+            if (component.hasAttribute("memberTypes")) {
+                component.setAttribute("memberTypes", Arrays.stream(component.getAttribute("memberTypes").split("\\s+"))
+                        .filter(memberType -> !memberType.isEmpty())
+                        .map(memberType -> toValidQName(memberType, identifiers))
+                        .collect(Collectors.joining(" ")));
+            }
+            renameComponents(component, identifiers, false);
+        }
+    }
+
     private static @NotNull List<Element> childElements(Element parent) {
-        NodeList children = parent.getChildNodes();
+        org.w3c.dom.NodeList children = parent.getChildNodes();
         List<Element> elements = new ArrayList<>();
         for (int i = 0; i < children.getLength(); i++) {
             if (children.item(i) instanceof Element child) {
@@ -123,6 +277,101 @@ public final class TypeConverter {
             }
         }
         return elements;
+    }
+
+    private static @NotNull String componentKind(Element component) {
+        return XmlToTibcoModelParser.getTagNameWithoutNameSpace(component.getTagName());
+    }
+
+    private static void renameQName(Element component, String attribute, Map<String, String> identifiers) {
+        if (component.hasAttribute(attribute)) {
+            component.setAttribute(attribute, toValidQName(component.getAttribute(attribute), identifiers));
+        }
+    }
+
+    private static @NotNull String toValidQName(String qName, Map<String, String> identifiers) {
+        int localNameStart = qName.lastIndexOf(':') + 1;
+        String localName = qName.substring(localNameStart);
+        return qName.substring(0, localNameStart) +
+                identifiers.getOrDefault(localName, toValidIdentifier(localName));
+    }
+
+    // Quoted identifiers aren't valid XSD names; xsd-core quotes keywords itself.
+    private static @NotNull String toValidIdentifier(String name) {
+        String sanitized = ConversionUtils.sanitizes(name);
+        return sanitized.startsWith("'") ? name : sanitized;
+    }
+
+    // Keeps renamed root elements serialized under their original name. If xsd-core already added @xmldata:Name
+    // (element sharing a type's name), that annotation is replaced instead.
+    private static @NotNull ModulePartNode withXmlNames(ModulePartNode types,
+                                                        Map<String, String> renamedRootElements) {
+        assert types != null : "types must not be null";
+        assert renamedRootElements != null : "renamedRootElements must not be null";
+        Set<String> namedByAnnotation = types.members().stream()
+                .flatMap(member -> member instanceof TypeDefinitionNode typeDefinition ?
+                        xmlName(typeDefinition).stream() : Stream.empty())
+                .collect(Collectors.toSet());
+        List<ModuleMemberDeclarationNode> members = types.members().stream()
+                .map(member -> member instanceof TypeDefinitionNode typeDefinition ?
+                        withXmlName(typeDefinition, renamedRootElements, namedByAnnotation) : member)
+                .toList();
+        return types.modify()
+                .withImports(withXmldataImport(types.imports()))
+                .withMembers(NodeFactory.createNodeList(members))
+                .apply();
+    }
+
+    private static @NotNull ModuleMemberDeclarationNode withXmlName(TypeDefinitionNode typeDefinition,
+                                                                    Map<String, String> renamedRootElements,
+                                                                    Set<String> namedByAnnotation) {
+        Optional<String> elementName = xmlName(typeDefinition).or(() ->
+                Optional.of(typeDefinition.typeName().text()).filter(name -> !namedByAnnotation.contains(name)));
+        Optional<String> originalName = elementName.map(renamedRootElements::get);
+        if (originalName.isEmpty()) {
+            return typeDefinition;
+        }
+        MetadataNode metadata = typeDefinition.metadata()
+                .orElseGet(() -> NodeFactory.createMetadataNode(null, NodeFactory.createEmptyNodeList()));
+        List<AnnotationNode> annotations = Stream.concat(Stream.of(xmlNameAnnotation(originalName.get())),
+                metadata.annotations().stream().filter(annotation -> !isXmlNameAnnotation(annotation))).toList();
+        return typeDefinition.modify()
+                .withMetadata(metadata.modify().withAnnotations(NodeFactory.createNodeList(annotations)).apply())
+                .apply();
+    }
+
+    private static Optional<String> xmlName(TypeDefinitionNode typeDefinition) {
+        return typeDefinition.metadata().stream()
+                .flatMap(metadata -> metadata.annotations().stream())
+                .filter(TypeConverter::isXmlNameAnnotation)
+                .flatMap(annotation -> annotation.annotValue().stream())
+                .flatMap(mapping -> mapping.fields().stream())
+                .flatMap(field -> field instanceof SpecificFieldNode specificField ? Stream.of(specificField) :
+                        Stream.empty())
+                .filter(field -> field.fieldName().toSourceCode().trim().equals("value"))
+                .flatMap(field -> field.valueExpr().stream())
+                .map(value -> value.toSourceCode().trim())
+                .map(literal -> literal.substring(1, literal.length() - 1))
+                .findFirst();
+    }
+
+    private static boolean isXmlNameAnnotation(AnnotationNode annotation) {
+        return annotation.annotReference().toSourceCode().trim().equals("xmldata:Name");
+    }
+
+    private static @NotNull AnnotationNode xmlNameAnnotation(String name) {
+        return NodeFactory.createAnnotationNode(NodeFactory.createToken(SyntaxKind.AT_TOKEN),
+                NodeParser.parseTypeDescriptor("xmldata:Name"),
+                (MappingConstructorExpressionNode) NodeParser.parseExpression(
+                        "{value: \"%s\"}".formatted(ConversionUtils.escapeString(name))));
+    }
+
+    private static @NotNull NodeList<ImportDeclarationNode> withXmldataImport(
+            NodeList<ImportDeclarationNode> imports) {
+        boolean hasXmldataImport = imports.stream()
+                .anyMatch(importNode -> importNode.toSourceCode().contains("ballerina/data.xmldata"));
+        return hasXmldataImport ? imports :
+                imports.add(NodeParser.parseImportDeclaration("import ballerina/data.xmldata;"));
     }
 
     // Enum members are module-level constants, so they share a namespace with types, functions, import prefixes

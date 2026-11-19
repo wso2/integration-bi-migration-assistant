@@ -69,6 +69,10 @@ public class ProcessContext implements Context, LoggingContext {
         return this.fileName;
     }
 
+    public String projectPath() {
+        return projectContext.projectPath();
+    }
+
     public String getProcessPath() {
         return "/" + projectContext.getRelativePath(filePath);
     }

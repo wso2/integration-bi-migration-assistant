@@ -48,8 +48,10 @@ public sealed interface Resource {
         HTTP_CLIENT,
         JMS_SHARED,
         SFTP,
+        SAP_CONNECTION,
         DATA_FORMAT,
-        SHARED_VARIABLE
+        SHARED_VARIABLE,
+        SHARED_LOCK
     }
 
     record ResourceIdentifier(ResourceKind kind, String path) {
@@ -124,6 +126,19 @@ public sealed interface Resource {
         }
     }
 
+    record SAPConnectionResource(String name, String path, Map<String, String> configuration,
+                                 Collection<SubstitutionBinding> substitutionBindings) implements Resource {
+
+        public SAPConnectionResource {
+            assert path != null && !path.isEmpty() : "SAP connection resource path must not be empty";
+        }
+
+        @Override
+        public @NotNull ResourceKind kind() {
+            return ResourceKind.SAP_CONNECTION;
+        }
+    }
+
     record DataFormatResource(String name, String path, String columnSeparator, String lineSeparator,
                               String rowNamespace, String rowName, List<String> fieldNames) implements Resource {
 
@@ -187,6 +202,23 @@ public sealed interface Resource {
         @Override
         public ResourceKind kind() {
             return ResourceKind.SHARED_VARIABLE;
+        }
+    }
+
+    record SharedLock(String name, String path, boolean multiEngine) implements Resource {
+
+        public SharedLock {
+            assert path != null && !path.isBlank() : "lock resource path must not be blank";
+        }
+
+        @Override
+        public @NotNull Collection<SubstitutionBinding> substitutionBindings() {
+            return List.of();
+        }
+
+        @Override
+        public @NotNull ResourceKind kind() {
+            return ResourceKind.SHARED_LOCK;
         }
     }
 }

@@ -691,7 +691,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
     private static BallerinaModel.Function generateExplicitTransitionBlockActivityFunction(
             ProcessContext cx, ExplicitTransitionGroup group) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
-        List<Activity> activities = sortedActivitiesOrEmpty(cx, analysisResult, group);
+        List<Activity> activities = withoutMisplacedRethrows(cx, sortedActivitiesOrEmpty(cx, analysisResult, group));
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(group).activityRunner();
         TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx);
         List<Parameter> parameters = activityFnType.parameters();
@@ -701,6 +701,16 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
                 activityFnType.returnType(), Check::new, parameters);
     }
 
+    private static @NotNull List<Activity> withoutMisplacedRethrows(ProcessContext cx, List<Activity> activities) {
+        activities.stream()
+                .filter(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)
+                .forEach(rethrow -> cx.log(LoggingUtils.Level.SEVERE, "Rethrow activity \""
+                        + ((ExplicitTransitionGroup.InlineActivity.Rethrow) rethrow).name()
+                        + "\" is not reachable from a catch, so there is no error to rethrow. Skipping it."));
+        return activities.stream()
+                .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
+                .toList();
+    }
 
     private static List<Activity> sortedActivitiesOrEmpty(ProcessContext cx, AnalysisResult analysisResult,
             ExplicitTransitionGroup group) {
@@ -731,16 +741,34 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             return defaultErrorHandlerFunction(cx, errorHandlerFunction);
         }
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
-        return generateActivityFlowFunctionInner(cx, activities, errorHandlerFunction,
-                errorFlowFnType.returnType(), Check::new, errorFlowFnType.parameters());
+        List<Statement> body = new ArrayList<>(ActivityFlowGenerator.generate(cx, activities.stream()
+                        .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
+                        .toList(),
+                Check::new));
+        // Statements after a return are unreachable, so a rethrow runs once every other handler activity has.
+        if (activities.stream().anyMatch(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)) {
+            if (group.activities().stream()
+                    .filter(ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity.class::isInstance)
+                    .count() > 1) {
+                cx.log(LoggingUtils.Level.WARN, "Error handler \"" + errorHandlerFunction
+                        + "\" merges several catches, so its rethrow applies to faults from all of them.");
+            }
+            body.add(returnCaughtError());
+        }
+        return new BallerinaModel.Function(errorHandlerFunction, errorFlowFnType.parameters(),
+                errorFlowFnType.returnType(), body);
     }
 
     private static BallerinaModel.@NotNull Function defaultErrorHandlerFunction(ProcessContext cx,
                                                                                 String errorHandlerFunction) {
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         List<Parameter> parameters = errorFlowFnType.parameters();
-        List<Statement> body = List.of(new Return<>(new VariableReference("err")));
+        List<Statement> body = List.of(returnCaughtError());
         return new BallerinaModel.Function(errorHandlerFunction, parameters, errorFlowFnType.returnType(), body);
+    }
+
+    private static @NotNull Statement returnCaughtError() {
+        return new Return<>(new VariableReference("err"));
     }
 
     private static BallerinaModel.Function generateStartFunction(ProcessContext cx) {
@@ -843,7 +871,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
     private static BallerinaModel.Function generateActivityFlowFunction(ProcessContext cx, Scope scope) {
         AnalysisResult analysisResult = cx.getAnalysisResult();
-        List<Activity> activities = analysisResult.sortedActivities(scope).toList();
+        List<Activity> activities = withoutMisplacedRethrows(cx, analysisResult.sortedActivities(scope).toList());
         String activityRunnerFunction = analysisResult.getControlFlowFunctions(scope).activityRunner();
         TypeDesc.FunctionTypeDesc activityFnType = ConversionUtils.activityFnType(cx);
         List<Parameter> parameters = activityFnType.parameters();
@@ -910,7 +938,7 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         // Reachable only when no fault handler unconditionally handles every fault (i.e. no trailing
         // catchAll): rethrow to the enclosing scope rather than silently swallowing a fault nothing matched.
         if (!lastHandlerAlwaysReturns) {
-            body.add(new Return<>(new VariableReference("err")));
+            body.add(returnCaughtError());
         }
         String errorHandlerFunction = analysisResult.getControlFlowFunctions(scope).errorHandler();
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);

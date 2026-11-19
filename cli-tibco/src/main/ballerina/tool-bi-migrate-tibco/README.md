@@ -214,6 +214,7 @@ This will create a Ballerina package with organization name `myorg` and project 
 - `com.tibco.plugin.xml.XMLRendererActivity`
 - `com.tibco.plugin.xml.XMLParseActivity`
 - `com.tibco.pe.core.LoopGroup`
+- `com.tibco.pe.core.CriticalSectionGroup`
 - `com.tibco.pe.core.WriteToLogActivity`
 - `com.tibco.pe.core.CatchActivity`
 - `com.tibco.plugin.file.FileReadActivity`
@@ -230,6 +231,7 @@ This will create a Ballerina package with organization name `myorg` and project 
 - `com.tibco.plugin.jms.JMSQueueGetMessageActivity`
 - `com.tibco.plugin.jms.JMSTopicPublishActivity`
 - `com.tibco.pe.core.GenerateErrorActivity`
+- `com.tibco.pe.core.RethrowActivity`
 - `com.tibco.plugin.timer.NullActivity`
 - `com.tibco.plugin.timer.SleepActivity`
 - `com.tibco.pe.core.GetSharedVariableActivity`
