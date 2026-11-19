@@ -131,7 +131,7 @@ function For_Each(Context cx) returns error? {
     xml var1 = xml `<root></root>`;
     xml var2 = getFromContext(cx, "Start");
     var2 = check xmldata:transform(var2, `items/item`);
-    int var3 = -1;
+    int var3 = 0;
     addToContext(cx, "item", xml `<root></root>`);
     foreach xml each in var2 {
         var3 = var3 + 1;
