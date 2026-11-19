@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A custom connector element (xref-client:translate) that the converter does not support, inside a try -->
+<mule xmlns:xref-client="http://www.mulesoft.org/schema/mule/xref-client"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="lookUpCountry">
+        <try doc:name="Try">
+            <xref-client:translate doc:name="Translate country" config-ref="Xref_Config"
+                                   source="SHOP" target="ERP" entity="country"/>
+            <error-handler>
+                <on-error-continue type="ANY">
+                    <logger level="WARN" doc:name="Lookup failed" message="#['no country code']"/>
+                </on-error-continue>
+            </error-handler>
+        </try>
+    </sub-flow>
+</mule>

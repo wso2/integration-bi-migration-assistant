@@ -17,6 +17,9 @@ dependencies {
     implementation group: 'org.jetbrains', name: 'annotations', version: "${jetbrainsAnnotationsVersion}"
 
     testImplementation group: 'org.testng', name: 'testng', version: "${testngVersion}"
+    testImplementation group: 'com.networknt', name: 'json-schema-validator', version: '1.5.6'
+    // UnchangedConversionTest prints the generated Ballerina code, as the mule tests do
+    testImplementation group: 'org.ballerinalang', name: 'ballerina-parser', version: "${ballerinaLangVersion}"
     spotbugs group: 'com.github.spotbugs', name: 'spotbugs', version: "${spotbugsVersion}"
 }
 
@@ -35,6 +38,19 @@ tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
         html.required = true
         xml.required = false
     }
+}
+
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+    // Assertions stay on for the describe code but are off for the mule converter, as in the CLI. An upstream
+    // assert in the DataWeave converter fails on some real projects.
+    jvmArgs '-da:mule...'
+    // UnchangedConversionTest reads the test files of the mule module, and :mule:test deletes and rewrites some
+    mustRunAfter ':mule:test'
+    // -Ddescribe.projects.dir=<folder> also checks the Mule 4 projects in that folder; without it those tests skip
+    systemProperty 'describe.projects.dir', providers.systemProperty('describe.projects.dir').getOrElse('')
 }
 
 build {
