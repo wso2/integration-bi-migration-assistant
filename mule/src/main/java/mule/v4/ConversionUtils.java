@@ -556,7 +556,7 @@ public class ConversionUtils {
         return "\n\n" +
                 "// TODO: %s\n".formatted(todoDescription) +
                 "// ------------------------------------------------------------------------\n" +
-                (details != null ? "// %s\n".formatted(details.strip()) +
+                (details != null ? convertToAComment(details.strip()) +
                         "// ------------------------------------------------------------------------\n" : "") +
                 convertToAComment(inputToBeDump.stripIndent()) +
                 "// ------------------------------------------------------------------------\n\n";

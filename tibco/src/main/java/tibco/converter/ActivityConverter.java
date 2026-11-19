@@ -41,6 +41,7 @@ import tibco.analyzer.AnalysisResult;
 import tibco.model.PartnerLink;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup;
 import tibco.model.Resource;
 import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.ActivityExtension;
@@ -217,7 +218,7 @@ final class ActivityConverter {
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
         body.add(inputDecl);
         VariableReference result;
-        if (inlineActivity.hasInputBinding()) {
+        if (inlineActivity.hasInputBinding() && !(inlineActivity instanceof CriticalSectionGroup)) {
             InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(),
                     List.of(inlineActivity.inputBinding()));
             body.addAll(inputBindings.statements());
@@ -250,6 +251,8 @@ final class ActivityConverter {
                     convertLoopGroup(cx, result, loopGroup);
             case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
                     convertErrorLoopGroup(cx, errorLoopGroup);
+            case CriticalSectionGroup criticalSectionGroup ->
+                    convertCriticalSectionGroup(cx, criticalSectionGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -1281,6 +1284,35 @@ final class ActivityConverter {
     // A boolean stylesheet writes the condition's value as the text of its single result element.
     private static @NotNull BallerinaModel.Expression booleanStyleSheetHolds(VarDeclStatment output) {
         return exprFrom("(%s/*).toString().trim() == \"true\"".formatted(output.ref()));
+    }
+
+    // jBallerina gives a lock statement that touches no module-level variable a lock of its own, which matches
+    // TIBCO's single-group scope; groups sharing a lock object read the same module-level variable so that they
+    // share one lock. The group exposes no output of its own, so the body's last result is passed through.
+    private static @NotNull ActivityConversionResult convertCriticalSectionGroup(
+            ActivityContext cx, CriticalSectionGroup criticalSection) {
+        List<Statement> body = new ArrayList<>();
+        if (criticalSection.hasInputBinding()) {
+            cx.log(WARN, "critical section group '" + criticalSection.name() + "' has input bindings, which are "
+                    + "not supported; they are ignored.");
+            body.add(new Comment("FIXME: input bindings of critical section groups are not supported and ignored"));
+        }
+        Optional<ProjectContext.CriticalSectionLock> lock = criticalSection.lockPath()
+                .map(cx.processContext.projectContext::getCriticalSectionLock);
+        lock.filter(ProjectContext.CriticalSectionLock::multiEngine).flatMap(ignored -> criticalSection.lockPath())
+                .ifPresent(path -> {
+                    cx.log(WARN, "critical section group '" + criticalSection.name() + "' uses multi-engine lock '"
+                            + path + "'; the converted lock only applies within one Ballerina runtime.");
+                    body.add(new Comment("FIXME: multi-engine lock '" + path + "' only applies within this runtime"));
+                });
+        body.add(stmtFrom("lock { %s check %s(%s); }".formatted(
+                lock.map(each -> "_ = %s;".formatted(each.variable())).orElse(""),
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(criticalSection.body()).scopeFn(),
+                cx.contextVarRef())));
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
+        body.add(resultValue);
+        return new ActivityConversionResult(resultValue.ref(), body);
     }
 
     private static ActivityConversionResult convertREST(
