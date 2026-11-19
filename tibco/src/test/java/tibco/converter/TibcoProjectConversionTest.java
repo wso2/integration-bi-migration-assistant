@@ -778,6 +778,36 @@ public class TibcoProjectConversionTest {
     }
 
     @Test(groups = {"tibco", "converter"})
+    public void testReturnBindings() throws Exception {
+        // Sub.process has no starter, so the caller only sees its returnBindings if the start function applies them.
+        String functions = convertedFunctions("SubprocessReturnBindings");
+        for (String startFn : List.of("start_Processes_Sub_process", "start_Processes_Caller_process")) {
+            String body = functionBody(functions, startFn);
+            Assert.assertTrue(body.contains("check scope"),
+                    startFn + " must run the scope before binding the output:\n" + body);
+            Assert.assertTrue(body.contains("= check xslt:transform(cx.result, "),
+                    startFn + " does not apply its return bindings:\n" + body);
+            Assert.assertTrue(body.matches("(?s).*cx\\.result = xml `<root>\\$\\{var\\d+}</root>`;.*"),
+                    startFn + " must store the bound output root-wrapped, as activity outputs are:\n" + body);
+            Assert.assertTrue(body.contains("cx.variables"),
+                    startFn + " return bindings must see process variables:\n" + body);
+        }
+        Assert.assertTrue(functionBody(functions, "start_Processes_Sub_process").contains("$M/root/Greeting"),
+                "Sub return bindings lost the reference to M");
+        // $Start follows a quoted literal in concat('Hello ', $Start/name).
+        Assert.assertTrue(functionBody(functions, "M").contains("<xsl:param name=\"Start\"/>"),
+                "M stylesheet does not declare the Start parameter it uses");
+    }
+
+    private String functionBody(String generated, String functionName) {
+        int start = generated.indexOf("function " + functionName + "(");
+        Assert.assertTrue(start >= 0, "Could not find " + functionName + " in generated output");
+        int end = generated.indexOf("\n}", start);
+        Assert.assertTrue(end >= 0, "Could not find end of " + functionName);
+        return generated.substring(start, end + 2);
+    }
+
+    @Test(groups = {"tibco", "converter"})
     public void testSubprocessReferenceBindsToTheLocalCopy() throws Exception {
         // AmbiguousSubprocess defines Processes/A/Common.process and Processes/B/Common.process,
         // so a bare suffix match could bind the caller to either one.

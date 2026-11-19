@@ -13,8 +13,7 @@ service on MainConnection {
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
         check start_Processes_Main_process(cx);
-        xml response = cx.result;
-        return response;
+        return cx.result;
     }
 }
 

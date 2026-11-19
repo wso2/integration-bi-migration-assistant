@@ -189,7 +189,7 @@ record AnalysisResult(Collection<Chunk> parameters, Collection<Chunk> paths, Col
             char c = xPath.charAt(index);
             switch (c) {
                 case '\'' -> {
-                    index = incrementWhile(xPath, index + 1, Predicate.not((chr) -> chr.equals('\'')));
+                    index = incrementWhile(xPath, index + 1, Predicate.not((chr) -> chr.equals('\''))) + 1;
                     continue;
                 }
                 // Attribute values are raw XML text, so a double-quoted XPath literal appears as &quot;...&quot;
