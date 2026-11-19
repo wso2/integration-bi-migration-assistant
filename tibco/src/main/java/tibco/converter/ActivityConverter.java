@@ -2843,8 +2843,28 @@ final class ActivityConverter {
         return new InputBindingResult(statements, resultRef);
     }
 
+    // A process's output is whatever its return bindings build, so every entry point (Call Process, service, main)
+    // must see the bound value in the context result rather than the last activity's output.
+    static @NotNull List<Statement> convertReturnBindings(ProcessContext processContext,
+                                                          Activity.Expression.XSLT returnBindings) {
+        assert returnBindings != null : "Return bindings cannot be null";
+        ActivityContext cx = ActivityContext.withoutActivity(processContext);
+        BallerinaModel.Expression.FieldAccess result = ConversionUtils.getXMLResultFromContext(cx.contextVarRef());
+        XsltTransformResult transformResult = xsltTransform(cx, result, returnBindings);
+        List<Statement> body = new ArrayList<>();
+        addNonStandardXsltWarning(transformResult.nonStandardFunctions(), body);
+        body.addAll(transformResult.statements());
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
+        body.add(output);
+        // addToContext keeps only the children of a result, so the caller's $<CallProcess>/<root element> needs
+        // the same root wrapper every activity output has.
+        body.add(new Statement.VarAssignStatement(result,
+                new XMLTemplate("<root>${%s}</root>".formatted(output.varName()))));
+        return body;
+    }
+
     @NotNull
-    private static XsltTransformResult xsltTransform(ActivityContext cx, VariableReference inputVariable,
+    private static XsltTransformResult xsltTransform(ActivityContext cx, BallerinaModel.Expression input,
                                                      Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
         String styleSheet = xsltTransformer.apply(cx, xslt.expression());
@@ -2854,14 +2874,14 @@ final class ActivityConverter {
 
         VarDeclStatment styleSheetDecl = parseStyleSheet(cx, styleSheet);
         BallerinaModel.Expression expression = new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, styleSheetDecl.ref(), xsltParameters(cx.processContext, styleSheet,
+                List.of(input, styleSheetDecl.ref(), xsltParameters(cx.processContext, styleSheet,
                         new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables")))));
 
         return new XsltTransformResult(List.of(styleSheetDecl), expression, nonStandardFunctions);
     }
 
     @NotNull
-    static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
+    private static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
                                                     BallerinaModel.Expression variables) {
         List<String> uuidParameters = TibcoFunctions.uuidParameters(styleSheet);
         if (uuidParameters.isEmpty()) {
@@ -2884,7 +2904,7 @@ final class ActivityConverter {
     }
 
     @NotNull
-    static List<String> detectNonStandardFunctions(String xsltContent) {
+    private static List<String> detectNonStandardFunctions(String xsltContent) {
         List<String> nonStandardFunctions = new ArrayList<>();
 
         // Pattern to match Tibco-specific functions like tib:trim, tib:parse-dateTime, etc.
@@ -2933,9 +2953,6 @@ final class ActivityConverter {
     record XsltTransformResult(List<Statement> statements, BallerinaModel.Expression expression,
                                List<String> nonStandardFunctions) {
 
-        XsltTransformResult(BallerinaModel.Expression expression, List<String> nonStandardFunctions) {
-            this(List.of(), expression, nonStandardFunctions);
-        }
     }
     static final class XSLTConstants {
 

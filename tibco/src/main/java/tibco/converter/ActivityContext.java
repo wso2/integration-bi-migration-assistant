@@ -37,8 +37,20 @@ public class ActivityContext implements LoggingContext {
     private int varCounter = 0;
 
     ActivityContext(ProcessContext processContext, Scope.Flow.Activity activity) {
+        assert activity != null : "Activity cannot be null";
         this.activity = activity;
         this.processContext = processContext;
+    }
+
+    // Process-level code such as return bindings has no activity of its own but reuses the activity XSLT pipeline.
+    private ActivityContext(ProcessContext processContext) {
+        this.activity = null;
+        this.processContext = processContext;
+    }
+
+    static @NotNull ActivityContext withoutActivity(ProcessContext processContext) {
+        assert processContext != null : "Process context cannot be null";
+        return new ActivityContext(processContext);
     }
 
     @Override
@@ -64,6 +76,7 @@ public class ActivityContext implements LoggingContext {
     }
 
     String functionName() {
+        assert activity != null : "Process-level context has no activity function";
         return processContext.getAnalysisResult().from(activity).functionName();
     }
 
@@ -72,6 +85,7 @@ public class ActivityContext implements LoggingContext {
      * first, then the scopes around it.
      */
     Optional<Scope.Flow.Activity> findActivityInScope(String name) {
+        assert activity != null : "Process-level context has no activity scope";
         return processContext.getAnalysisResult().findActivityInScopeOf(activity, name);
     }
 
