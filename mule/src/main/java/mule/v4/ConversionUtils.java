@@ -173,9 +173,8 @@ public class ConversionUtils {
             String varName = matcher.group(2);
             String varValue = matcher.group(3);
 
-            if ("vars".equals(varCategory) && !ctx.projectCtx.vars.containsKey(varName)) {
-                String inferredType = inferTypeFromBalExpr(varValue);
-                ctx.projectCtx.vars.put(varName, inferredType);
+            if ("vars".equals(varCategory)) {
+                ctx.projectCtx.declareVarWrite(varName, inferTypeFromBalExpr(varValue));
             }
         }
     }
@@ -483,6 +482,24 @@ public class ConversionUtils {
         } else {
             return "\"" + originalExpression.replace("\"", "\\\"") + "\"";
         }
+    }
+
+    /**
+     * Builds the expression that reads a Mule variable, and declares the variable so that the Vars record has a
+     * field for it. Mule variables are optional fields of the Vars record, so they are read with {@code ?.}.
+     *
+     * @param ctx         conversion context
+     * @param muleVarName name of the variable in Mule
+     * @return Ballerina expression reading the variable
+     */
+    public static String readVar(Context ctx, String muleVarName) {
+        String varName = convertToBalIdentifier(muleVarName);
+        ctx.projectCtx.declareVarRead(varName);
+        return varFieldAccess(varName);
+    }
+
+    public static String varFieldAccess(String balVarName) {
+        return Constants.VARS_FIELD_ACCESS + "?." + balVarName;
     }
 
     public static String inferTypeFromBalExpr(String balExpr) {

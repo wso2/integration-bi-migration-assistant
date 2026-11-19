@@ -421,6 +421,7 @@ public class Context extends ContextBase {
         public final Counters counters = new Counters();
 
         public final LinkedHashMap<String, String> vars = new LinkedHashMap<>();
+        private final Set<String> readOnlyVars = new HashSet<>();
         public final LinkedHashMap<String, String> attributes = new LinkedHashMap<>();
         public final HashMap<String, String> vmQueueNameToBalFuncMap = new LinkedHashMap<>();
         public final Map<String, BallerinaModel.Expression.VariableReference> jmsConnectionConfig = new HashMap<>();
@@ -462,6 +463,43 @@ public class Context extends ContextBase {
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
         List<HashMap<String, ModuleTypeDef>> typeDefMaps = new ArrayList<>();
         List<HashMap<String, BallerinaModel.Function>> functionMaps = new ArrayList<>();
+
+        /**
+         * Declares a Mule variable that the converted code reads. Until some code writes it, the field it gets in the
+         * Vars record is {@code json}, which fits both the contexts that read a value and the field accesses of nested
+         * selectors.
+         *
+         * @param varName Ballerina name of the variable
+         */
+        public void declareVarRead(String varName) {
+            if (vars.putIfAbsent(varName, Constants.READ_ONLY_VAR_TYPE) == null) {
+                readOnlyVars.add(varName);
+            }
+        }
+
+        /**
+         * Declares a Mule variable that the converted code writes, keeping the type of an earlier write, but replacing
+         * the type of a variable so far only read, so that the field type does not depend on the conversion order.
+         *
+         * @param varName Ballerina name of the variable
+         * @param type    Ballerina type of the written value
+         */
+        public void declareVarWrite(String varName, String type) {
+            if (readOnlyVars.remove(varName) || !vars.containsKey(varName)) {
+                vars.put(varName, type);
+            }
+        }
+
+        /**
+         * Declares a Mule variable that the converted code writes, replacing the type of any earlier write.
+         *
+         * @param varName Ballerina name of the variable
+         * @param type    Ballerina type of the written value
+         */
+        public void redeclareVarWrite(String varName, String type) {
+            readOnlyVars.remove(varName);
+            vars.put(varName, type);
+        }
 
         public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
             javaDependencies.add(dependencies);

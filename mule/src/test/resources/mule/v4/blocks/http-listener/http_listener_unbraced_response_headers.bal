@@ -2,7 +2,7 @@ import ballerina/http;
 import ballerina/log;
 
 public type Vars record {|
-    anydata httpStatus?;
+    json httpStatus?;
 |};
 
 public type Attributes record {|

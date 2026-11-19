@@ -3,8 +3,8 @@ import ballerina/log;
 import ballerina/uuid;
 
 public type Vars record {|
-    anydata outboundHeaders?;
-    anydata httpStatus?;
+    json outboundHeaders?;
+    string httpStatus?;
 |};
 
 public type Attributes record {|

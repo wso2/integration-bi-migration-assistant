@@ -116,8 +116,8 @@ import ballerina/http;
 import ballerina/log;
 
 public type Vars record {|
-    anydata outboundHeaders?;
-    anydata httpStatus?;
+    json outboundHeaders?;
+    string httpStatus?;
 |};
 
 public type Attributes record {|
@@ -1516,8 +1516,8 @@ import ballerina/log;
 import ballerina/uuid;
 
 public type Vars record {|
-    anydata outboundHeaders?;
-    anydata httpStatus?;
+    json outboundHeaders?;
+    string httpStatus?;
 |};
 
 public type Attributes record {|
@@ -1699,8 +1699,8 @@ import ballerina/http;
 import ballerina/uuid;
 
 public type Vars record {|
-    anydata outboundHeaders?;
-    anydata httpStatus?;
+    json outboundHeaders?;
+    string httpStatus?;
 |};
 
 public type Attributes record {|
@@ -4360,7 +4360,7 @@ import ballerina/http;
 import ballerina/log;
 
 public type Vars record {|
-    anydata httpStatus?;
+    json httpStatus?;
 |};
 
 public type Attributes record {|
@@ -4523,7 +4523,7 @@ import ballerina/log;
 
 public type Vars record {|
     string httpStatus?;
-    anydata outboundHeaders?;
+    json outboundHeaders?;
 |};
 
 public type Attributes record {|
@@ -6629,8 +6629,13 @@ http://www.mulesoft.org/schema/mule/outlook365 http://www.mulesoft.org/schema/mu
 import ballerina/log;
 import ballerina/uuid;
 
+public type Vars record {|
+    json businessProcess?;
+|};
+
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
     string correlationId = uuid:createType4AsString();
 |};
 
@@ -6639,7 +6644,7 @@ configurable string tracepoint_beforeRequest = ?;
 configurable string tracepoint_afterRequest = ?;
 
 public function send\-email(Context ctx) {
-    json logMessage0 = check _dwMethod(ctx);
+    json logMessage0 = _dwMethod(ctx);
     log:printInfo(logMessage0.toJsonString());
 
     // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
@@ -6647,11 +6652,11 @@ public function send\-email(Context ctx) {
     // <outlook365:send-mail config-ref="Outlook365Config" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:id="f0c4ddbe-d3e2-48b7-804a-7e5896a02733" doc:name="Send mail" userId="${outlook.userId}" xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"/>
     // ------------------------------------------------------------------------
 
-    json logMessage1 = check _dwMethod1(ctx);
+    json logMessage1 = _dwMethod1(ctx);
     log:printInfo(logMessage1.toJsonString());
 }
 
-public function _dwMethod(Context ctx) returns json|error {
+public function _dwMethod(Context ctx) returns json {
     string logPayload = "";
     string status = "ok";
     string msg = "Before Request Send Email";
@@ -6663,13 +6668,13 @@ public function _dwMethod(Context ctx) returns json|error {
                                       "message": msg,
                                       "version": application_version,
                                       "tracepoint": tracepoint_beforeRequest,
-                                      "businessProcess": check vars.businessProcess,
+                                      "businessProcess": ctx.vars?.businessProcess,
                                       ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
                                       "env": p("mule.env")
                                   });
 }
 
-public function _dwMethod1(Context ctx) returns json|error {
+public function _dwMethod1(Context ctx) returns json {
     string logPayload = "";
     string status = "ok";
     string msg = "After Request Send Email";
@@ -6681,7 +6686,7 @@ public function _dwMethod1(Context ctx) returns json|error {
                                       "message": msg,
                                       "version": application_version,
                                       "tracepoint": tracepoint_afterRequest,
-                                      "businessProcess": check vars.businessProcess,
+                                      "businessProcess": ctx.vars?.businessProcess,
                                       ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
                                       "env": p("mule.env")
                                   });
@@ -9260,6 +9265,121 @@ service /mule4 on config {
         return <http:Response>ctx.attributes.response;
     }
 }
+
+```
+
+- ### Set Variable Dataweave Vars Default
+
+**Input (set_variable_dataweave_vars_default.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="searchFlow">
+        <http:listener doc:name="Listener" config-ref="config" path="/search/{id}" allowedMethods="GET"/>
+        <ee:transform doc:name="Set searchId">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="searchId"><![CDATA[%dw 2.0
+output application/java
+---
+vars.externalId default attributes.uriParams.id]]></ee:set-variable>
+                <ee:set-variable variableName="orderId"><![CDATA[%dw 2.0
+output application/json
+---
+vars.order.id]]></ee:set-variable>
+                <ee:set-variable variableName="orderRef"><![CDATA[%dw 2.0
+output application/json
+---
+vars."order-ref"]]></ee:set-variable>
+                <ee:set-variable variableName="localValue"><![CDATA[%dw 2.0
+output application/json
+---
+[{a: "local"}] map (vars, index) -> vars.a]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" doc:name="Logger" message="#[vars.searchId]"/>
+    </flow>
+    <flow name="externalIdFlow">
+        <http:listener doc:name="Listener" config-ref="config" path="/external" allowedMethods="GET"/>
+        <set-variable value="#['ext-1']" doc:name="Set Variable" variableName="externalId"/>
+    </flow>
+</mule>
+
+```
+**Output (set_variable_dataweave_vars_default.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Vars record {|
+    string externalId?;
+    any searchId?;
+    json 'order?;
+    json orderId?;
+    json order\-ref?;
+    json orderRef?;
+    json localValue?;
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener config = new (8081);
+
+service / on config {
+    function init() returns error? {
+    }
+
+    resource function get search/[string id](http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new, uriParams: {id}}};
+        any searchId = check setSearchid(ctx);
+        ctx.vars.searchId = searchId;
+        json orderId = check setSearchid1(ctx);
+        ctx.vars.orderId = orderId;
+        json orderRef = setSearchid2(ctx);
+        ctx.vars.orderRef = orderRef;
+        json localValue = check setSearchid3(ctx);
+        ctx.vars.localValue = localValue;
+        log:printInfo(ctx.vars?.searchId.toString());
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+
+    resource function get 'external(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        ctx.vars.externalId = "ext-1";
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function setSearchid(Context ctx) returns any|error => ctx.vars?.externalId ?: (check (ctx.attributes.uriParams.hasKey("id") ? ctx.attributes.uriParams.get("id") : error("no such uri param")));
+
+public function setSearchid1(Context ctx) returns json|error => check ctx.vars?.'order.id;
+
+public function setSearchid2(Context ctx) returns json => ctx.vars?.order\-ref;
+
+public function setSearchid3(Context ctx) returns json|error => let var indexMemberPairs = [{"a": "local"}].enumerate() in check indexMemberPairs.map(
+    indexMemberPair => let int index = indexMemberPair[0], var vars = indexMemberPair[1] in vars.a
+);
 
 ```
 

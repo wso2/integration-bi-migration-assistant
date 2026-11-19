@@ -1,8 +1,13 @@
 import ballerina/log;
 import ballerina/uuid;
 
+public type Vars record {|
+    json businessProcess?;
+|};
+
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
     string correlationId = uuid:createType4AsString();
 |};
 
@@ -11,7 +16,7 @@ configurable string tracepoint_beforeRequest = ?;
 configurable string tracepoint_afterRequest = ?;
 
 public function send\-email(Context ctx) {
-    json logMessage0 = check _dwMethod(ctx);
+    json logMessage0 = _dwMethod(ctx);
     log:printInfo(logMessage0.toJsonString());
 
     // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
@@ -19,11 +24,11 @@ public function send\-email(Context ctx) {
     // <outlook365:send-mail config-ref="Outlook365Config" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:id="f0c4ddbe-d3e2-48b7-804a-7e5896a02733" doc:name="Send mail" userId="${outlook.userId}" xmlns:outlook365="http://www.mulesoft.org/schema/mule/outlook365"/>
     // ------------------------------------------------------------------------
 
-    json logMessage1 = check _dwMethod1(ctx);
+    json logMessage1 = _dwMethod1(ctx);
     log:printInfo(logMessage1.toJsonString());
 }
 
-public function _dwMethod(Context ctx) returns json|error {
+public function _dwMethod(Context ctx) returns json {
     string logPayload = "";
     string status = "ok";
     string msg = "Before Request Send Email";
@@ -35,13 +40,13 @@ public function _dwMethod(Context ctx) returns json|error {
                                       "message": msg,
                                       "version": application_version,
                                       "tracepoint": tracepoint_beforeRequest,
-                                      "businessProcess": check vars.businessProcess,
+                                      "businessProcess": ctx.vars?.businessProcess,
                                       ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
                                       "env": p("mule.env")
                                   });
 }
 
-public function _dwMethod1(Context ctx) returns json|error {
+public function _dwMethod1(Context ctx) returns json {
     string logPayload = "";
     string status = "ok";
     string msg = "After Request Send Email";
@@ -53,7 +58,7 @@ public function _dwMethod1(Context ctx) returns json|error {
                                       "message": msg,
                                       "version": application_version,
                                       "tracepoint": tracepoint_afterRequest,
-                                      "businessProcess": check vars.businessProcess,
+                                      "businessProcess": ctx.vars?.businessProcess,
                                       ...(p("log.level") == "DEBUG" ? {"payload": logPayload} : {}),
                                       "env": p("mule.env")
                                   });

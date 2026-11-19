@@ -3,7 +3,7 @@ import ballerina/log;
 
 public type Vars record {|
     string httpStatus?;
-    anydata outboundHeaders?;
+    json outboundHeaders?;
 |};
 
 public type Attributes record {|

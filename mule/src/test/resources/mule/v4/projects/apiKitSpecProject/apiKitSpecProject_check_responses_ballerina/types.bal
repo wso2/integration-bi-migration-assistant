@@ -8,8 +8,8 @@ public type APIKIT__NOT_IMPLEMENTED distinct error;
 public type APIKIT__BAD_REQUEST distinct error;
 
 public type Vars record {|
-    anydata outboundHeaders?;
-    anydata httpStatus?;
+    json outboundHeaders?;
+    string httpStatus?;
 |};
 
 public type Attributes record {|
