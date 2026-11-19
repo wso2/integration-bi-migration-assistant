@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+  <file:config name="file-config" doc:name="File Config">
+    <file:connection workingDir="/data/inbound" />
+  </file:config>
+  <file:config name="file_config" doc:name="File Config">
+    <file:connection workingDir="/data/archive" />
+  </file:config>
+  <flow name="inboundFlow">
+    <file:listener doc:name="Inbound listener" config-ref="file-config" />
+    <logger level="INFO" doc:name="Logger" message="inbound file"/>
+  </flow>
+  <flow name="archiveFlow">
+    <file:listener doc:name="Archive listener" config-ref="file_config" />
+    <logger level="INFO" doc:name="Logger" message="archived file"/>
+  </flow>
+</mule>

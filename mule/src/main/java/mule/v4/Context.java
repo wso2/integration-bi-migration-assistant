@@ -449,6 +449,9 @@ public class Context extends ContextBase {
         public final List<MuleModel.ApiAutodiscovery> apiAutodiscoveries = new ArrayList<>();
         // defaultResponseTimeout of the <configuration> element, which applies to the requests of all files
         public Optional<String> defaultResponseTimeout = Optional.empty();
+        // Configurable holding the working directory of each file:config, keyed by config name; distinct config names
+        // can normalize to the same configurable name, so each config gets its own
+        public final Map<String, String> fileWorkingDirConfigNames = new HashMap<>();
         // Whether the converted code reads or sends the event's correlation ID; known before any code is converted
         public boolean usesCorrelationId = false;
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();

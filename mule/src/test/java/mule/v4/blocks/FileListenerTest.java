@@ -47,4 +47,10 @@ public class FileListenerTest extends AbstractBlockTest {
         testMule4ToBal("file-listener/file_listener_digit_prefixed_config.xml",
                 "file-listener/file_listener_digit_prefixed_config.bal");
     }
+
+    @Test
+    public void testFileListenersWithCollidingConfigNames() {
+        testMule4ToBal("file-listener/file_listener_colliding_config_names.xml",
+                "file-listener/file_listener_colliding_config_names.bal");
+    }
 }

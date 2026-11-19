@@ -3294,6 +3294,100 @@ public function fileListnerFlow(Context ctx) {
 
 ```
 
+- ### File Listener Colliding Config Names
+
+**Input (file_listener_colliding_config_names.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+  <file:config name="file-config" doc:name="File Config">
+    <file:connection workingDir="/data/inbound" />
+  </file:config>
+  <file:config name="file_config" doc:name="File Config">
+    <file:connection workingDir="/data/archive" />
+  </file:config>
+  <flow name="inboundFlow">
+    <file:listener doc:name="Inbound listener" config-ref="file-config" />
+    <logger level="INFO" doc:name="Logger" message="inbound file"/>
+  </flow>
+  <flow name="archiveFlow">
+    <file:listener doc:name="Archive listener" config-ref="file_config" />
+    <logger level="INFO" doc:name="Logger" message="archived file"/>
+  </flow>
+</mule>
+
+```
+**Output (file_listener_colliding_config_names.bal):**
+```ballerina
+import ballerina/file;
+import ballerina/log;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string file_configWorkingDir = "/data/inbound";
+configurable string file_configWorkingDir_2 = "/data/archive";
+public listener file:Listener file\-config = new (
+    path = file_configWorkingDir,
+    recursive = false
+);
+public listener file:Listener file_config = new (
+    path = file_configWorkingDir_2,
+    recursive = false
+);
+
+service on file\-config {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        inboundFlow(ctx);
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        inboundFlow(ctx);
+    }
+}
+
+service on file_config {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        archiveFlow(ctx);
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        archiveFlow(ctx);
+    }
+}
+
+public function inboundFlow(Context ctx) {
+    log:printInfo("inbound file");
+}
+
+public function archiveFlow(Context ctx) {
+    log:printInfo("archived file");
+}
+
+```
+
 - ### File Listener Digit Prefixed Config
 
 **Input (file_listener_digit_prefixed_config.xml):**
