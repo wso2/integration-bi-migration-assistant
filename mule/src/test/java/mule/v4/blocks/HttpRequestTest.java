@@ -146,6 +146,12 @@ public class HttpRequestTest extends AbstractBlockTest {
                 "http-request/http_request_timeout_not_a_number.bal");
     }
 
+    @Test
+    public void testHttpRequestWithTypeCoercionInHeaders() {
+        testMule4ToBal("http-request/http_request_with_type_coercion_in_headers.xml",
+                "http-request/http_request_with_type_coercion_in_headers.bal");
+    }
+
     // TODO: due to some reason depends on the order, fix it
     @Test(enabled = false)
     public void testHttpRequestWithMelConfig() {
