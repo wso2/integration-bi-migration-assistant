@@ -97,6 +97,11 @@ public class TestConverter {
         assertProjectConversion("correlationIdProject");
     }
 
+    @Test(description = "Test converting a project whose global property is read by a flow of another file")
+    public void testGlobalPropertyProjectConversion() throws IOException {
+        assertProjectConversion("globalPropertyProject");
+    }
+
     private void assertProjectConversion(String projectName) throws IOException {
         assertProjectConversion(projectName, false, projectName + "_ballerina");
     }

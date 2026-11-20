@@ -107,7 +107,6 @@ import static mule.v4.model.MuleModel.ErrorHandler;
 import static mule.v4.model.MuleModel.FileConfig;
 import static mule.v4.model.MuleModel.FileListener;
 import static mule.v4.model.MuleModel.Flow;
-import static mule.v4.model.MuleModel.GlobalProperty;
 import static mule.v4.model.MuleModel.HTTPListenerConfig;
 import static mule.v4.model.MuleModel.HttpListener;
 import static mule.v4.model.MuleModel.HttpResponse;
@@ -258,11 +257,6 @@ public class MuleToBalConverter {
             }
         } else {
             typeDefs = ctx.currentFileCtx.balConstructs.typeDefs.values().stream().toList();
-        }
-
-        for (GlobalProperty globalProperty : ctx.currentFileCtx.configs.globalProperties) {
-            String configVarName = globalProperty.name().replace('.', '_');
-            ConversionUtils.addConfigVarEntry(ctx, configVarName, globalProperty.value());
         }
 
         ArrayList<ModuleVar> orderedModuleVars = new ArrayList<>(

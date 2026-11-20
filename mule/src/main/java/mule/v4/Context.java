@@ -206,12 +206,26 @@ public class Context extends ContextBase {
                 logger.logSevere("Error while parsing %s".formatted(xmlFile));
             }
         }
+        addGlobalPropertyConfigurables();
         loadApiSpecs();
         checkApiContracts();
         createApiTypeGenerators();
         // The HTTP sources set the ID, and they are converted before the flows of other files that read it
         if (!projectCtx.usesCorrelationId) {
             projectCtx.usesCorrelationId = readsCorrelationId();
+        }
+    }
+
+    // Before any file is converted, so a property read in another file uses the declared default value
+    private void addGlobalPropertyConfigurables() {
+        // codeGen skips a file that failed to parse, so its declarations would be lost
+        for (File xmlFile : xmlFiles.stream().filter(parseResults::containsKey).toList()) {
+            currentFileCtx = fileContexts.get(xmlFile);
+            assert currentFileCtx != null : "We should have created file ctx when we parse the file";
+            for (GlobalProperty globalProperty : currentFileCtx.configs.globalProperties) {
+                ConversionUtils.addConfigVarEntry(this, globalProperty.name().replace('.', '_'),
+                        globalProperty.value());
+            }
         }
     }
 
@@ -608,8 +622,15 @@ public class Context extends ContextBase {
 
     public void addConfigurableVar(String varName, ModuleVar var) {
         assert varName.equals(var.name());
-        this.currentFileCtx.configurables.put(varName, var);
-        this.projectCtx.configurableVars.put(varName, var);
+        // The files of a project share one module, so only the first file to declare a configurable keeps it
+        ModuleVar declaredVar = this.projectCtx.configurableVars.putIfAbsent(varName, var);
+        if (declaredVar == null) {
+            this.currentFileCtx.configurables.put(varName, var);
+        } else if (!declaredVar.equals(var)) {
+            logger.logWarn("Configurable '%s' is already declared as %s, so %s is ignored".formatted(varName,
+                    declaredVar.expr().map(Object::toString).orElse("?"),
+                    var.expr().map(Object::toString).orElse("?")));
+        }
     }
 
     @Override
