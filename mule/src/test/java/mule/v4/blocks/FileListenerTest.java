@@ -35,4 +35,22 @@ public class FileListenerTest extends AbstractBlockTest {
     public void testFileListenerMatchAll() {
         testMule4ToBal("file-listener/file_listener.xml", "file-listener/file_listener.bal");
     }
+
+    @Test
+    public void testFileListenerWithHyphenatedConfigName() {
+        testMule4ToBal("file-listener/file_listener_hyphenated_config.xml",
+                "file-listener/file_listener_hyphenated_config.bal");
+    }
+
+    @Test
+    public void testFileListenerWithDigitPrefixedConfigName() {
+        testMule4ToBal("file-listener/file_listener_digit_prefixed_config.xml",
+                "file-listener/file_listener_digit_prefixed_config.bal");
+    }
+
+    @Test
+    public void testFileListenersWithCollidingConfigNames() {
+        testMule4ToBal("file-listener/file_listener_colliding_config_names.xml",
+                "file-listener/file_listener_colliding_config_names.bal");
+    }
 }

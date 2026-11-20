@@ -3294,6 +3294,258 @@ public function fileListnerFlow(Context ctx) {
 
 ```
 
+- ### File Listener Colliding Config Names
+
+**Input (file_listener_colliding_config_names.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+  <file:config name="file-config" doc:name="File Config">
+    <file:connection workingDir="/data/inbound" />
+  </file:config>
+  <file:config name="file_config" doc:name="File Config">
+    <file:connection workingDir="/data/archive" />
+  </file:config>
+  <flow name="inboundFlow">
+    <file:listener doc:name="Inbound listener" config-ref="file-config" />
+    <logger level="INFO" doc:name="Logger" message="inbound file"/>
+  </flow>
+  <flow name="archiveFlow">
+    <file:listener doc:name="Archive listener" config-ref="file_config" />
+    <logger level="INFO" doc:name="Logger" message="archived file"/>
+  </flow>
+</mule>
+
+```
+**Output (file_listener_colliding_config_names.bal):**
+```ballerina
+import ballerina/file;
+import ballerina/log;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string file_configWorkingDir = "/data/inbound";
+configurable string file_configWorkingDir_2 = "/data/archive";
+public listener file:Listener file\-config = new (
+    path = file_configWorkingDir,
+    recursive = false
+);
+public listener file:Listener file_config = new (
+    path = file_configWorkingDir_2,
+    recursive = false
+);
+
+service on file\-config {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        inboundFlow(ctx);
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        inboundFlow(ctx);
+    }
+}
+
+service on file_config {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        archiveFlow(ctx);
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        archiveFlow(ctx);
+    }
+}
+
+public function inboundFlow(Context ctx) {
+    log:printInfo("inbound file");
+}
+
+public function archiveFlow(Context ctx) {
+    log:printInfo("archived file");
+}
+
+```
+
+- ### File Listener Digit Prefixed Config
+
+**Input (file_listener_digit_prefixed_config.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+  xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+   http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+  <file:config name="1st-files" doc:name="File Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+    <file:connection workingDir="${workingDir}" />
+  </file:config>
+  <flow name="fileListnerFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+    <file:listener doc:name="File listner" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="1st-files" autoDelete="true" outputMimeType='application/csv; separator=","' directory="csv">
+      <scheduling-strategy >
+        <fixed-frequency frequency="${lookupInterval}" timeUnit="SECONDS"/>
+      </scheduling-strategy>
+      <file:matcher filenamePattern="*.csv" regularFiles="REQUIRE"/>
+    </file:listener>
+    <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="xxx: logger invoked"/>
+  </flow>
+</mule>
+
+```
+**Output (file_listener_digit_prefixed_config.bal):**
+```ballerina
+import ballerina/file;
+import ballerina/log;
+import ballerina/regex;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string '1st_filesWorkingDir = ?;
+public listener file:Listener '1st\-files = new (
+    path = '1st_filesWorkingDir,
+    recursive = false
+);
+
+// TODO: scheduling-strategy not supported (frequency: ${lookupInterval}, timeUnit: SECONDS)
+// TODO: autoDelete attribute not supported: true
+// TODO: outputMimeType attribute not supported: application/csv; separator=","
+// TODO: directory attribute not supported: csv
+service on '1st\-files {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        if regex:matches(event.name, ".*\.csv") {
+            fileListnerFlow(ctx);
+        }
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        if regex:matches(event.name, ".*\.csv") {
+            fileListnerFlow(ctx);
+        }
+    }
+}
+
+public function fileListnerFlow(Context ctx) {
+    log:printInfo("xxx: logger invoked");
+}
+
+```
+
+- ### File Listener Hyphenated Config
+
+**Input (file_listener_hyphenated_config.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+  xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+   http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+  <file:config name="file-config" doc:name="File Config" doc:id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+    <file:connection workingDir="${workingDir}" />
+  </file:config>
+  <flow name="fileListnerFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c">
+    <file:listener doc:name="File listner" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="file-config" autoDelete="true" outputMimeType='application/csv; separator=","' directory="csv">
+      <scheduling-strategy >
+        <fixed-frequency frequency="${lookupInterval}" timeUnit="SECONDS"/>
+      </scheduling-strategy>
+      <file:matcher filenamePattern="*.csv" regularFiles="REQUIRE"/>
+    </file:listener>
+    <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="xxx: logger invoked"/>
+  </flow>
+</mule>
+
+```
+**Output (file_listener_hyphenated_config.bal):**
+```ballerina
+import ballerina/file;
+import ballerina/log;
+import ballerina/regex;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string file_configWorkingDir = ?;
+public listener file:Listener file\-config = new (
+    path = file_configWorkingDir,
+    recursive = false
+);
+
+// TODO: scheduling-strategy not supported (frequency: ${lookupInterval}, timeUnit: SECONDS)
+// TODO: autoDelete attribute not supported: true
+// TODO: outputMimeType attribute not supported: application/csv; separator=","
+// TODO: directory attribute not supported: csv
+service on file\-config {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        if regex:matches(event.name, ".*\.csv") {
+            fileListnerFlow(ctx);
+        }
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        if regex:matches(event.name, ".*\.csv") {
+            fileListnerFlow(ctx);
+        }
+    }
+}
+
+public function fileListnerFlow(Context ctx) {
+    log:printInfo("xxx: logger invoked");
+}
+
+```
+
 - ### Hardocoded File Listener
 
 **Input (hardocoded_file_listener.xml):**

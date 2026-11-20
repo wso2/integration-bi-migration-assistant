@@ -671,6 +671,16 @@ public class MuleToBalConverter {
         services.add(service);
     }
 
+    private static String uniqueWorkingDirConfigName(Context ctx, String configRef) {
+        // Config.toml cannot set a configurable whose name needs escaping, e.g. file\-configWorkingDir
+        String baseName = escapeIdentifier(configRef + "WorkingDir");
+        String name = baseName;
+        for (int suffix = 2; ctx.projectCtx.configurableVarExists(convertToBalIdentifier(name)); suffix++) {
+            name = baseName + "_" + suffix;
+        }
+        return name;
+    }
+
     private static void genFileListenerSource(Context ctx, Flow flow, FileListener fileListener,
                                               Collection<Service> services, List<Listener> listeners) {
         ctx.inServiceGen = true;
@@ -686,8 +696,11 @@ public class MuleToBalConverter {
             ctx.logger.logSevere("failed to find the file config: " + fileListener.configRef());
         }
 
-        String workingDirVar = convertToBalIdentifier(fileListener.configRef() + "WorkingDir");
-        ConversionUtils.addConfigVarEntry(ctx, workingDirVar, fileConfig != null ? fileConfig.workingDir() : null);
+        String workingDirConfigName = ctx.projectCtx.fileWorkingDirConfigNames.computeIfAbsent(
+                fileListener.configRef(), configRef -> uniqueWorkingDirConfigName(ctx, configRef));
+        ConversionUtils.addConfigVarEntry(ctx, workingDirConfigName,
+                fileConfig != null ? fileConfig.workingDir() : null);
+        String workingDirVar = convertToBalIdentifier(workingDirConfigName);
 
         String listenerName = convertToBalIdentifier(fileListener.configRef());
 
