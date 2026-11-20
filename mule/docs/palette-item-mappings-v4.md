@@ -7633,17 +7633,17 @@ import ballerina/log;
 import ballerina/test;
 
 @test:BeforeSuite
-function before\-suite\-setup() returns error? {
+function beforeSuiteSetup() returns error? {
     log:printInfo("Setting up test suite");
 }
 
 @test:AfterSuite
-function after\-suite\-cleanup() returns error? {
+function afterSuiteCleanup() returns error? {
     log:printInfo("Cleaning up test suite");
 }
 
 @test:Config {}
-function test\-simple\-assert\-equals() returns error? {
+function testSimpleAssertEquals() returns error? {
     // Test: Test with simple assert equals
     // Execution (Act)
     // set payload
@@ -7654,7 +7654,7 @@ function test\-simple\-assert\-equals() returns error? {
 }
 
 @test:Config {}
-function test\-with\-mock() returns error? {
+function testWithMock() returns error? {
     // Test: Test with mock-when
     // Behavior (Setup)
     // TODO: MUNIT MOCK — MANUAL CONVERSION REQUIRED.
@@ -7677,7 +7677,7 @@ function test\-with\-mock() returns error? {
 }
 
 @test:Config {}
-function test\-assert\-fail() returns error? {
+function testAssertFail() returns error? {
     // Test: Test with explicit fail
     // Validation (Assert)
     test:assertFail("This test should not pass");
