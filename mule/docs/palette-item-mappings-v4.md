@@ -3219,6 +3219,76 @@ public function fileListnerFlow(Context ctx) {
 
 ```
 
+- ### Brace Alternatives File Listener
+
+**Input (brace_alternatives_file_listener.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+  xmlns="http://www.mulesoft.org/schema/mule/core"
+  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+   http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+  <file:config name="file_config" doc:name="File Config">
+    <file:connection workingDir="/tmp/in" />
+  </file:config>
+  <flow name="documentListenerFlow">
+    <file:listener doc:name="Document listener" config-ref="file_config">
+      <file:matcher filenamePattern="a?*.{htm,html,pdf}"/>
+    </file:listener>
+    <logger level="INFO" doc:name="Logger" message="document received"/>
+  </flow>
+</mule>
+
+```
+**Output (brace_alternatives_file_listener.bal):**
+```ballerina
+import ballerina/file;
+import ballerina/log;
+import ballerina/regex;
+
+public type Attributes record {|
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string file_configWorkingDir = "/tmp/in";
+public listener file:Listener file_config = new (
+    path = file_configWorkingDir,
+    recursive = false
+);
+
+service on file_config {
+    function init() returns error? {
+    }
+
+    remote function onCreate(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        if regex:matches(event.name, "a..*\\.(htm|html|pdf)") {
+            documentListenerFlow(ctx);
+        }
+    }
+
+    remote function onModify(file:FileEvent event) {
+        Context ctx = {attributes: {}};
+        if regex:matches(event.name, "a..*\\.(htm|html|pdf)") {
+            documentListenerFlow(ctx);
+        }
+    }
+}
+
+public function documentListenerFlow(Context ctx) {
+    log:printInfo("document received");
+}
+
+```
+
 - ### File Listener
 
 **Input (file_listener.xml):**
