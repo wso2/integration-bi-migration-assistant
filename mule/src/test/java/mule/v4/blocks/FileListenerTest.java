@@ -35,4 +35,10 @@ public class FileListenerTest extends AbstractBlockTest {
     public void testFileListenerMatchAll() {
         testMule4ToBal("file-listener/file_listener.xml", "file-listener/file_listener.bal");
     }
+
+    @Test
+    public void testFileListenerBraceAlternatives() {
+        testMule4ToBal("file-listener/brace_alternatives_file_listener.xml",
+                "file-listener/brace_alternatives_file_listener.bal");
+    }
 }
