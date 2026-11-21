@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" />
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable variableName="marketId" value="US" doc:name="Set Market Id"/>
+        <set-variable variableName="region" value="west" doc:name="Set Region"/>
+        <set-variable variableName="channel" value=" web " doc:name="Set Channel"/>
+        <logger level="INFO" doc:name="Logger" message="region: #[upper(vars.region)]"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"baseSiteId" : lower (vars.marketId),
+	"region" : upper(vars.region),
+	"channel" : trim(vars.channel),
+	"label" : trim(vars.channel ++ " (beta)"),
+	"requestedAt" : now( )
+}]]]></http:headers>
+        </http:request>
+    </flow>
+</mule>

@@ -6200,6 +6200,83 @@ function getCorrelationId(http:Request request) returns string {
 
 ```
 
+- ### Http Request With String Function Headers
+
+**Input (http_request_with_string_function_headers.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" />
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable variableName="marketId" value="US" doc:name="Set Market Id"/>
+        <set-variable variableName="region" value="west" doc:name="Set Region"/>
+        <set-variable variableName="channel" value=" web " doc:name="Set Channel"/>
+        <logger level="INFO" doc:name="Logger" message="region: #[upper(vars.region)]"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"baseSiteId" : lower (vars.marketId),
+	"region" : upper(vars.region),
+	"channel" : trim(vars.channel),
+	"label" : trim(vars.channel ++ " (beta)"),
+	"requestedAt" : now( )
+}]]]></http:headers>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_string_function_headers.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/time;
+import ballerina/uuid;
+
+public type Vars record {|
+    string marketId?;
+    string region?;
+    string channel?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    string correlationId = uuid:createType4AsString();
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.marketId = "US";
+    ctx.vars.region = "west";
+    ctx.vars.channel = " web ";
+    log:printInfo(string `region: ${ctx.vars?.region.toString().toUpperAscii()}`);
+
+    // http client request
+    http:Client http_request_config = check new ("orders.example.com:80");
+    map<string?> headers_nilable = {
+        "baseSiteId": (ctx.vars?.marketId is () ? () : ctx.vars?.marketId.toString().toLowerAscii()),
+        "region": (ctx.vars?.region is () ? () : ctx.vars?.region.toString().toUpperAscii()),
+        "channel": (ctx.vars?.channel is () ? () : ctx.vars?.channel.toString().trim()),
+        "label": (ctx.vars?.channel.toString() + " (beta)").trim(),
+        "requestedAt": time:utcToString(time:utcNow())
+    };
+    map<string> headers = map from string key in headers_nilable.keys()
+        where headers_nilable.get(key) is string
+        select [key, <string>headers_nilable.get(key)];
+    if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+        headers["X-Correlation-ID"] = ctx.correlationId;
+    }
+    http:Response clientResult0 = check http_request_config->/orders.get(headers);
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
 - ### Http Request With Unbound Uri Param
 
 **Input (http_request_with_unbound_uri_param.xml):**
@@ -6232,6 +6309,67 @@ public function demoFlow(Context ctx) {
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80");
     http:Response clientResult0 = check http_request_config->/orders/\{id\}.get(headers = {"X-Correlation-ID": ctx.correlationId});
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Http Request With Unsupported Function Headers
+
+**Input (http_request_with_unsupported_function_headers.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config" doc:name="HTTP Request configuration" >
+        <http:request-connection host="orders.example.com" port="80" />
+    </http:request-config>
+    <flow name="demoFlow" >
+        <set-variable variableName="marketId" value="US" doc:name="Set Market Id"/>
+        <http:request method="GET" doc:name="Request" config-ref="http_request_config" path="/orders">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"baseSiteId" : capitalize(vars.marketId)
+}]]]></http:headers>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_unsupported_function_headers.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/uuid;
+
+public type Vars record {|
+    string marketId?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    string correlationId = uuid:createType4AsString();
+|};
+
+public function demoFlow(Context ctx) {
+    ctx.vars.marketId = "US";
+
+    // http client request
+    http:Client http_request_config = check new ("orders.example.com:80");
+    // TODO: failed to convert #[output application/java
+    // ---
+    // {
+    // 	"baseSiteId" : capitalize(vars.marketId)
+    // }]
+    map<string> headers = map from string key in headers_nilable.keys()
+        where headers_nilable.get(key) is string
+        select [key, <string>headers_nilable.get(key)];
+    if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+        headers["X-Correlation-ID"] = ctx.correlationId;
+    }
+    http:Response clientResult0 = check http_request_config->/orders.get(headers);
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
@@ -7286,6 +7424,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 import ballerinax/java.jms;
 
 public type Attributes record {|
@@ -7324,7 +7463,7 @@ service / on http\-listener\-config {
         jms:MapMessage jmsMessage0 = {
             content: {
                 "apiEndpoint": "POST /orders",
-                "processedAt": now()
+                "processedAt": time:utcToString(time:utcNow())
             }
         };
         check self.producer0->send(jmsMessage0);
@@ -7382,6 +7521,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 ```ballerina
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 import ballerinax/java.jms;
 
 public type Attributes record {|
@@ -7414,7 +7554,7 @@ service /api on http_config {
         jms:MapMessage jmsMessage0 = {
             content: {
                 "source": "http-service",
-                "timestamp": now()
+                "timestamp": time:utcToString(time:utcNow())
             }
         };
         check self.producer0->send(jmsMessage0);

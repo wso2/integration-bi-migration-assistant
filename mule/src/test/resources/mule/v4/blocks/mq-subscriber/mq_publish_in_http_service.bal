@@ -1,5 +1,6 @@
 import ballerina/http;
 import ballerina/log;
+import ballerina/time;
 import ballerinax/java.jms;
 
 public type Attributes record {|
@@ -32,7 +33,7 @@ service /api on http_config {
         jms:MapMessage jmsMessage0 = {
             content: {
                 "source": "http-service",
-                "timestamp": now()
+                "timestamp": time:utcToString(time:utcNow())
             }
         };
         check self.producer0->send(jmsMessage0);

@@ -141,6 +141,18 @@ public class HttpRequestTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testHttpRequestWithStringFunctionHeaders() {
+        testMule4ToBal("http-request/http_request_with_string_function_headers.xml",
+                "http-request/http_request_with_string_function_headers.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithUnsupportedFunctionHeaders() {
+        testMule4ToBal("http-request/http_request_with_unsupported_function_headers.xml",
+                "http-request/http_request_with_unsupported_function_headers.bal");
+    }
+
+    @Test
     public void testHttpRequestTimeoutNotANumber() {
         testMule4ToBal("http-request/http_request_timeout_not_a_number.xml",
                 "http-request/http_request_timeout_not_a_number.bal");
