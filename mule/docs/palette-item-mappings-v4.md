@@ -4431,6 +4431,63 @@ function getOptionalHeader(http:Request req, string name) returns string? {
 
 ```
 
+- ### Http Listener With Host Property
+
+**Input (http_listener_with_host_property.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config" doc:id="85b56e19-f77d-4d11-bfbe-b30beae6e98a" basePath="mule4">
+        <http:listener-connection host="${http.host}" port="${http.port}" />
+    </http:listener-config>
+    <flow name="demoFlow" doc:id="7e3855d0-bb40-460c-999b-b4705f53198c" >
+        <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" allowedMethods="GET" path="/demo"/>
+        <logger level="INFO" doc:name="Logger" doc:id="c56aad96-6335-49a3-9b27-6d2b5ab0a963" message="xxx: logger invoked"/>
+    </flow>
+</mule>
+
+```
+**Output (http_listener_with_host_property.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+|};
+
+configurable string http_port = ?;
+configurable string http_host = ?;
+public listener http:Listener config = new (check int:fromString(http_port), {host: http_host});
+
+service /mule4 on config {
+    function init() returns error? {
+    }
+
+    resource function get demo(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        log:printInfo("xxx: logger invoked");
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+```
+
 - ### Http Listener With Localhost
 
 **Input (http_listener_with_localhost.xml):**

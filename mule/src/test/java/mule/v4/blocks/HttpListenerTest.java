@@ -107,6 +107,12 @@ public class HttpListenerTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testListenerWithHostProperty() {
+        testMule4ToBal("http-listener/http_listener_with_host_property.xml",
+                "http-listener/http_listener_with_host_property.bal");
+    }
+
+    @Test
     public void testListenerAttributes() {
         testMule4ToBal("http-listener/http_listener_attributes.xml", "http-listener/http_listener_attributes.bal");
     }
