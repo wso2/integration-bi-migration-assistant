@@ -25,4 +25,10 @@ public class RaiseErrorTest extends AbstractBlockTest {
     public void testBasicRaiseError() {
         testMule4ToBal("raise-error/basic_raise_error.xml", "raise-error/basic_raise_error.bal");
     }
+
+    @Test
+    public void testRaiseErrorInOnErrorPropagate() {
+        testMule4ToBal("raise-error/raise_error_in_on_error_propagate.xml",
+                "raise-error/raise_error_in_on_error_propagate.bal");
+    }
 }

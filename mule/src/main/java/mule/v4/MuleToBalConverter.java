@@ -92,6 +92,7 @@ import static mule.v4.ConversionUtils.getAttrValInt;
 import static mule.v4.ConversionUtils.getBallerinaAbsolutePath;
 import static mule.v4.ConversionUtils.getBallerinaResourcePath;
 import static mule.v4.ConversionUtils.insertLeadingSlash;
+import static mule.v4.converter.MuleConfigConverter.alwaysFails;
 import static mule.v4.converter.MuleConfigConverter.convertErrorHandlerRecords;
 import static mule.v4.converter.MuleConfigConverter.convertHttpResponseBody;
 import static mule.v4.converter.MuleConfigConverter.convertHttpResponseHeaderMap;
@@ -1024,15 +1025,19 @@ public class MuleToBalConverter {
                 Constants.ATTRIBUTES_REF, Constants.HTTP_RESPONSE_REF, interceptedResponse,
                 sharedCorrelationIdField(ctx))));
         errorHandler.ifPresent(handler -> body.addAll(convertErrorHandler(ctx, handler)));
-        httpErrorResponse.flatMap(HttpResponse::body)
-                .ifPresent(bodyScript -> body.addAll(convertHttpResponseBody(ctx, bodyScript)));
-        body.add(setPayloadIfSet());
-        httpErrorResponse.ifPresent(response -> {
-            body.addAll(convertHttpResponseHeaders(ctx, response.headers(), interceptedResponse));
-            body.addAll(convertHttpResponseStatusCode(ctx, response.statusCode(), interceptedResponse));
-        });
-        body.add(stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE,
-                Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF)));
+        // A handler that always fails returns its error from the interceptor, so the response is never built
+        if (errorHandler.filter(handler -> handler.ref().isEmpty() && alwaysFails(handler.errorHandlers()))
+                .isEmpty()) {
+            httpErrorResponse.flatMap(HttpResponse::body)
+                    .ifPresent(bodyScript -> body.addAll(convertHttpResponseBody(ctx, bodyScript)));
+            body.add(setPayloadIfSet());
+            httpErrorResponse.ifPresent(response -> {
+                body.addAll(convertHttpResponseHeaders(ctx, response.headers(), interceptedResponse));
+                body.addAll(convertHttpResponseStatusCode(ctx, response.statusCode(), interceptedResponse));
+            });
+            body.add(stmtFrom("return <%s>%s.%s;".formatted(HTTP_RESPONSE_TYPE,
+                    Constants.ATTRIBUTES_FIELD_ACCESS, Constants.HTTP_RESPONSE_REF)));
+        }
 
         List<Parameter> parameters = List.of(
                 new Parameter("requestContext", typeFrom("http:RequestContext")),

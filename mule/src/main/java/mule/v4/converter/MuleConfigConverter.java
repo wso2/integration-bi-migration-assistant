@@ -219,6 +219,22 @@ public class MuleConfigConverter {
         return statementList;
     }
 
+    /**
+     * Whether the statements of {@link #convertErrorHandlerRecords} always fail, so nothing placed after them runs.
+     *
+     * @param errHandlerRecords the records of an error handler
+     * @return true if every record ends in a raise-error and one of them handles any error
+     */
+    public static boolean alwaysFails(List<ErrorHandlerRecord> errHandlerRecords) {
+        if (errHandlerRecords.isEmpty()) {
+            return false;
+        }
+        // A single record is converted without its condition, and the last one without a condition is the else
+        ErrorHandlerRecord lastErrRec = errHandlerRecords.getLast();
+        return (errHandlerRecords.size() == 1 || lastErrRec.type().isEmpty() && lastErrRec.when().isEmpty())
+                && errHandlerRecords.stream().allMatch(errRec -> endsWithRaiseError(errRec.errorBlocks()));
+    }
+
     private static BallerinaExpression getErrorHandlerRecCondition(Context ctx, ErrorHandlerRecord errRec) {
         StringBuilder conditionExpr = new StringBuilder();
         if (!errRec.type().isEmpty()) {
@@ -1463,6 +1479,10 @@ public class MuleConfigConverter {
         List<Statement> errorBlocks = convertMuleRegularBlocks(ctx, onErrorPropagate.errorBlocks()).statements();
         stmts.addAll(errorBlocks);
 
+        // A trailing raise-error already fails, and the failure reaches the listener as a 500 response
+        if (endsWithRaiseError(onErrorPropagate.errorBlocks())) {
+            return new WorkerStatementResult(stmts);
+        }
         if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
             stmts.add(stmtFrom("%s response = <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE,
                     Constants.HTTP_RESPONSE_TYPE,
@@ -1475,6 +1495,10 @@ public class MuleConfigConverter {
         }
 
         return new WorkerStatementResult(stmts);
+    }
+
+    private static boolean endsWithRaiseError(List<MuleRecord> blocks) {
+        return !blocks.isEmpty() && blocks.getLast() instanceof RaiseError;
     }
 
     private static WorkerStatementResult convertRaiseError(Context ctx, RaiseError raiseError) {

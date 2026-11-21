@@ -37,7 +37,8 @@ public class ApiKitRouterTest extends AbstractBlockTest {
                 {"apikit-router/response_bodies_with_any_error_handler.xml",
                         "apikit-router/response_bodies_with_any_error_handler.bal"},
                 {"apikit-router/nested_listener_path.xml", "apikit-router/nested_listener_path.bal"},
-                {"apikit-router/unresolved_listener_path.xml", "apikit-router/unresolved_listener_path.bal"}
+                {"apikit-router/unresolved_listener_path.xml", "apikit-router/unresolved_listener_path.bal"},
+                {"apikit-router/raise_error_in_error_handler.xml", "apikit-router/raise_error_in_error_handler.bal"}
         };
     }
 }
