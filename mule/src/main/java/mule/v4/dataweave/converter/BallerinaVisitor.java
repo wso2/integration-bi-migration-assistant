@@ -364,7 +364,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         attributeAttributeUriParamAccess(selectorExpression, "hasKey");
         exprBuilder.append(" ? ");
         attributeAttributeUriParamAccess(selectorExpression, "get");
-        dwContext.addCheckExpr();
     }
 
     private void attributeAttributeUriParamAccess(DataWeaveParser.SelectorExpressionContext selectorExpression,
@@ -1272,7 +1271,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         } else if (uriParamAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
-            exprBuilder.append(": error(\"no such uri param\"))");
+            exprBuilder.append(": ())");
         } else if (queryParamAttributeAccess) {
             handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
         } else {

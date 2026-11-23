@@ -19,6 +19,8 @@ output application/json
 {
     apiKey: attributes.headers.'x-api-key',
     orderId: attributes.uriParams.'order-id',
+    orderIdOrDefault: attributes.uriParams.'order-id' default "none",
+    orderLabel: "Order " ++ attributes.uriParams.'order-id',
     pageSize: attributes.queryParams.'page-size',
     sortBy: attributes.queryParams."sort-by" default "date"
 }]]></ee:set-payload>
