@@ -9268,6 +9268,64 @@ service /mule4 on config {
 
 ```
 
+- ### Dataweave Bare Vars
+
+**Input (dataweave_bare_vars.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="config" doc:name="HTTP Listener config">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <flow name="varsFlow">
+        <http:listener doc:name="Listener" config-ref="config" path="/vars" allowedMethods="GET"/>
+        <logger level="INFO" doc:name="Log vars" message="#[%dw 2.0&#10;output application/json&#10;---&#10;vars]"/>
+    </flow>
+</mule>
+
+```
+**Output (dataweave_bare_vars.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+
+public type Vars record {|
+|};
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+    Attributes attributes;
+|};
+
+public listener http:Listener config = new (8081);
+
+service / on config {
+    function init() returns error? {
+    }
+
+    resource function get vars(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}};
+        json logMessage0 = _dwMethod(ctx);
+        log:printInfo(logMessage0.toJsonString());
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function _dwMethod(Context ctx) returns json => ctx.vars;
+
+```
+
 - ### Set Variable Dataweave Vars Default
 
 **Input (set_variable_dataweave_vars_default.xml):**
@@ -9309,6 +9367,7 @@ output application/json
     <flow name="externalIdFlow">
         <http:listener doc:name="Listener" config-ref="config" path="/external" allowedMethods="GET"/>
         <set-variable value="#['ext-1']" doc:name="Set Variable" variableName="externalId"/>
+        <logger level="INFO" doc:name="Logger" message="#[vars.unsetId]"/>
     </flow>
 </mule>
 
@@ -9326,6 +9385,7 @@ public type Vars record {|
     json order\-ref?;
     json orderRef?;
     json localValue?;
+    json unsetId?;
 |};
 
 public type Attributes record {|
@@ -9365,6 +9425,7 @@ service / on config {
     resource function get 'external(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.externalId = "ext-1";
+        log:printInfo(ctx.vars?.unsetId.toString());
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
@@ -9373,7 +9434,7 @@ service / on config {
 
 public function setSearchid(Context ctx) returns any|error => ctx.vars?.externalId ?: (check (ctx.attributes.uriParams.hasKey("id") ? ctx.attributes.uriParams.get("id") : error("no such uri param")));
 
-public function setSearchid1(Context ctx) returns json|error => check ctx.vars?.'order.id;
+public function setSearchid1(Context ctx) returns json|error => check ctx.vars?.'order?.id;
 
 public function setSearchid2(Context ctx) returns json => ctx.vars?.order\-ref;
 

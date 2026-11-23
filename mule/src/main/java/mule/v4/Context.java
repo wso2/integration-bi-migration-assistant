@@ -452,6 +452,9 @@ public class Context extends ContextBase {
         public Optional<String> defaultResponseTimeout = Optional.empty();
         // Whether the converted code reads or sends the event's correlation ID; known before any code is converted
         public boolean usesCorrelationId = false;
+        // Whether the converted code reads the whole vars container, which needs the Context vars field even when no
+        // named variable is declared
+        public boolean readsVarsContainer = false;
         List<HashMap<String, HTTPListenerConfig>> httpListenerConfigMaps = new ArrayList<>();
         List<HashMap<String, HTTPRequestConfig>> httpRequestConfigMaps = new ArrayList<>();
         List<HashMap<String, DbConfig>> dbConfigMaps = new ArrayList<>();

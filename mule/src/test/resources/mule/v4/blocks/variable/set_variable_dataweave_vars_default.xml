@@ -35,5 +35,6 @@ output application/json
     <flow name="externalIdFlow">
         <http:listener doc:name="Listener" config-ref="config" path="/external" allowedMethods="GET"/>
         <set-variable value="#['ext-1']" doc:name="Set Variable" variableName="externalId"/>
+        <logger level="INFO" doc:name="Logger" message="#[vars.unsetId]"/>
     </flow>
 </mule>

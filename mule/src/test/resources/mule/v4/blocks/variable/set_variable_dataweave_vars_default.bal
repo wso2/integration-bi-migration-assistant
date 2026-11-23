@@ -9,6 +9,7 @@ public type Vars record {|
     json order\-ref?;
     json orderRef?;
     json localValue?;
+    json unsetId?;
 |};
 
 public type Attributes record {|
@@ -48,6 +49,7 @@ service / on config {
     resource function get 'external(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.externalId = "ext-1";
+        log:printInfo(ctx.vars?.unsetId.toString());
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
@@ -56,7 +58,7 @@ service / on config {
 
 public function setSearchid(Context ctx) returns any|error => ctx.vars?.externalId ?: (check (ctx.attributes.uriParams.hasKey("id") ? ctx.attributes.uriParams.get("id") : error("no such uri param")));
 
-public function setSearchid1(Context ctx) returns json|error => check ctx.vars?.'order.id;
+public function setSearchid1(Context ctx) returns json|error => check ctx.vars?.'order?.id;
 
 public function setSearchid2(Context ctx) returns json => ctx.vars?.order\-ref;
 

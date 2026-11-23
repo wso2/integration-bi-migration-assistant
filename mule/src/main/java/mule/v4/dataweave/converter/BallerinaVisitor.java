@@ -1291,7 +1291,24 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             return;
         }
         visit(primaryExpression);
+        if (selectorExpression instanceof DataWeaveParser.SingleValueSelectorContext && readsVar(primaryExpression)) {
+            // A field of an unset variable is null in DataWeave, but lax field access on nil is an error
+            boolean inDefaultAccess = dwContext.inDefaultAccess;
+            dwContext.inDefaultAccess = true;
+            visit(selectorExpression);
+            dwContext.inDefaultAccess = inDefaultAccess;
+            return;
+        }
         visit(selectorExpression);
+    }
+
+    private boolean readsVar(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        if (!(primaryExpression instanceof DataWeaveParser.SelectorExpressionWrapperContext selection)) {
+            return false;
+        }
+        return selectedVarName(selection.primaryExpression(), selection.selectorExpression()).isPresent()
+                || selection.selectorExpression() instanceof DataWeaveParser.SingleValueSelectorContext
+                && readsVar(selection.primaryExpression());
     }
 
     private Optional<String> selectedVarName(DataWeaveParser.PrimaryExpressionContext primaryExpression,
@@ -1403,6 +1420,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             return null;
         }
         if (identifier.equals(Constants.VARS_REF)) {
+            this.ctx.projectCtx.readsVarsContainer = true;
             this.dwContext.append(Constants.VARS_FIELD_ACCESS);
             return null;
         }
