@@ -17,6 +17,8 @@ def libJarPath = "../../../../build/libs/mule-migration-assistant-${project.vers
 dependencies {
     // mule
     implementation project(path: ':mule')
+    // --describe
+    implementation project(path: ':describe-mule')
 
     // Dev dependencies
     implementation group: 'org.ballerinalang', name: 'ballerina-cli', version: "${ballerinaLangVersion}"
@@ -75,6 +77,8 @@ task updateTomlFile {
 // Default jar task - we'll keep it for backward compatibility
 jar {
     dependsOn ':common:jar'
+    // --describe: the jar copies the runtime classpath, so the describe jars must be built first
+    dependsOn ':describe-model:jar', ':describe-mule:jar'
     manifest {
         attributes(
                 'Main-Class': 'cli.Main'
@@ -90,6 +94,8 @@ jar {
 // Create a separate JAR for Mule migrations
 task muleJar(type: Jar) {
     dependsOn ':common:jar'
+    // --describe: the jar copies the runtime classpath, so the describe jars must be built first
+    dependsOn ':describe-model:jar', ':describe-mule:jar'
     manifest {
         attributes(
                 'Main-Class': 'cli.MuleCli'

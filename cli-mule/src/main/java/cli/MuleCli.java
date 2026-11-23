@@ -17,6 +17,7 @@
  */
 package cli;
 
+import describe.mule.DescribeCommand;
 import mule.MuleMigrator;
 
 import java.io.PrintStream;
@@ -41,6 +42,7 @@ public class MuleCli {
         boolean keepStructure = false;
         boolean checkResponses = false;
         boolean multiRoot = false;
+        boolean describe = false;
 
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -90,6 +92,9 @@ public class MuleCli {
                 case "--multi-root":
                     multiRoot = true;
                     break;
+                case "--describe":
+                    describe = true;
+                    break;
                 case "-g":
                 case "--org-name":
                     if (i + 1 >= args.length) {
@@ -129,6 +134,9 @@ public class MuleCli {
 
         MuleMigrator.migrateAndExportMuleSource(inputPathArg, outputPathArg, orgName, projectName, muleVersion,
                 dryRun, verbose, keepStructure, checkResponses, multiRoot);
+        if (describe) {
+            DescribeCommand.run(inputPathArg, outputPathArg, dryRun, multiRoot);
+        }
     }
 
     private static void printUsageAndExit() {
@@ -136,7 +144,7 @@ public class MuleCli {
         err.println("Usage: java -jar mule-migration-assistant.jar <source-project-directory-or-file> " +
                 "[-o|--out <output-directory>] [-f|--force-version <3|4>] [-v|--verbose] " +
                 "[-k|--keep-structure] [-d|--dry-run] [-c|--check-responses] [-m|--multi-root] " +
-                "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]");
+                "[-g|--org-name <organization-name>] [-p|--project-name <project-name>] [--describe]");
         err.println();
         err.println("Options:");
         err.println("  -o, --out <path>              Output directory path");
@@ -150,6 +158,7 @@ public class MuleCli {
                 "convert all of them");
         err.println("  -g, --org-name <name>         Organization name for the generated Ballerina package");
         err.println("  -p, --project-name <name>     Project name for the generated Ballerina package");
+        err.println("      --describe                Also write a JSON description of the Mule 4 project");
         err.println();
         err.println("Examples:");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project");
@@ -161,6 +170,7 @@ public class MuleCli {
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --verbose");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --force-version 3");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-projects-directory --multi-root");
+        err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --describe");
         err.println("  java -jar mule-migration-assistant.jar /path/to/mule-project --org-name myorg " +
                 "--project-name myproject");
         System.exit(1);

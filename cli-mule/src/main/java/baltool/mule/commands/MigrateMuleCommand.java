@@ -17,6 +17,7 @@
  */
 package baltool.mule.commands;
 
+import describe.mule.DescribeCommand;
 import io.ballerina.cli.BLauncherCmd;
 import mule.MuleMigrator;
 import picocli.CommandLine;
@@ -38,7 +39,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
     private static final String USAGE = "bal migrate-mule <source-project/s-directory-or-file> " +
             "[-o|--out <output-directory>] [-f|--force-version <3|4>]" +
             "[-v|--verbose] [-k|--keep-structure] [-d|--dry-run] [-c|--check-responses] [-m|--multi-root] " +
-            "[-g|--org-name <organization-name>] [-p|--project-name <project-name>]";
+            "[-g|--org-name <organization-name>] [-p|--project-name <project-name>] [--describe]";
 
     public MigrateMuleCommand() {
         errStream = System.err;
@@ -84,6 +85,10 @@ public class MigrateMuleCommand implements BLauncherCmd {
             description = "Project name for the generating Ballerina package")
     private String projectName;
 
+    @CommandLine.Option(names = {"--describe"},
+            description = "Also write a JSON description of the Mule 4 project", defaultValue = "false")
+    private boolean describe;
+
     @Override
     public void execute() {
         if (sourcePath == null) {
@@ -92,6 +97,9 @@ public class MigrateMuleCommand implements BLauncherCmd {
         }
         MuleMigrator.migrateAndExportMuleSource(sourcePath, outputPath, orgName, projectName, muleVersion, dryRun,
                 verbose, keepStructure, checkResponses, multiRoot);
+        if (describe) {
+            DescribeCommand.run(sourcePath, outputPath, dryRun, multiRoot);
+        }
     }
 
     private void onInvalidInput() {
@@ -122,6 +130,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  --project-name, -p       Project name for the generated Ballerina package\n");
         stringBuilder.append("  --check-responses, -c    Check APIkit responses against the API spec; " +
                 "a mismatch fails with 500\n");
+        stringBuilder.append("  --describe               Also write a JSON description of the Mule 4 project\n");
     }
 
     @Override
@@ -140,6 +149,7 @@ public class MigrateMuleCommand implements BLauncherCmd {
         stringBuilder.append("  bal migrate-mule /path/to/mule-projects-directory --multi-root --dry-run\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --force-version 3\n");
         stringBuilder.append("  bal migrate-mule /path/to/mule-project --force-version 4\n");
+        stringBuilder.append("  bal migrate-mule /path/to/mule-project --describe\n");
     }
 
     @Override
