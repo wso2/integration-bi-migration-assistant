@@ -34,6 +34,7 @@ import describe.model.DescriptionModel.StepInfo;
 import describe.model.DescriptionModel.StepType;
 import describe.model.DescriptionModel.SystemRef;
 import describe.model.DescriptionModel.Trigger;
+import mule.common.apispec.ApiKitFlowName;
 import mule.v4.Context;
 import mule.v4.Context.SourceInfo;
 import mule.v4.model.MuleModel;
@@ -90,18 +91,20 @@ final class FlowWalker {
     private final BallerinaLinker linker;
     private final Path projectDir;
     private final Map<String, String> flowIds;
+    private final Map<String, String> apiIds;
     private final List<FlaggedElement> flaggedElements = new ArrayList<>();
     private int described;
     private int hidden;
     private int flagged;
 
     FlowWalker(Context ctx, ConversionRecorder recorder, BallerinaLinker linker, Path projectDir,
-               Map<String, String> flowIds) {
+               Map<String, String> flowIds, Map<String, String> apiIds) {
         this.ctx = ctx;
         this.recorder = recorder;
         this.linker = linker;
         this.projectDir = projectDir;
         this.flowIds = flowIds;
+        this.apiIds = apiIds;
     }
 
     int described() {
@@ -347,11 +350,13 @@ final class FlowWalker {
         return Step.parallel(info(id, block, StepCoverage.DESCRIBED), type, paths);
     }
 
-    // APIkit operations have no trigger element; they come in Week 3 with the API case
     private Optional<Trigger> trigger(MuleModel.Flow flow) {
         Optional<MuleRecord> source = flow.source();
-        if (source.isEmpty() || source.get() instanceof ApiKitConfig) {
+        if (source.isEmpty()) {
             return Optional.empty();
+        }
+        if (source.get() instanceof ApiKitConfig apiKit) {
+            return apiOperation(flow.name(), apiKit);
         }
         MuleRecord record = source.get();
         SourceInfo sourceInfo = sourceInfo(record);
@@ -380,6 +385,18 @@ final class FlowWalker {
         }
         described++;
         return Optional.of(trigger);
+    }
+
+    // An APIkit operation flow has no trigger element: it starts when a request for its route reaches the router.
+    // It is not counted in coverage, since there is no element to count.
+    private Optional<Trigger> apiOperation(String flowName, ApiKitConfig apiKit) {
+        Optional<ApiKitFlowName> route = ApiKitFlowName.parse(flowName);
+        String apiId = apiIds.get(apiKit.name());
+        if (route.isEmpty() || apiId == null) {
+            return Optional.empty();
+        }
+        return Optional.of(Trigger.apiOperation(apiId, route.get().method().toUpperCase(Locale.ROOT),
+                route.get().path()));
     }
 
     // Read from the XML, not from the reader's record: the reader turns a cron schedule into "every 5 seconds"

@@ -110,7 +110,8 @@ public final class MuleDescriber {
         for (MuleRecord record : flowRecords) {
             flowIds.put(flowName(record), "f" + (flowIds.size() + 1));
         }
-        FlowWalker walker = new FlowWalker(ctx, recorder, linker, project, flowIds);
+        ApiDescriber apiDescriber = new ApiDescriber(ctx, project, flowIds);
+        FlowWalker walker = new FlowWalker(ctx, recorder, linker, project, flowIds, apiDescriber.apiIds());
         List<Flow> flows = new ArrayList<>();
         List<String> linkUnknown = new ArrayList<>();
         for (MuleRecord record : flowRecords) {
@@ -131,10 +132,9 @@ public final class MuleDescriber {
         Coverage coverage = new Coverage(new Counts(walker.described(), walker.hidden(), walker.flagged()),
                 walker.flaggedElements(), failedFiles, testFiles, linkUnknown);
         Project projectInfo = new Project(project.getFileName().toString(), "mule", platformVersion(project));
-        // APIs (the APIkit case) come in Week 3
         return new Description(DescriptionModel.SCHEMA_VERSION, new Generator(GENERATOR_NAME, GENERATOR_VERSION),
-                projectInfo, flows, List.of(), globals.connections(), globals.properties(), globals.imports(),
-                coverage);
+                projectInfo, flows, apiDescriber.apis(), globals.connections(), globals.properties(),
+                globals.imports(), coverage);
     }
 
     private static String flowName(MuleRecord record) {
