@@ -22,7 +22,7 @@ service / on HTTP_Listener_config {
         Context ctx = {attributes: {request, response: new}};
 
         // set payload
-        string payload0 = "[\"Alice\", \"Bob\", \"Charlie\"]";
+        json payload0 = ["Alice", "Bob", "Charlie"];
         ctx.payload = payload0;
 
         // foreach loop

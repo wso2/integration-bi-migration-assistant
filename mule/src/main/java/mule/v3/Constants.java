@@ -84,6 +84,7 @@ public class Constants {
     public static final String VAR_WORKER_RESULT_TEMPLATE = "workerResults%s";
     public static final String VAR_SCATTER_GATHER_TEMPLATE = "scatterGatherResults%s";
     public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteError";
+    public static final String FUNC_TO_JSON_PAYLOAD = "toJsonPayload";
     public static final String VAR_ITERATOR_TEMPLATE = "iterator%d";
     public static final String VAR_ORIGINAL_PAYLOAD_TEMPLATE = "originalPayload%d";
     public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "firstSuccessfulRoute%d";

@@ -38,7 +38,7 @@ service /api on http_config {
         check self.producer0->send(jmsMessage0);
 
         // set payload
-        string payload0 = "{\"status\": \"Message published successfully\"}";
+        json payload0 = {"status": "Message published successfully"};
         ctx.payload = payload0;
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);

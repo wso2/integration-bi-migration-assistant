@@ -35,7 +35,7 @@ service / on HTTP_Listener_config {
             log:printError("Trace: " + err.stackTrace().toString());
 
             // set payload
-            anydata payload0 = string `{ "status": "error", "message": "${err.message()}" }`;
+            json payload0 = toJsonPayload(string `{ "status": "error", "message": "${err.message()}" }`);
             ctx.payload = payload0;
         }
         log:printInfo("End of flow");
@@ -43,4 +43,13 @@ service / on HTTP_Listener_config {
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
+}
+
+public function toJsonPayload(anydata payload) returns json {
+    // Like Mule, a payload that is not JSON text is kept as it is
+    if payload is string {
+        json|error parsed = payload.fromJsonString();
+        return parsed is json ? parsed : payload;
+    }
+    return payload.toJson();
 }

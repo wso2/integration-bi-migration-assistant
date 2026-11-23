@@ -58,6 +58,11 @@ import static common.BallerinaModel.TypeBindingPattern;
 import static common.ConversionUtils.exprFrom;
 import static common.ConversionUtils.stmtFrom;
 import static common.ConversionUtils.typeFrom;
+import static mule.common.JsonPayloadLiteral.isJsonMimeType;
+import static mule.common.JsonPayloadLiteral.isJsonText;
+import static mule.common.JsonPayloadLiteral.isPlainText;
+import static mule.common.JsonPayloadLiteral.toBalStringLiteral;
+import static mule.common.JsonPayloadLiteral.toBalJsonLiteral;
 import static mule.v4.Constants.BAL_ERROR_TYPE;
 import static mule.v4.Constants.FUNC_NAME_ASYC_TEMPLATE;
 import static mule.v4.Constants.JMS_CONNECTION_TYPE;
@@ -577,14 +582,28 @@ public class MuleConfigConverter {
     private static WorkerStatementResult convertSetPayload(Context ctx, Payload payload) {
         String pyld;
         String type;
+        Optional<String> todo = Optional.empty();
         List<Statement> stmts = new ArrayList<>();
         try {
-            switch (payload.mimeType()) {
-                // TODO: handle other mime types
-                default -> {
-                    pyld = convertMuleExprToBal(ctx, payload.expr());
-                    type = inferTypeFromBalExpr(pyld);
+            boolean isJson = isJsonMimeType(payload.mimeType());
+            boolean isPlainText = isPlainText(payload.expr());
+            Optional<String> jsonLiteral = isJson && isPlainText ? toBalJsonLiteral(payload.expr())
+                    : Optional.empty();
+            if (jsonLiteral.isPresent()) {
+                pyld = jsonLiteral.get();
+                type = "json";
+            } else if (isJson && (!isPlainText || isJsonText(payload.expr()))) {
+                pyld = "%s(%s)".formatted(Constants.FUNC_TO_JSON_PAYLOAD, isPlainText
+                        ? toBalStringLiteral(payload.expr()) : convertMuleExprToBal(ctx, payload.expr()));
+                addToJsonPayloadFunction(ctx);
+                type = "json";
+            } else {
+                if (isJson) {
+                    todo = Optional.of("TODO: value is not valid JSON, so it is kept as a string although "
+                            + "mimeType is " + payload.mimeType());
                 }
+                pyld = convertMuleExprToBal(ctx, payload.expr());
+                type = inferTypeFromBalExpr(pyld);
             }
         } catch (ScriptConversionException e) {
             stmts.add(new Statement.Comment("TODO: failed to convert " + e.getMelExpression()));
@@ -593,11 +612,24 @@ public class MuleConfigConverter {
 
         String payloadVar = String.format(Constants.VAR_PAYLOAD_TEMPLATE,
                 ctx.projectCtx.counters.payloadVarCount++);
-        stmts.add(stmtFrom("\n\n// set payload\n"));
+        stmts.add(stmtFrom("\n\n// set payload\n" + todo.map(comment -> "// " + comment + "\n").orElse("")));
         stmts.add(stmtFrom(String.format("%s %s = %s;", type, payloadVar, pyld)));
         stmts.add(stmtFrom(String.format("%s.payload = %s;", Constants.CONTEXT_REFERENCE,
                 payloadVar)));
         return new WorkerStatementResult(stmts);
+    }
+
+    private static void addToJsonPayloadFunction(Context ctx) {
+        if (ctx.projectCtx.functionExists(Constants.FUNC_TO_JSON_PAYLOAD)) {
+            return;
+        }
+        ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_TO_JSON_PAYLOAD,
+                Function.publicFunction(Constants.FUNC_TO_JSON_PAYLOAD,
+                        List.of(new Parameter(Constants.PAYLOAD_REF, Constants.BAL_ANYDATA_TYPE)), typeFrom("json"),
+                        List.of(new Statement.Comment("Like Mule, a payload that is not JSON text is kept as it is"),
+                                stmtFrom("if payload is string { json|error parsed = payload.fromJsonString(); "
+                                        + "return parsed is json ? parsed : payload; }"),
+                                stmtFrom("return payload.toJson();"))));
     }
 
     private static WorkerStatementResult convertChoice(Context ctx, Choice choice) {

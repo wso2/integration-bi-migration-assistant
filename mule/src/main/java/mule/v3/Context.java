@@ -42,6 +42,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static common.BallerinaModel.Function;
@@ -240,6 +241,8 @@ public class Context extends ContextBase {
         List<HashMap<String, DbGenericConfig>> dbGenericConfigMaps = new ArrayList<>();
         List<HashMap<String, DbTemplateQuery>> dbTemplateQueryMaps = new ArrayList<>();
         public final HashMap<String, ModuleVar> configurableVars = new LinkedHashMap<>();
+        // All config files land in one Ballerina module, so a shared helper must be emitted only once per project
+        public final Set<String> moduleUtilFunctions = new HashSet<>();
 
         public void addJavaDependency(MuleToBalConverter.JavaDependencies dependencies) {
             javaDependencies.add(dependencies);

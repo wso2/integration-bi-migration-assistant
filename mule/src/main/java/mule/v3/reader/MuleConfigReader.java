@@ -487,7 +487,7 @@ public class MuleConfigReader {
     private static Payload readSetPayload(Context ctx, MuleElement muleElement) {
         Element element = muleElement.getElement();
         String muleExpr = element.getAttribute("value");
-        return new Payload(muleExpr);
+        return new Payload(muleExpr, element.getAttribute("mimeType"));
     }
 
     private static SetVariable readSetVariable(Context ctx, MuleElement muleElement) {

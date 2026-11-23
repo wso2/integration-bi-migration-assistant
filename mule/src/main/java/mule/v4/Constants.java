@@ -94,6 +94,7 @@ public class Constants {
     public static final String FUNC_FIRST_SUCCESSFUL_ROUTE = "route%s";
     public static final String FUNC_WRAP_ROUTE_ERR = "wrapRouteErrorIfExists";
     public static final String FUNC_JSON_PAYLOAD = "jsonPayload";
+    public static final String FUNC_TO_JSON_PAYLOAD = "toJsonPayload";
     public static final String FUNC_GET_OPTIONAL_HEADER = "getOptionalHeader";
     public static final String FUNC_GET_CORRELATION_ID = "getCorrelationId";
     public static final String FUNC_GET_SHARED_CORRELATION_ID = "getSharedCorrelationId";
