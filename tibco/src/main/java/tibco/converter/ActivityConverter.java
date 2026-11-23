@@ -142,7 +142,7 @@ final class ActivityConverter {
 
     static @NotNull BallerinaModel.Function convertTransitionPredicate(
             ProcessContext processContext, Process5.ExplicitTransitionGroup.Transition.Condition.XPath condition) {
-        ActivityContext cx = new ActivityContext(processContext, null);
+        ActivityContext cx = ActivityContext.withoutActivity(processContext);
         List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", XML),
                 ConversionUtils.activityFnType(processContext).parameters().getFirst());
         List<Statement> body = new ArrayList<>();

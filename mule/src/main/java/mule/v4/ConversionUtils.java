@@ -431,13 +431,18 @@ public class ConversionUtils {
         if (propertyName.endsWith("'")) {
             propertyName = propertyName.substring(0, propertyName.length() - 1);
         }
-        String configVarName = propertyName.replace('.', '_').replaceAll("::", "_");
+        String configVarName = toConfigVarName(propertyName);
         String escapedConfigVarName = convertToBalIdentifier(configVarName);
         if (!ctx.projectCtx.configurableVarExists(escapedConfigVarName)) {
             addConfigVarEntry(ctx, configVarName, null);
         }
 
         return escapedConfigVarName;
+    }
+
+    // A global property and the p() reads of it must name the same configurable
+    public static String toConfigVarName(String propertyName) {
+        return propertyName.replace('.', '_').replace("::", "_");
     }
 
     public static void addConfigVarEntry(Context ctx, String varName, String varValue) {
