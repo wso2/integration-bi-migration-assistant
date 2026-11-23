@@ -4,16 +4,16 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function vmListenerFlow(Context ctx) {
+public function vmListenerFlow(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function vmPublishFlow(Context ctx) {
+public function vmPublishFlow(Context ctx) returns error? {
     worker W returns error? {
         // VM Listener
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        vmListenerFlow(ctx);
+        check vmListenerFlow(ctx);
     }
 
     // set payload

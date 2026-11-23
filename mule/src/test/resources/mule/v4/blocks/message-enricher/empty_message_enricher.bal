@@ -10,7 +10,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = ctx.flowVars.userId;

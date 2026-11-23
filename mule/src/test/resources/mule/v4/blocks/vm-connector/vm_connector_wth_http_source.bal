@@ -24,7 +24,7 @@ service /mule4 on listener_config {
             // VM Listener
             anydata receivedPayload = <- function;
             ctx.payload = receivedPayload;
-            vmReceive0(ctx);
+            check vmReceive0(ctx);
         }
 
         // set payload
@@ -39,6 +39,6 @@ service /mule4 on listener_config {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }

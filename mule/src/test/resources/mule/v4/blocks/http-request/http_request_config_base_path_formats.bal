@@ -6,7 +6,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function apiFlow(Context ctx) {
+public function apiFlow(Context ctx) returns error? {
 
     // http client request
     http:Client api_request_config = check new ("https://orders.example.com:80/api/v1");
@@ -14,7 +14,7 @@ public function apiFlow(Context ctx) {
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
-public function rootFlow(Context ctx) {
+public function rootFlow(Context ctx) returns error? {
 
     // http client request
     http:Client root_request_config = check new ("https://orders.example.com:80");

@@ -24,7 +24,7 @@ service on PubSubConfig {
     function init() returns error? {
     }
 
-    remote function onMessage(pubsub:Message message, pubsub:Caller caller) {
+    remote function onMessage(pubsub:Message message, pubsub:Caller caller) returns error? {
         Context ctx = {attributes: {}};
         log:printInfo("Pub-Sub message received");
     }

@@ -1,0 +1,21 @@
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config">
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80"/>
+    </http:request-config>
+    <flow name="schedulerFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+            </scheduling-strategy>
+        </scheduler>
+        <flow-ref name="fetchPostFlow"/>
+    </flow>
+    <flow name="fetchPostFlow">
+        <http:request method="GET" config-ref="http_request_config" path="/posts/latest"/>
+    </flow>
+</mule>

@@ -6,7 +6,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function configTimeoutFlow(Context ctx) {
+public function configTimeoutFlow(Context ctx) returns error? {
 
     // http client request
     http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 5);
@@ -14,7 +14,7 @@ public function configTimeoutFlow(Context ctx) {
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
-public function requestTimeoutFlow(Context ctx) {
+public function requestTimeoutFlow(Context ctx) returns error? {
 
     // http client request
     http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 2.5);
@@ -22,7 +22,7 @@ public function requestTimeoutFlow(Context ctx) {
     ctx.payload = check clientResult1.getJsonPayload();
 }
 
-public function defaultTimeoutFlow(Context ctx) {
+public function defaultTimeoutFlow(Context ctx) returns error? {
 
     // http client request
     http:Client default_request_config = check new ("https://orders.example.com:80", timeout = 20);

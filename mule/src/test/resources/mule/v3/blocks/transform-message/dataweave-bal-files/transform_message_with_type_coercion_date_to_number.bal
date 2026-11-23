@@ -4,7 +4,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
     json _dwOutput_ = check _dwMethod0_();
     ctx.payload = _dwOutput_;
 }

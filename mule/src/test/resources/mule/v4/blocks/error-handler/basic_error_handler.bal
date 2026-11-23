@@ -4,7 +4,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
 
         // set payload
@@ -12,11 +12,11 @@ public function demoFlow(Context ctx) {
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
     } on fail error err {
-        my_error_handler(ctx, err);
+        check my_error_handler(ctx, err);
     }
 }
 
-public function my_error_handler(Context ctx, error err) {
+public function my_error_handler(Context ctx, error err) returns error? {
     // on-error-propagate
     log:printError("Message: " + err.message());
     log:printError("Trace: " + err.stackTrace().toString());

@@ -10,7 +10,7 @@ public type Context record {|
 configurable string anypoint_auth_client_id = ?;
 configurable string anypoint_auth_client_secret = ?;
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");

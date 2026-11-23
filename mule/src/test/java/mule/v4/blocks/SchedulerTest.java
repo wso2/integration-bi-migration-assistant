@@ -25,4 +25,15 @@ public class SchedulerTest extends AbstractBlockTest {
     public void testBasicScheduler() {
         testMule4ToBal("scheduler/basic_scheduler.xml", "scheduler/basic_scheduler.bal");
     }
+
+    @Test
+    public void testSchedulerWithFlowRef() {
+        testMule4ToBal("scheduler/scheduler_with_flow_ref.xml", "scheduler/scheduler_with_flow_ref.bal");
+    }
+
+    @Test
+    public void testSchedulerWithVmPublishAndRaiseError() {
+        testMule4ToBal("scheduler/scheduler_with_vm_publish_and_raise_error.xml",
+                "scheduler/scheduler_with_vm_publish_and_raise_error.bal");
+    }
 }

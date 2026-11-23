@@ -10,7 +10,7 @@ function getCorrelationId(http:Request request) returns string {
     return id is string ? id : uuid:createType4AsString();
 }
 
-public function buildLogEntry(Context ctx) {
+public function buildLogEntry(Context ctx) returns error? {
     json _dwOutput_ = _dwMethod(ctx);
     ctx.vars._dwOutput_ = _dwOutput_;
     ctx.payload = _dwOutput_;

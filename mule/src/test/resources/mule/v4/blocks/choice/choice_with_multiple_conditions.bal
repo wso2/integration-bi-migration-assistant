@@ -9,7 +9,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.marks = 73;
     if ctx.vars?.marks >= 75 {
         log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'A'.`);

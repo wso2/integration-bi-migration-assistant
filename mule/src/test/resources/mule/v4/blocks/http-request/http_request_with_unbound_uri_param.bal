@@ -6,7 +6,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80");

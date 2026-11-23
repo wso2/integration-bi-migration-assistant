@@ -11,7 +11,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.status = "OPEN";
 
     // http client request

@@ -8,7 +8,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function weatherServiceFlow(Context ctx) {
+public function weatherServiceFlow(Context ctx) returns error? {
     ctx.flowVars.greeting = "hello";
     ctx.flowVars.'from = "USA";
     ctx.flowVars.greeting = ();

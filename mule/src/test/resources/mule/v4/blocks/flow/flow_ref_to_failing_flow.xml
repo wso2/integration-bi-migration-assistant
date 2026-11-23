@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="http_request_config">
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80"/>
+    </http:request-config>
+    <flow name="mainFlow">
+        <http:listener config-ref="listener_config" path="/posts"/>
+        <flow-ref name="fetchPostFlow"/>
+        <flow-ref name="safeFetchFlow"/>
+        <flow-ref name="logSubFlow"/>
+    </flow>
+    <flow name="fetchPostFlow">
+        <http:request method="GET" config-ref="http_request_config" path="/posts/latest"/>
+        <logger level="INFO" message="Received from external API: #[payload]"/>
+    </flow>
+    <flow name="safeFetchFlow">
+        <http:request method="GET" config-ref="http_request_config" path="/posts/latest"/>
+        <error-handler>
+            <on-error-continue>
+                <logger level="ERROR" message="Fetch failed"/>
+            </on-error-continue>
+        </error-handler>
+    </flow>
+    <sub-flow name="logSubFlow">
+        <logger level="INFO" message="Done"/>
+    </sub-flow>
+</mule>

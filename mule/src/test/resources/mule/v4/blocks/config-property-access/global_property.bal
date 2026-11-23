@@ -6,6 +6,6 @@ public type Context record {|
 
 configurable string company_name = "WSO2";
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     log:printInfo(string `Company name : ${company_name}`);
 }

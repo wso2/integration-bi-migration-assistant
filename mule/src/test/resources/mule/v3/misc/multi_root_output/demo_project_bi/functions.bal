@@ -1,6 +1,6 @@
 import ballerina/log;
 
-public function exception_strategy(Context ctx, error e) {
+public function exception_strategy(Context ctx, error e) returns error? {
     log:printError("xxx: something went wrong!");
 
     // set payload
