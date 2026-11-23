@@ -223,7 +223,7 @@ public class Context extends ContextBase {
             currentFileCtx = fileContexts.get(xmlFile);
             assert currentFileCtx != null : "We should have created file ctx when we parse the file";
             for (GlobalProperty globalProperty : currentFileCtx.configs.globalProperties) {
-                ConversionUtils.addConfigVarEntry(this, globalProperty.name().replace('.', '_'),
+                ConversionUtils.addConfigVarEntry(this, ConversionUtils.toConfigVarName(globalProperty.name()),
                         globalProperty.value());
             }
         }
@@ -352,9 +352,19 @@ public class Context extends ContextBase {
                                 parseResult.subFlows());
                     } catch (Exception e) {
                         logger.logSevere("Unrecoverable error while generating code for %s".formatted(xmlFile));
-                        return null;
+                        return configurablesOnlyDocument(balFileName);
                     }
                 }).filter(Objects::nonNull).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    // Other files read the configurables this file declared, since each one is declared by a single file
+    private BallerinaModel.TextDocument configurablesOnlyDocument(String balFileName) {
+        if (currentFileCtx.configurables.isEmpty()) {
+            return null;
+        }
+        return mule.v4.MuleToBalConverter.createTextDocument(balFileName + ".bal", List.of(), List.of(),
+                new ArrayList<>(currentFileCtx.configurables.values()), List.of(), List.of(), List.of(), List.of(),
+                List.of());
     }
 
     private boolean hasHttpListener(ParseResult parseResult) {
