@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- An invented API whose spec is an Exchange asset that is not in the project, so the spec cannot be read -->
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
+    <http:listener-config name="stock-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8082"/>
+    </http:listener-config>
+    <apikit:config name="stock-config" api="resource::com.example:stock-api:1.0.0:raml:zip:stock-api.raml"/>
+    <flow name="stock-main">
+        <http:listener config-ref="stock-httpListenerConfig" path="/stock/*"/>
+        <apikit:router config-ref="stock-config"/>
+    </flow>
+    <flow name="get:\items\(sku):stock-config">
+        <set-payload value='{"inStock": true}' mimeType="application/json"/>
+    </flow>
+</mule>

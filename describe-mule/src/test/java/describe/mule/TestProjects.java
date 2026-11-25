@@ -36,14 +36,18 @@ final class TestProjects {
     static final String PROJECTS_DIR_PROPERTY = "describe.projects.dir";
     static final Path MULE_V4_TEST_RESOURCES = Path.of("..", "mule", "src", "test", "resources", "mule", "v4");
     static final Path ATTRIBUTION_PROJECT = Path.of("src", "test", "resources", "attribution-project");
+    static final Path API_PROJECT = Path.of("src", "test", "resources", "api-project");
+    static final Path API_MISSING_SPEC_PROJECT = Path.of("src", "test", "resources", "api-missing-spec-project");
 
     private TestProjects() {
     }
 
-    // The fixture project of this module and the Mule 4 test projects of the mule module
+    // The fixture projects of this module and the Mule 4 test projects of the mule module
     static Object[][] repoProjects() throws IOException {
         List<Path> projects = new ArrayList<>();
         projects.add(ATTRIBUTION_PROJECT);
+        projects.add(API_PROJECT);
+        projects.add(API_MISSING_SPEC_PROJECT);
         projects.addAll(muleProjectsIn(MULE_V4_TEST_RESOURCES.resolve("projects")));
         Object[][] rows = new Object[projects.size()][];
         for (int i = 0; i < projects.size(); i++) {

@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "correlationIdProject",
+    "platform": "mule",
+    "platformVersion": "4.8.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "statusFlow",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/api.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "connection": "listener_config",
+        "path": "/status",
+        "source": {
+          "file": "src/main/mule/api.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[1]/http:listener[1]"
+        }
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "callsFlow",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/api.xml",
+            "element": "flow-ref",
+            "position": "/mule/flow[1]/flow-ref[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "calls": {
+            "flow": "f2"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "default",
+        "path": "status",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "buildLogEntry",
+      "kind": "subFlow",
+      "source": {
+        "file": "src/main/mule/common.xml",
+        "element": "sub-flow",
+        "position": "/mule/sub-flow[1]"
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/common.xml",
+            "element": "ee:transform",
+            "position": "/mule/sub-flow[1]/ee:transform[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 0,
+            "resource": "dwl/log-entry.dwl"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "function",
+        "name": "buildLogEntry",
+        "found": true
+      }
+    }
+  ],
+  "apis": [],
+  "connections": [
+    {
+      "name": "listener_config",
+      "connector": "http",
+      "element": "http:listener-config",
+      "understood": true
+    }
+  ],
+  "properties": [],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 3,
+      "hidden": 0,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}

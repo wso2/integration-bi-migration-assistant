@@ -1,0 +1,259 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "attribution-project",
+    "platform": "mule",
+    "platformVersion": "4.6.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "routeOrder",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/dataweave-in-when.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "decides",
+          "coverage": "described",
+          "level": 1,
+          "name": "Order type",
+          "source": {
+            "file": "src/main/mule/dataweave-in-when.xml",
+            "element": "choice",
+            "position": "/mule/flow[1]/choice[1]",
+            "docName": "Order type"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "paths": [
+            {
+              "when": "#[payload.kind == 'web']",
+              "steps": [
+                {
+                  "id": "f1.1.b1.1",
+                  "type": "converts",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Broken script",
+                  "source": {
+                    "file": "src/main/mule/dataweave-in-when.xml",
+                    "element": "ee:transform",
+                    "position": "/mule/flow[1]/choice[1]/when[1]/ee:transform[1]",
+                    "docName": "Broken script"
+                  },
+                  "migration": {
+                    "status": "partlyConverted",
+                    "reasons": [
+                      {
+                        "kind": "dataweave",
+                        "text": "1 DataWeave expression(s) need manual conversion"
+                      }
+                    ]
+                  },
+                  "writes": [
+                    "payload"
+                  ],
+                  "dataweave": {
+                    "lines": 4,
+                    "script": "// writes payload\n%dw 2.0\noutput application/json\n---\npayload map ((item) -> item.id ++"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/dataweave-in-when.xml",
+                "element": "when",
+                "position": "/mule/flow[1]/choice[1]/when[1]"
+              }
+            },
+            {
+              "when": "#[payload.kind == 'store']",
+              "steps": [
+                {
+                  "id": "f1.1.b2.1",
+                  "type": "converts",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Good script",
+                  "source": {
+                    "file": "src/main/mule/dataweave-in-when.xml",
+                    "element": "ee:transform",
+                    "position": "/mule/flow[1]/choice[1]/when[2]/ee:transform[1]",
+                    "docName": "Good script"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  },
+                  "writes": [
+                    "payload"
+                  ],
+                  "dataweave": {
+                    "lines": 4,
+                    "script": "// writes payload\n%dw 2.0\noutput application/json\n---\n{ id: payload.id }"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/dataweave-in-when.xml",
+                "element": "when",
+                "position": "/mule/flow[1]/choice[1]/when[2]"
+              }
+            },
+            {
+              "otherwise": true,
+              "steps": [
+                {
+                  "id": "f1.1.b3.1",
+                  "type": "technical",
+                  "coverage": "hidden",
+                  "level": 2,
+                  "name": "Other orders",
+                  "source": {
+                    "file": "src/main/mule/dataweave-in-when.xml",
+                    "element": "logger",
+                    "position": "/mule/flow[1]/choice[1]/otherwise[1]/logger[1]",
+                    "docName": "Other orders"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/dataweave-in-when.xml",
+                "element": "otherwise",
+                "position": "/mule/flow[1]/choice[1]/otherwise[1]"
+              }
+            }
+          ]
+        }
+      ],
+      "ballerina": {
+        "construct": "function",
+        "name": "routeOrder",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "lookUpCountry",
+      "kind": "subFlow",
+      "source": {
+        "file": "src/main/mule/xref-translate.xml",
+        "element": "sub-flow",
+        "position": "/mule/sub-flow[1]"
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "ifItFails",
+          "coverage": "described",
+          "level": 1,
+          "name": "Try",
+          "source": {
+            "file": "src/main/mule/xref-translate.xml",
+            "element": "try",
+            "position": "/mule/sub-flow[1]/try[1]",
+            "docName": "Try"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "steps": [
+            {
+              "id": "f2.1.1",
+              "type": "looksUp",
+              "coverage": "described",
+              "level": 1,
+              "name": "Translate country",
+              "source": {
+                "file": "src/main/mule/xref-translate.xml",
+                "element": "xref-client:translate",
+                "position": "/mule/sub-flow[1]/try[1]/xref-client:translate[1]",
+                "docName": "Translate country"
+              },
+              "migration": {
+                "status": "notConverted",
+                "reasons": [
+                  {
+                    "kind": "unsupportedElement",
+                    "text": "xref-client:translate"
+                  }
+                ]
+              },
+              "system": {
+                "connector": "xref-client",
+                "connection": "Xref_Config",
+                "operation": "translate"
+              }
+            }
+          ],
+          "onError": [
+            {
+              "id": "f2.1.e1",
+              "handling": "continue",
+              "errorTypes": [
+                "ANY"
+              ],
+              "steps": [
+                {
+                  "id": "f2.1.e1.1",
+                  "type": "technical",
+                  "coverage": "hidden",
+                  "level": 2,
+                  "name": "Lookup failed",
+                  "source": {
+                    "file": "src/main/mule/xref-translate.xml",
+                    "element": "logger",
+                    "position": "/mule/sub-flow[1]/try[1]/error-handler[1]/on-error-continue[1]/logger[1]",
+                    "docName": "Lookup failed"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/xref-translate.xml",
+                "element": "on-error-continue",
+                "position": "/mule/sub-flow[1]/try[1]/error-handler[1]/on-error-continue[1]"
+              },
+              "migration": {
+                "status": "converted"
+              }
+            }
+          ]
+        }
+      ],
+      "ballerina": {
+        "construct": "function",
+        "name": "lookUpCountry",
+        "found": true
+      }
+    }
+  ],
+  "apis": [],
+  "connections": [],
+  "properties": [],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 6,
+      "hidden": 2,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}

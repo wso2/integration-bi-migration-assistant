@@ -24,6 +24,8 @@
             <class name="describe.mule.AttributionTest"/>
             <class name="describe.mule.DescriptionJsonTest"/>
             <class name="describe.mule.DescribeCommandTest"/>
+            <class name="describe.mule.GoldenJsonTest"/>
+            <class name="describe.mule.SameOutputTest"/>
         </classes>
     </test>
 </suite>

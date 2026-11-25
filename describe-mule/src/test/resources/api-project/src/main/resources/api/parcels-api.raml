@@ -1,0 +1,45 @@
+#%RAML 1.0
+# An invented API for the describe tests
+title: Parcel Tracking API
+version: v1
+traits:
+  client-id-required:
+    headers:
+      client_id:
+        type: string
+  paged:
+    queryParameters:
+      page:
+        type: integer
+        required: false
+/parcels:
+  get:
+    description: List the parcels that are on their way.
+    is: [paged]
+    responses:
+      200:
+        body:
+          application/json:
+            type: array
+  post:
+    description: Register a new parcel for delivery.
+    is: [client-id-required]
+    body:
+      application/json:
+        type: object
+    responses:
+      201:
+        body:
+          application/json:
+            type: object
+  /{parcelId}:
+    uriParameters:
+      parcelId:
+        type: string
+    get:
+      displayName: Track one parcel
+      responses:
+        200:
+          body:
+            application/json:
+              type: object

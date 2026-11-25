@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The APIkit router flow and the operation flows. POST /parcels has no flow; DELETE has a flow but is not in
+     the spec; GET /parcels/{parcelId} has a displayName and no description -->
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <flow name="parcels-main">
+        <http:listener config-ref="parcels-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]"/>
+        </http:listener>
+        <apikit:router config-ref="parcels-config"/>
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <set-variable variableName="httpStatus" value="404"/>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\parcels:parcels-config">
+        <logger level="INFO" message="Listing parcels"/>
+        <flow-ref name="loadParcels"/>
+    </flow>
+    <flow name="get:\parcels\(parcelId):parcels-config">
+        <ee:transform doc:name="Parcel status">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ id: attributes.uriParams.parcelId, status: "IN_TRANSIT" }]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="delete:\parcels\(parcelId):parcels-config">
+        <logger level="INFO" message="Cancelling a parcel"/>
+    </flow>
+    <sub-flow name="loadParcels">
+        <set-payload value='[]' mimeType="application/json"/>
+    </sub-flow>
+</mule>

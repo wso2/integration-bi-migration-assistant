@@ -1,0 +1,492 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "api-project",
+    "platform": "mule",
+    "platformVersion": "4.6.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "purgeDeliveredParcels",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/cleanup.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "schedule",
+        "name": "Purge schedule",
+        "schedule": {
+          "kind": "fixedFrequency",
+          "every": "60",
+          "unit": "MINUTES"
+        },
+        "source": {
+          "file": "src/main/mule/cleanup.xml",
+          "element": "scheduler",
+          "position": "/mule/flow[1]/scheduler[1]",
+          "docName": "Purge schedule"
+        }
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/cleanup.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f1.2",
+          "type": "callsFlow",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/cleanup.xml",
+            "element": "flow-ref",
+            "position": "/mule/flow[1]/flow-ref[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "calls": {
+            "flow": "f7"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "jobClass",
+        "name": "Job",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "importParcelManifests",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/inbox.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "newFile",
+        "name": "New manifest",
+        "connection": "inbox-config",
+        "directory": "manifests",
+        "poll": {
+          "kind": "fixedFrequency",
+          "every": "${inbox.poll.frequency}"
+        },
+        "source": {
+          "file": "src/main/mule/inbox.xml",
+          "element": "file:listener",
+          "position": "/mule/flow[1]/file:listener[1]",
+          "docName": "New manifest"
+        }
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/inbox.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "function",
+        "name": "importParcelManifests",
+        "found": true
+      }
+    },
+    {
+      "id": "f3",
+      "name": "parcels-main",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/parcels-api.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "connection": "parcels-httpListenerConfig",
+        "path": "/api/*",
+        "source": {
+          "file": "src/main/mule/parcels-api.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[1]/http:listener[1]"
+        }
+      },
+      "steps": [
+        {
+          "id": "f3.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "apikit:router",
+            "position": "/mule/flow[1]/apikit:router[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "onError": [
+        {
+          "id": "f3.e1",
+          "handling": "propagate",
+          "errorTypes": [
+            "APIKIT:NOT_FOUND"
+          ],
+          "steps": [
+            {
+              "id": "f3.e1.1",
+              "type": "technical",
+              "coverage": "hidden",
+              "level": 2,
+              "source": {
+                "file": "src/main/mule/parcels-api.xml",
+                "element": "set-variable",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]/set-variable[1]"
+              },
+              "migration": {
+                "status": "converted"
+              }
+            }
+          ],
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "on-error-propagate",
+            "position": "/mule/flow[1]/error-handler[1]/on-error-propagate[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "default",
+        "path": "api/[string... path]",
+        "found": true
+      }
+    },
+    {
+      "id": "f4",
+      "name": "get:\\parcels:parcels-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/parcels-api.xml",
+        "element": "flow",
+        "position": "/mule/flow[2]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "GET",
+        "path": "/parcels"
+      },
+      "steps": [
+        {
+          "id": "f4.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "logger",
+            "position": "/mule/flow[2]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f4.2",
+          "type": "callsFlow",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "flow-ref",
+            "position": "/mule/flow[2]/flow-ref[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "calls": {
+            "flow": "f7"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "get",
+        "path": "api/parcels",
+        "found": true
+      }
+    },
+    {
+      "id": "f5",
+      "name": "get:\\parcels\\(parcelId):parcels-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/parcels-api.xml",
+        "element": "flow",
+        "position": "/mule/flow[3]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "GET",
+        "path": "/parcels/{parcelId}"
+      },
+      "steps": [
+        {
+          "id": "f5.1",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "name": "Parcel status",
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "ee:transform",
+            "position": "/mule/flow[3]/ee:transform[1]",
+            "docName": "Parcel status"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 4,
+            "script": "// writes payload\n%dw 2.0\noutput application/json\n---\n{ id: attributes.uriParams.parcelId, status: \"IN_TRANSIT\" }"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "get",
+        "path": "api/parcels/[string parcelId]",
+        "found": true
+      }
+    },
+    {
+      "id": "f6",
+      "name": "delete:\\parcels\\(parcelId):parcels-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/parcels-api.xml",
+        "element": "flow",
+        "position": "/mule/flow[4]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "DELETE",
+        "path": "/parcels/{parcelId}"
+      },
+      "steps": [
+        {
+          "id": "f6.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "logger",
+            "position": "/mule/flow[4]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "delete",
+        "path": "api/parcels/[string parcelId]",
+        "found": true
+      }
+    },
+    {
+      "id": "f7",
+      "name": "loadParcels",
+      "kind": "subFlow",
+      "source": {
+        "file": "src/main/mule/parcels-api.xml",
+        "element": "sub-flow",
+        "position": "/mule/sub-flow[1]"
+      },
+      "steps": [
+        {
+          "id": "f7.1",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/parcels-api.xml",
+            "element": "set-payload",
+            "position": "/mule/sub-flow[1]/set-payload[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 1,
+            "script": "[]"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "function",
+        "name": "loadParcels",
+        "found": true
+      }
+    }
+  ],
+  "apis": [
+    {
+      "id": "a1",
+      "config": "parcels-config",
+      "spec": {
+        "file": "src/main/resources/api/parcels-api.raml",
+        "title": "Parcel Tracking API",
+        "version": "v1"
+      },
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/parcels",
+          "description": "List the parcels that are on their way.",
+          "flow": "f4"
+        },
+        {
+          "method": "POST",
+          "path": "/parcels",
+          "description": "Register a new parcel for delivery.",
+          "flow": null
+        },
+        {
+          "method": "GET",
+          "path": "/parcels/{parcelId}",
+          "flow": "f5"
+        },
+        {
+          "method": "DELETE",
+          "path": "/parcels/{parcelId}",
+          "flow": "f6"
+        }
+      ],
+      "policies": {
+        "autodiscovery": "${api.id}",
+        "traits": [
+          "paged",
+          "client-id-required"
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "connector": "core",
+      "element": "configuration-properties",
+      "understood": true
+    },
+    {
+      "name": "parcels-httpListenerConfig",
+      "connector": "http",
+      "element": "http:listener-config",
+      "understood": true,
+      "properties": [
+        "http.port"
+      ]
+    },
+    {
+      "name": "parcels-config",
+      "connector": "apikit",
+      "element": "apikit:config",
+      "understood": true
+    },
+    {
+      "connector": "api-gateway",
+      "element": "api-gateway:autodiscovery",
+      "understood": true,
+      "properties": [
+        "api.id"
+      ]
+    },
+    {
+      "name": "inbox-config",
+      "connector": "file",
+      "element": "file:config",
+      "understood": true,
+      "properties": [
+        "inbox.dir"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "api.id",
+      "secure": false
+    },
+    {
+      "name": "http.port",
+      "secure": false
+    },
+    {
+      "name": "inbox.dir",
+      "secure": false
+    },
+    {
+      "name": "inbox.poll.frequency",
+      "secure": false
+    }
+  ],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 8,
+      "hidden": 6,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}

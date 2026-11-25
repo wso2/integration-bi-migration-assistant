@@ -1,0 +1,9 @@
+# The describe tests check that none of these values appears in the description
+http:
+  port: "8081"
+api:
+  id: "9090123"
+inbox:
+  dir: "/data/inbox-4711"
+  poll:
+    frequency: "4242"

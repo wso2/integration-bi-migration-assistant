@@ -1,0 +1,298 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "display_project_bi",
+    "platform": "mule",
+    "platformVersion": "4.8.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "getCustomersFlow",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/muledemo.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "name": "HTTP Listener",
+        "connection": "httpListenerConfig",
+        "path": "/customers",
+        "source": {
+          "file": "src/main/mule/muledemo.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[1]/http:listener[1]",
+          "docName": "HTTP Listener"
+        }
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "decides",
+          "coverage": "described",
+          "level": 1,
+          "name": "Choice",
+          "source": {
+            "file": "src/main/mule/muledemo.xml",
+            "element": "choice",
+            "position": "/mule/flow[1]/choice[1]",
+            "docName": "Choice",
+            "docId": "295207b6-b0b2-4d3e-8602-59892f8c820d"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "paths": [
+            {
+              "when": "#[attributes.queryParams.mock == 'true']",
+              "steps": [
+                {
+                  "id": "f1.1.b1.1",
+                  "type": "converts",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Transform Message",
+                  "source": {
+                    "file": "src/main/mule/muledemo.xml",
+                    "element": "ee:transform",
+                    "position": "/mule/flow[1]/choice[1]/when[1]/ee:transform[1]",
+                    "docName": "Transform Message"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  },
+                  "writes": [
+                    "payload"
+                  ],
+                  "dataweave": {
+                    "lines": 15,
+                    "script": "// writes payload\n%dw 2.0\n            output application/json\n            ---\n            [\n                {\n                    \"id\": 1,\n                    \"name\": \"John Doe\",\n                    \"email\": \"john.doe@example.com\"\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Jane Smith\",\n                    \"email\": \"jane.smith@example.com\"\n                }\n            ]"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/muledemo.xml",
+                "element": "when",
+                "position": "/mule/flow[1]/choice[1]/when[1]"
+              }
+            },
+            {
+              "otherwise": true,
+              "steps": [
+                {
+                  "id": "f1.1.b2.1",
+                  "type": "looksUp",
+                  "coverage": "described",
+                  "level": 1,
+                  "name": "Select",
+                  "source": {
+                    "file": "src/main/mule/muledemo.xml",
+                    "element": "db:select",
+                    "position": "/mule/flow[1]/choice[1]/otherwise[1]/db:select[1]",
+                    "docName": "Select",
+                    "docId": "7220246f-6be7-48c3-bd8a-e14518ff1e42"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  },
+                  "system": {
+                    "connector": "db",
+                    "connection": "Database_Config",
+                    "operation": "select"
+                  }
+                },
+                {
+                  "id": "f1.1.b2.2",
+                  "type": "technical",
+                  "coverage": "hidden",
+                  "level": 2,
+                  "name": "Logger",
+                  "source": {
+                    "file": "src/main/mule/muledemo.xml",
+                    "element": "logger",
+                    "position": "/mule/flow[1]/choice[1]/otherwise[1]/logger[1]",
+                    "docName": "Logger",
+                    "docId": "300f68ac-53be-41e4-adcf-c0cacd9dc50b"
+                  },
+                  "migration": {
+                    "status": "converted"
+                  }
+                }
+              ],
+              "source": {
+                "file": "src/main/mule/muledemo.xml",
+                "element": "otherwise",
+                "position": "/mule/flow[1]/choice[1]/otherwise[1]"
+              }
+            }
+          ]
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "get",
+        "path": "customers",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "postCustomerFlow",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/muledemo.xml",
+        "element": "flow",
+        "position": "/mule/flow[2]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "name": "HTTP Listener",
+        "connection": "httpListenerConfig",
+        "path": "/customers",
+        "source": {
+          "file": "src/main/mule/muledemo.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[2]/http:listener[1]",
+          "docName": "HTTP Listener"
+        }
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "name": "Log Incoming Customer Data",
+          "source": {
+            "file": "src/main/mule/muledemo.xml",
+            "element": "logger",
+            "position": "/mule/flow[2]/logger[1]",
+            "docName": "Log Incoming Customer Data",
+            "docId": "a8727a94-ca27-40b1-84d8-6d963c638354"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f2.2",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "name": "Transform Incoming Customer Data",
+          "source": {
+            "file": "src/main/mule/muledemo.xml",
+            "element": "ee:transform",
+            "position": "/mule/flow[2]/ee:transform[1]",
+            "docName": "Transform Incoming Customer Data"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 8,
+            "script": "// writes payload\n%dw 2.0\n                    output application/json\n                    ---\n                    {\n                        id: payload.id,\n                        name: upper(payload.name),\n                        email: upper(payload.email)\n                    }"
+          }
+        },
+        {
+          "id": "f2.3",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "name": "Log Transformed Customer Data",
+          "source": {
+            "file": "src/main/mule/muledemo.xml",
+            "element": "logger",
+            "position": "/mule/flow[2]/logger[2]",
+            "docName": "Log Transformed Customer Data",
+            "docId": "6a1e184e-fa2e-48f2-8d7c-b0d2d10d3b08"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f2.4",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "name": "Response Message",
+          "source": {
+            "file": "src/main/mule/muledemo.xml",
+            "element": "ee:transform",
+            "position": "/mule/flow[2]/ee:transform[2]",
+            "docName": "Response Message"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 7,
+            "script": "// writes payload\n%dw 2.0\n                    output application/json\n                    ---\n                    {\n                        message: \"Customer added successfully\",\n                        customerId: payload.id\n                    }"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "post",
+        "path": "customers",
+        "found": true
+      }
+    }
+  ],
+  "apis": [],
+  "connections": [
+    {
+      "name": "httpListenerConfig",
+      "connector": "http",
+      "element": "http:listener-config",
+      "understood": true
+    },
+    {
+      "name": "Database_Config",
+      "connector": "db",
+      "element": "db:config",
+      "understood": true,
+      "properties": [
+        "db.password",
+        "db.user"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "db.password",
+      "secure": false
+    },
+    {
+      "name": "db.user",
+      "secure": false
+    }
+  ],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 7,
+      "hidden": 3,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}

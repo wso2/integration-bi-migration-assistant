@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A file poll whose frequency and folder are property placeholders -->
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+    <file:config name="inbox-config" doc:name="File Config">
+        <file:connection workingDir="${inbox.dir}"/>
+    </file:config>
+    <flow name="importParcelManifests">
+        <file:listener config-ref="inbox-config" directory="manifests" doc:name="New manifest">
+            <scheduling-strategy>
+                <fixed-frequency frequency="${inbox.poll.frequency}"/>
+            </scheduling-strategy>
+        </file:listener>
+        <logger level="INFO" message="Importing a manifest"/>
+    </flow>
+</mule>

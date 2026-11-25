@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A scheduled flow. The frequency is a number: the converter cannot read a placeholder here
+     (MuleToBalConverter.convertToSeconds parses it as a number and drops the file) -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <flow name="purgeDeliveredParcels">
+        <scheduler doc:name="Purge schedule">
+            <scheduling-strategy>
+                <fixed-frequency frequency="60" timeUnit="MINUTES"/>
+            </scheduling-strategy>
+        </scheduler>
+        <logger level="INFO" message="Purging delivered parcels"/>
+        <flow-ref name="loadParcels"/>
+    </flow>
+</mule>

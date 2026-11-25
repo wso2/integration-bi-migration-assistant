@@ -1,0 +1,581 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "apiKitSpecProject",
+    "platform": "mule",
+    "platformVersion": "4.8.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "get:\\orders\\(orderId):orders-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/flow.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "GET",
+        "path": "/orders/{orderId}"
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f1.2",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "set-payload",
+            "position": "/mule/flow[1]/set-payload[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 1,
+            "script": "{\"orderId\": \"1\", \"status\": \"NEW\", \"quantity\": 2, \"addresses\": [{\"street\": \"Main\"}], \"priority\": true}"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "get",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "post:\\orders:orders-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/flow.xml",
+        "element": "flow",
+        "position": "/mule/flow[2]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "POST",
+        "path": "/orders"
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "logger",
+            "position": "/mule/flow[2]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f2.2",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "set-variable",
+            "position": "/mule/flow[2]/set-variable[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "post",
+        "found": true
+      }
+    },
+    {
+      "id": "f3",
+      "name": "put:\\orders\\(orderId):orders-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/flow.xml",
+        "element": "flow",
+        "position": "/mule/flow[3]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "PUT",
+        "path": "/orders/{orderId}"
+      },
+      "steps": [
+        {
+          "id": "f3.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "logger",
+            "position": "/mule/flow[3]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f3.2",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "set-variable",
+            "position": "/mule/flow[3]/set-variable[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "put",
+        "found": true
+      }
+    },
+    {
+      "id": "f4",
+      "name": "post:\\orders\\(orderId)\\notes:orders-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/flow.xml",
+        "element": "flow",
+        "position": "/mule/flow[4]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "POST",
+        "path": "/orders/{orderId}/notes"
+      },
+      "steps": [
+        {
+          "id": "f4.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "logger",
+            "position": "/mule/flow[4]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f4.2",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "set-variable",
+            "position": "/mule/flow[4]/set-variable[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "post",
+        "found": true
+      }
+    },
+    {
+      "id": "f5",
+      "name": "delete:\\orders\\(orderId):orders-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/flow.xml",
+        "element": "flow",
+        "position": "/mule/flow[5]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "DELETE",
+        "path": "/orders/{orderId}"
+      },
+      "steps": [
+        {
+          "id": "f5.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "logger",
+            "position": "/mule/flow[5]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "delete",
+        "found": true
+      }
+    },
+    {
+      "id": "f6",
+      "name": "orders-main",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/main.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "connection": "http-listener-config",
+        "path": "${secure::http.listener.path}",
+        "source": {
+          "file": "src/main/mule/main.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[1]/http:listener[1]"
+        }
+      },
+      "steps": [
+        {
+          "id": "f6.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "apikit:router",
+            "position": "/mule/flow[1]/apikit:router[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f6.2",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "onError": [
+        {
+          "id": "f6.e1",
+          "handling": "continue",
+          "errorTypes": [
+            "APIKIT:BAD_REQUEST"
+          ],
+          "steps": [
+            {
+              "id": "f6.e1.1",
+              "type": "converts",
+              "coverage": "described",
+              "level": 1,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "set-payload",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[1]/set-payload[1]"
+              },
+              "migration": {
+                "status": "converted"
+              },
+              "writes": [
+                "payload"
+              ],
+              "dataweave": {
+                "lines": 1,
+                "script": "{\"message\": \"Bad request\"}"
+              }
+            },
+            {
+              "id": "f6.e1.2",
+              "type": "technical",
+              "coverage": "hidden",
+              "level": 2,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "set-variable",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[1]/set-variable[1]"
+              },
+              "migration": {
+                "status": "converted"
+              }
+            }
+          ],
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "on-error-continue",
+            "position": "/mule/flow[1]/error-handler[1]/on-error-continue[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f6.e2",
+          "handling": "continue",
+          "errorTypes": [
+            "APIKIT:NOT_FOUND"
+          ],
+          "steps": [
+            {
+              "id": "f6.e2.1",
+              "type": "converts",
+              "coverage": "described",
+              "level": 1,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "set-payload",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[2]/set-payload[1]"
+              },
+              "migration": {
+                "status": "converted"
+              },
+              "writes": [
+                "payload"
+              ],
+              "dataweave": {
+                "lines": 1,
+                "script": "{\"message\": \"Resource not found\"}"
+              }
+            },
+            {
+              "id": "f6.e2.2",
+              "type": "technical",
+              "coverage": "hidden",
+              "level": 2,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "set-variable",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[2]/set-variable[1]"
+              },
+              "migration": {
+                "status": "converted"
+              }
+            }
+          ],
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "on-error-continue",
+            "position": "/mule/flow[1]/error-handler[1]/on-error-continue[2]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f6.e3",
+          "handling": "continue",
+          "errorTypes": [
+            "APIKIT:NOT_IMPLEMENTED"
+          ],
+          "steps": [
+            {
+              "id": "f6.e3.1",
+              "type": "converts",
+              "coverage": "described",
+              "level": 1,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "set-payload",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[3]/set-payload[1]"
+              },
+              "migration": {
+                "status": "converted"
+              },
+              "writes": [
+                "payload"
+              ],
+              "dataweave": {
+                "lines": 1,
+                "script": "{\"message\": \"Not Implemented\"}"
+              }
+            },
+            {
+              "id": "f6.e3.2",
+              "type": "technical",
+              "coverage": "hidden",
+              "level": 2,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "set-variable",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[3]/set-variable[1]"
+              },
+              "migration": {
+                "status": "converted"
+              }
+            }
+          ],
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "on-error-continue",
+            "position": "/mule/flow[1]/error-handler[1]/on-error-continue[3]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "default",
+        "found": true
+      }
+    }
+  ],
+  "apis": [
+    {
+      "id": "a1",
+      "config": "orders-config",
+      "spec": {
+        "file": "src/main/resources/api/orders-api.raml",
+        "title": "Orders API",
+        "version": "v2"
+      },
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/orders",
+          "flow": null
+        },
+        {
+          "method": "POST",
+          "path": "/orders",
+          "flow": "f2"
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{orderId}",
+          "flow": "f1"
+        },
+        {
+          "method": "PUT",
+          "path": "/orders/{orderId}",
+          "flow": "f3"
+        },
+        {
+          "method": "POST",
+          "path": "/orders/{orderId}/notes",
+          "flow": "f4"
+        },
+        {
+          "method": "DELETE",
+          "path": "/orders/{orderId}",
+          "flow": "f5"
+        }
+      ],
+      "policies": {
+        "autodiscovery": "${api.id}",
+        "traits": [
+          "client-id-enforcement"
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "name": "http-listener-config",
+      "connector": "http",
+      "element": "http:listener-config",
+      "understood": true,
+      "properties": [
+        "http.port"
+      ]
+    },
+    {
+      "name": "orders-config",
+      "connector": "apikit",
+      "element": "apikit:config",
+      "understood": true
+    },
+    {
+      "connector": "api-gateway",
+      "element": "api-gateway:autodiscovery",
+      "understood": true,
+      "properties": [
+        "api.id"
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "api.id",
+      "secure": false
+    },
+    {
+      "name": "http.port",
+      "secure": false
+    },
+    {
+      "name": "secure::http.listener.path",
+      "secure": true
+    }
+  ],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 8,
+      "hidden": 13,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}

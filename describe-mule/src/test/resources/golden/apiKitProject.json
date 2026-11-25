@@ -1,0 +1,216 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "apiKitProject",
+    "platform": "mule",
+    "platformVersion": "4.8.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "get:\\orders\\(id):apikit-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/flow.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "GET",
+        "path": "/orders/{id}"
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "name": "Log Incoming Customer Data",
+          "source": {
+            "file": "src/main/mule/flow.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[1]",
+            "docName": "Log Incoming Customer Data"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "get",
+        "path": "api/orders/[string id]",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "apiKitMain",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/main.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "connection": "http-listener-config",
+        "path": "/api",
+        "source": {
+          "file": "src/main/mule/main.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[1]/http:listener[1]"
+        }
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f2.2",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "apikit:router",
+            "position": "/mule/flow[1]/apikit:router[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        },
+        {
+          "id": "f2.3",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "logger",
+            "position": "/mule/flow[1]/logger[2]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "onError": [
+        {
+          "id": "f2.e1",
+          "handling": "continue",
+          "errorTypes": [],
+          "steps": [
+            {
+              "id": "f2.e1.1",
+              "type": "technical",
+              "coverage": "hidden",
+              "level": 2,
+              "source": {
+                "file": "src/main/mule/main.xml",
+                "element": "logger",
+                "position": "/mule/flow[1]/error-handler[1]/on-error-continue[1]/logger[1]"
+              },
+              "migration": {
+                "status": "converted"
+              }
+            }
+          ],
+          "source": {
+            "file": "src/main/mule/main.xml",
+            "element": "on-error-continue",
+            "position": "/mule/flow[1]/error-handler[1]/on-error-continue[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "default",
+        "path": "api",
+        "found": true
+      }
+    }
+  ],
+  "apis": [
+    {
+      "id": "a1",
+      "config": "apikit-config",
+      "spec": {
+        "file": "src/main/resources/api/test.raml",
+        "title": "Orders API",
+        "version": "v1"
+      },
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/orders",
+          "description": "Retrieve an order by id",
+          "flow": null
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{id}",
+          "flow": "f1"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "name": "http-listener-config",
+      "connector": "http",
+      "element": "http:listener-config",
+      "understood": true,
+      "properties": [
+        "http.port"
+      ]
+    },
+    {
+      "name": "apikit-config",
+      "connector": "apikit",
+      "element": "apikit:config",
+      "understood": true
+    }
+  ],
+  "properties": [
+    {
+      "name": "http.port",
+      "secure": false
+    }
+  ],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 2,
+      "hidden": 5,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}

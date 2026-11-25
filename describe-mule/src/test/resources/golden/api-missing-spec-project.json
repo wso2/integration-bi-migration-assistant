@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "0.1",
+  "generator": {
+    "name": "mule-migration-assistant",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "project": {
+    "name": "api-missing-spec-project",
+    "platform": "mule",
+    "platformVersion": "4.6.0"
+  },
+  "flows": [
+    {
+      "id": "f1",
+      "name": "stock-main",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/stock-api.xml",
+        "element": "flow",
+        "position": "/mule/flow[1]"
+      },
+      "startsWhen": {
+        "kind": "httpRequest",
+        "connection": "stock-httpListenerConfig",
+        "path": "/stock/*",
+        "source": {
+          "file": "src/main/mule/stock-api.xml",
+          "element": "http:listener",
+          "position": "/mule/flow[1]/http:listener[1]"
+        }
+      },
+      "steps": [
+        {
+          "id": "f1.1",
+          "type": "technical",
+          "coverage": "hidden",
+          "level": 2,
+          "source": {
+            "file": "src/main/mule/stock-api.xml",
+            "element": "apikit:router",
+            "position": "/mule/flow[1]/apikit:router[1]"
+          },
+          "migration": {
+            "status": "converted"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "default",
+        "path": "stock/[string... path]",
+        "found": true
+      }
+    },
+    {
+      "id": "f2",
+      "name": "get:\\items\\(sku):stock-config",
+      "kind": "flow",
+      "source": {
+        "file": "src/main/mule/stock-api.xml",
+        "element": "flow",
+        "position": "/mule/flow[2]"
+      },
+      "startsWhen": {
+        "kind": "apiOperation",
+        "api": "a1",
+        "method": "GET",
+        "path": "/items/{sku}"
+      },
+      "steps": [
+        {
+          "id": "f2.1",
+          "type": "converts",
+          "coverage": "described",
+          "level": 1,
+          "source": {
+            "file": "src/main/mule/stock-api.xml",
+            "element": "set-payload",
+            "position": "/mule/flow[2]/set-payload[1]"
+          },
+          "migration": {
+            "status": "converted"
+          },
+          "writes": [
+            "payload"
+          ],
+          "dataweave": {
+            "lines": 1,
+            "script": "{\"inStock\": true}"
+          }
+        }
+      ],
+      "ballerina": {
+        "construct": "resource",
+        "service": "/",
+        "method": "get",
+        "path": "stock/items/[string sku]",
+        "found": true
+      }
+    }
+  ],
+  "apis": [
+    {
+      "id": "a1",
+      "config": "stock-config",
+      "spec": {
+        "file": "resource::com.example:stock-api:1.0.0:raml:zip:stock-api.raml"
+      },
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/items/{sku}",
+          "flow": "f2"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "name": "stock-httpListenerConfig",
+      "connector": "http",
+      "element": "http:listener-config",
+      "understood": true
+    },
+    {
+      "name": "stock-config",
+      "connector": "apikit",
+      "element": "apikit:config",
+      "understood": true
+    }
+  ],
+  "properties": [],
+  "imports": [],
+  "coverage": {
+    "counts": {
+      "described": 2,
+      "hidden": 1,
+      "flagged": 0
+    },
+    "flagged": [],
+    "failedFiles": [],
+    "testFiles": [],
+    "linkUnknown": []
+  }
+}
