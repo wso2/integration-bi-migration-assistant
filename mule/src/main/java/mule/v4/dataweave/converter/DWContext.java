@@ -38,6 +38,7 @@ public class DWContext {
     public boolean isOutputVarSet = false;
     public boolean referringToPayload = false;
     public boolean inDefaultAccess = false;
+    public boolean inDefaultOperand = false;
     public boolean inKeyAccess = false;
     public boolean isSingleExpression = false;
 
