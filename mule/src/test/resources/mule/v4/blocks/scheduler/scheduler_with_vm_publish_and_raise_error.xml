@@ -1,0 +1,26 @@
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <vm:config name="vm_config">
+        <vm:queues>
+            <vm:queue queueName="orders"/>
+        </vm:queues>
+    </vm:config>
+    <flow name="publishSchedulerFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+            </scheduling-strategy>
+        </scheduler>
+        <set-payload value="#['Hello World!']"/>
+        <vm:publish config-ref="vm_config" queueName="orders"/>
+        <raise-error type="APP:JOB_FAILED" description="Job failed"/>
+    </flow>
+    <flow name="vmListenerFlow">
+        <vm:listener config-ref="vm_config" queueName="orders"/>
+        <logger level="INFO" message="Received a message: #[payload]"/>
+    </flow>
+</mule>

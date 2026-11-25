@@ -118,6 +118,7 @@ public class Constants {
     public static final BallerinaType BAL_INT_TYPE = typeFrom("int");
     public static final BallerinaType BAL_STRING_TYPE = typeFrom("string");
     public static final BallerinaType BAL_ERROR_TYPE = typeFrom("error");
+    public static final BallerinaType BAL_ERROR_OR_NIL_TYPE = typeFrom("error?");
     public static final BallerinaType BAL_HANDLE_TYPE = typeFrom("handle");
     public static final BallerinaType BAL_ANYDATA_TYPE = typeFrom("anydata");
 }

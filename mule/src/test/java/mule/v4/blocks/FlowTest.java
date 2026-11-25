@@ -30,4 +30,9 @@ public class FlowTest extends AbstractBlockTest {
     public void testPrivateFlow() {
         testMule4ToBal("flow/private_flow.xml", "flow/private_flow.bal");
     }
+
+    @Test
+    public void testFlowRefToFailingFlow() {
+        testMule4ToBal("flow/flow_ref_to_failing_flow.xml", "flow/flow_ref_to_failing_flow.bal");
+    }
 }
