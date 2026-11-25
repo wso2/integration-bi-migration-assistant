@@ -30,7 +30,7 @@ service http:InterceptableService / on http\-listener\-config {
         log:printInfo(string `Fetching order ${ctx.attributes.uriParams.get("orderId").toString()}`);
 
         // set payload
-        string payload4 = "{\"orderId\": \"1\", \"status\": \"NEW\", \"quantity\": 2, \"addresses\": [{\"street\": \"Main\"}], \"priority\": true}";
+        json payload4 = {"orderId": "1", "status": "NEW", "quantity": 2, "addresses": [{"street": "Main"}], "priority": true};
         ctx.payload = payload4;
 
         http:Response response = <http:Response>ctx.attributes.response;

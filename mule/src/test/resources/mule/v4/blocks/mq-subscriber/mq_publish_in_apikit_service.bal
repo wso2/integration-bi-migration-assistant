@@ -44,7 +44,7 @@ service / on http\-listener\-config {
         check self.producer0->send(jmsMessage0);
 
         // set payload
-        string payload0 = "{\"status\": \"Order received and queued\"}";
+        json payload0 = {"status": "Order received and queued"};
         ctx.payload = payload0;
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);

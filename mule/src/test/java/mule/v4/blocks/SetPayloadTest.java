@@ -30,4 +30,15 @@ public class SetPayloadTest extends AbstractBlockTest {
     public void testMultipleSetPayloads() {
         testMule4ToBal("set-payload/multiple_set_payloads.xml", "set-payload/multiple_set_payloads.bal");
     }
+
+    @Test
+    public void testSetPayloadWithMimeType() {
+        testMule4ToBal("set-payload/set_payload_mime_type.xml", "set-payload/set_payload_mime_type.bal");
+    }
+
+    @Test
+    public void testSetPayloadWithMimeTypeInGlobalHandler() {
+        testMule4ToBal("set-payload/set_payload_mime_type_in_error_handler.xml",
+                "set-payload/set_payload_mime_type_in_error_handler.bal");
+    }
 }

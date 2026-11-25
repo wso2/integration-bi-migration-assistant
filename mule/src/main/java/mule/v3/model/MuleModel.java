@@ -222,9 +222,9 @@ public record MuleModel() {
         }
     }
 
-    public record Payload(Kind kind, String expr) implements MuleRecord {
-        public Payload(String expr) {
-            this(Kind.PAYLOAD, expr);
+    public record Payload(Kind kind, String expr, String mimeType) implements MuleRecord {
+        public Payload(String expr, String mimeType) {
+            this(Kind.PAYLOAD, expr, mimeType);
         }
     }
 

@@ -97,7 +97,7 @@ service class MuleResponseErrorInterceptor0 {
 
             // set payload
 
-            string payload0 = "{\"message\":\"Bad request\"}";
+            json payload0 = {"message": "Bad request"};
             ctx.payload = payload0;
             http:Response response = <http:Response>ctx.attributes.response;
             response.statusCode = 500;
@@ -106,14 +106,14 @@ service class MuleResponseErrorInterceptor0 {
             ctx.vars.httpStatus = "404";
 
             // set payload
-            string payload1 = "{\"message\":\"Resource not found\"}";
+            json payload1 = {"message": "Resource not found"};
             ctx.payload = payload1;
         } else if err is APIKIT__METHOD_NOT_ALLOWED|http:ResourceMethodNotAllowedError {
             // on-error-propagate
             ctx.vars.httpStatus = "405";
 
             // set payload
-            string payload2 = "{\"message\":\"Method not allowed\"}";
+            json payload2 = {"message": "Method not allowed"};
             ctx.payload = payload2;
             http:Response response = <http:Response>ctx.attributes.response;
             response.statusCode = 500;
@@ -122,7 +122,7 @@ service class MuleResponseErrorInterceptor0 {
             ctx.vars.httpStatus = "406";
 
             // set payload
-            string payload3 = "{\"message\":\"Not acceptable\"}";
+            json payload3 = {"message": "Not acceptable"};
             ctx.payload = payload3;
             http:Response response = <http:Response>ctx.attributes.response;
             response.statusCode = 500;
@@ -131,7 +131,7 @@ service class MuleResponseErrorInterceptor0 {
             ctx.vars.httpStatus = "415";
 
             // set payload
-            string payload4 = "{\"message\":\"Unsupported media type\"}";
+            json payload4 = {"message": "Unsupported media type"};
             ctx.payload = payload4;
             http:Response response = <http:Response>ctx.attributes.response;
             response.statusCode = 500;
@@ -140,7 +140,7 @@ service class MuleResponseErrorInterceptor0 {
             ctx.vars.httpStatus = "501";
 
             // set payload
-            string payload5 = "{\"message\":\"Not implemented\"}";
+            json payload5 = {"message": "Not implemented"};
             ctx.payload = payload5;
             http:Response response = <http:Response>ctx.attributes.response;
             response.statusCode = 500;
