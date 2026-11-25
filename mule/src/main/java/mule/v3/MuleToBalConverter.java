@@ -129,6 +129,8 @@ public class MuleToBalConverter {
         for (MuleRecord exceptionStrategy : ctx.currentFileCtx.configs.globalExceptionStrategies) {
             genBalFuncForGlobalExceptionStrategy(ctx, exceptionStrategy, functions);
         }
+        // Converting a global exception strategy may register a helper, such as toJsonPayload
+        functions.addAll(ctx.currentFileCtx.balConstructs.functions);
 
         // Add global listeners
         List<Listener> listeners = new ArrayList<>();

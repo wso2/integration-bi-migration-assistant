@@ -626,9 +626,10 @@ public class MuleConfigConverter {
         ctx.currentFileCtx.balConstructs.commonFunctions.put(Constants.FUNC_TO_JSON_PAYLOAD,
                 Function.publicFunction(Constants.FUNC_TO_JSON_PAYLOAD,
                         List.of(new Parameter(Constants.PAYLOAD_REF, Constants.BAL_ANYDATA_TYPE)), typeFrom("json"),
-                        List.of(new Statement.Comment("Like Mule, a payload that is not JSON text is kept as it is"),
+                        List.of(new Statement.Comment(
+                                        "Like Mule, text that is not JSON, or is a JSON string, is kept as it is"),
                                 stmtFrom("if payload is string { json|error parsed = payload.fromJsonString(); "
-                                        + "return parsed is json ? parsed : payload; }"),
+                                        + "return parsed is json && parsed !is string ? parsed : payload; }"),
                                 stmtFrom("return payload.toJson();"))));
     }
 

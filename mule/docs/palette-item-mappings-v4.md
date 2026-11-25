@@ -8490,6 +8490,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
         <http:listener doc:name="Listener" doc:id="2d80f8b6-ba81-46e0-91b7-516a8e4fdb67" config-ref="config" path="/set_payload" allowedMethods="GET"/>
         <set-payload value='{"status": "ok", "count": 2, "ratio": 0.5, "tags": ["a", "b"], "next": null}' mimeType="application/json"/>
         <set-payload value='["Alice", "Bob"]' mimeType="application/json; charset=UTF-8"/>
+        <set-payload value='"hello"' mimeType="application/json"/>
         <set-payload value='{"msg": "line1\nline2 \"quoted\""}' mimeType="application/json"/>
         <set-payload value="#[payload]" mimeType="application/json"/>
         <set-payload value="not json" mimeType="application/json"/>
@@ -8539,37 +8540,41 @@ service /mule4 on config {
         ctx.payload = payload1;
 
         // set payload
-        json payload2 = {"msg": "line1\nline2 \"quoted\""};
+        json payload2 = "\"hello\"";
         ctx.payload = payload2;
 
         // set payload
-        json payload3 = toJsonPayload(ctx.payload);
+        json payload3 = {"msg": "line1\nline2 \"quoted\""};
         ctx.payload = payload3;
 
         // set payload
-        // TODO: value is not valid JSON, so it is kept as a string although mimeType is application/json
-        string payload4 = "not json";
+        json payload4 = toJsonPayload(ctx.payload);
         ctx.payload = payload4;
 
         // set payload
-        string payload5 = "plain text";
+        // TODO: value is not valid JSON, so it is kept as a string although mimeType is application/json
+        string payload5 = "not json";
         ctx.payload = payload5;
 
         // set payload
-        json payload6 = {"hundred": 100, "half": 0.5};
+        string payload6 = "plain text";
         ctx.payload = payload6;
 
         // set payload
-        json payload7 = toJsonPayload("{\"huge\": 1e400}");
+        json payload7 = {"hundred": 100, "half": 0.5};
         ctx.payload = payload7;
 
         // set payload
-        json payload8 = toJsonPayload("{\"precise\": 0.10000000000000000001}");
+        json payload8 = toJsonPayload("{\"huge\": 1e400}");
         ctx.payload = payload8;
 
         // set payload
-        json payload9 = toJsonPayload("{\"lone\": \"\\uD800\"}");
+        json payload9 = toJsonPayload("{\"precise\": 0.10000000000000000001}");
         ctx.payload = payload9;
+
+        // set payload
+        json payload10 = toJsonPayload("{\"lone\": \"\\uD800\"}");
+        ctx.payload = payload10;
         jsonSubFlow(ctx);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -8580,15 +8585,71 @@ service /mule4 on config {
 public function jsonSubFlow(Context ctx) {
 
     // set payload
-    json payload10 = toJsonPayload(ctx.payload);
-    ctx.payload = payload10;
+    json payload11 = toJsonPayload(ctx.payload);
+    ctx.payload = payload11;
 }
 
 public function toJsonPayload(anydata payload) returns json {
-    // Like Mule, a payload that is not JSON text is kept as it is
+    // Like Mule, text that is not JSON, or is a JSON string, is kept as it is
     if payload is string {
         json|error parsed = payload.fromJsonString();
-        return parsed is json ? parsed : payload;
+        return parsed is json && parsed !is string ? parsed : payload;
+    }
+    return payload.toJson();
+}
+
+```
+
+- ### Set Payload Mime Type In Error Handler
+
+**Input (set_payload_mime_type_in_error_handler.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <flow name="demoFlow">
+        <logger level="INFO" message="xxx: in flow"/>
+        <error-handler ref="jsonErrorHandler"/>
+    </flow>
+    <error-handler name="jsonErrorHandler">
+        <on-error-continue>
+            <set-payload value="#[payload]" mimeType="application/json"/>
+        </on-error-continue>
+    </error-handler>
+</mule>
+
+```
+**Output (set_payload_mime_type_in_error_handler.bal):**
+```ballerina
+import ballerina/log;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public function demoFlow(Context ctx) {
+    do {
+        log:printInfo("xxx: in flow");
+    } on fail error err {
+        jsonErrorHandler(ctx, err);
+    }
+}
+
+public function jsonErrorHandler(Context ctx, error err) {
+    // on-error-continue
+
+    // set payload
+    json payload0 = toJsonPayload(ctx.payload);
+    ctx.payload = payload0;
+}
+
+public function toJsonPayload(anydata payload) returns json {
+    // Like Mule, text that is not JSON, or is a JSON string, is kept as it is
+    if payload is string {
+        json|error parsed = payload.fromJsonString();
+        return parsed is json && parsed !is string ? parsed : payload;
     }
     return payload.toJson();
 }
@@ -9315,10 +9376,10 @@ service / on HTTP_Listener_config {
 }
 
 public function toJsonPayload(anydata payload) returns json {
-    // Like Mule, a payload that is not JSON text is kept as it is
+    // Like Mule, text that is not JSON, or is a JSON string, is kept as it is
     if payload is string {
         json|error parsed = payload.fromJsonString();
-        return parsed is json ? parsed : payload;
+        return parsed is json && parsed !is string ? parsed : payload;
     }
     return payload.toJson();
 }

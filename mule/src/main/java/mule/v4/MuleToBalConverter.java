@@ -193,6 +193,8 @@ public class MuleToBalConverter {
             genBalFuncForGlobalErrorHandler(ctx, errorHandler, functions);
             functions.addAll(ctx.currentFileCtx.balConstructs.functions); // TODO: this is a hack.
         }
+        // Converting a global error handler may register a common helper, such as toJsonPayload
+        functions.addAll(ctx.currentFileCtx.balConstructs.commonFunctions.values());
 
         // Add global HTTP listeners from configs
         for (HTTPListenerConfig httpListenerConfig : ctx.currentFileCtx.configs.httpListenerConfigs.values()) {

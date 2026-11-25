@@ -71,11 +71,15 @@ public final class JsonPayloadLiteral {
     /**
      * @param jsonText text expected to be a JSON document
      * @return the equivalent Ballerina {@code json} expression, or empty when the text is not valid JSON or holds a
-     *         value Ballerina source cannot represent exactly, such as a number out of range or a lone surrogate
+     *         value Ballerina source cannot represent exactly, such as a number out of range or a lone surrogate.
+     *         A JSON string stays as its JSON text, since a string payload is read back as JSON text and sent as is
      */
     @NotNull
     public static Optional<String> toBalJsonLiteral(@NotNull String jsonText) {
         return parse(jsonText).flatMap(node -> {
+            if (node.isTextual()) {
+                return Optional.of(toBalStringLiteral(jsonText));
+            }
             StringBuilder literal = new StringBuilder();
             return appendBalJson(node, literal) ? Optional.of(literal.toString()) : Optional.empty();
         });

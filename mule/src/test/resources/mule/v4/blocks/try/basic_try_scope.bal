@@ -46,10 +46,10 @@ service / on HTTP_Listener_config {
 }
 
 public function toJsonPayload(anydata payload) returns json {
-    // Like Mule, a payload that is not JSON text is kept as it is
+    // Like Mule, text that is not JSON, or is a JSON string, is kept as it is
     if payload is string {
         json|error parsed = payload.fromJsonString();
-        return parsed is json ? parsed : payload;
+        return parsed is json && parsed !is string ? parsed : payload;
     }
     return payload.toJson();
 }
