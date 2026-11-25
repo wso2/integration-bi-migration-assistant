@@ -1,0 +1,4 @@
+reviews:
+  path_filters:
+    - "!**/src/test/resources/**/*.bal"
+    - "!mule/docs/**"
