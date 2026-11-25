@@ -21,6 +21,6 @@ public function demoFlow(Context ctx) returns error? {
         // set payload
         string payload1 = "Custom error message: Something went wrong.";
         ctx.payload = payload1;
-        panic err;
+        fail err;
     }
 }

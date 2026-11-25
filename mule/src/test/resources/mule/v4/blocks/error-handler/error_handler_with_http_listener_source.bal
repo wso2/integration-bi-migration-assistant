@@ -45,6 +45,5 @@ public function my_error_handler(Context ctx, error err) returns error? {
     // set payload
     string payload1 = "Custom error message: Something went wrong.";
     ctx.payload = payload1;
-    http:Response response = <http:Response>ctx.attributes.response;
-    response.statusCode = 500;
+    fail err;
 }

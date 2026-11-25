@@ -1465,15 +1465,14 @@ public class MuleConfigConverter {
         List<Statement> errorBlocks = convertMuleRegularBlocks(ctx, onErrorPropagate.errorBlocks()).statements();
         stmts.addAll(errorBlocks);
 
-        if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
+        if (ctx.inHttpListenerFlow) {
             stmts.add(stmtFrom("%s response = <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE,
                     Constants.HTTP_RESPONSE_TYPE,
                     Constants.ATTRIBUTES_FIELD_ACCESS,
                     Constants.HTTP_RESPONSE_REF)));
             stmts.add(stmtFrom("response.statusCode = 500;"));
         } else {
-            // Add a panic statement to propagate the error
-            stmts.add(stmtFrom("panic " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
+            stmts.add(stmtFrom("fail " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
         }
 
         return new WorkerStatementResult(stmts);

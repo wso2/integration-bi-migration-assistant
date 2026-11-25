@@ -95,6 +95,7 @@ public class Context extends ContextBase {
     public Map<JMSMessageProducerLookupKey, BallerinaModel.Expression.VariableReference> messageProducers =
             new HashMap<>();
     public boolean inServiceGen = false;
+    public boolean inHttpListenerFlow = false;
     public AttributesOrigin attributesOrigin = AttributesOrigin.UNKNOWN;
 
     public Context(List<File> xmlFiles, List<File> yamlFiles, Path muleAppDir, MuleVersion muleVersion,
@@ -392,6 +393,7 @@ public class Context extends ContextBase {
         this.initFunctionBody.clear();
         this.serviceFields.clear();
         this.inServiceGen = false;
+        this.inHttpListenerFlow = false;
         this.attributesOrigin = AttributesOrigin.UNKNOWN;
         this.messageProducers.clear();
     }

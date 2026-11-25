@@ -278,6 +278,7 @@ public class MuleToBalConverter {
     private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services,
                                         Service lastHttpService) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
@@ -978,6 +979,7 @@ public class MuleToBalConverter {
 
     private static HTTPInterceptor genRequestInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         List<Statement> body = new ArrayList<>();
         if (flowBlocks.isEmpty()) {
@@ -1007,6 +1009,7 @@ public class MuleToBalConverter {
     // Runs the blocks after an APIkit router; the listener's http:response is applied by the resources instead
     private static HTTPInterceptor genResponseInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("Context %s = {%s: {%s: %s}%s};".formatted(Constants.CONTEXT_REFERENCE,
@@ -1039,6 +1042,7 @@ public class MuleToBalConverter {
     private static HTTPInterceptor genResponseErrorInterceptor(Context ctx, Optional<ErrorHandler> errorHandler,
                                                                Optional<HttpResponse> httpErrorResponse) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         String interceptedResponse = "interceptedResponse";
         List<Statement> body = new ArrayList<>();
@@ -1191,6 +1195,7 @@ public class MuleToBalConverter {
                                          boolean sharesCorrelationId)
             throws ScriptConversionException {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         Optional<String> apiKitRouterRef = flowBlocks.stream()
                 .filter(ApiKitRouter.class::isInstance)

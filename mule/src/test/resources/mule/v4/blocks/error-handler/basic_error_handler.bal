@@ -26,5 +26,5 @@ public function my_error_handler(Context ctx, error err) returns error? {
     // set payload
     string payload1 = "Custom error message: Something went wrong.";
     ctx.payload = payload1;
-    panic err;
+    fail err;
 }
