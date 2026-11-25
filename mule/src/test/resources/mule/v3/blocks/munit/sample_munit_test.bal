@@ -39,7 +39,7 @@ function testWithMock() returns error? {
     // ------------------------------------------------------------------------
     // Execution (Act)
     // TODO: failed to resolve flow getOrderFlow
-    getOrderFlow(ctx);
+    check getOrderFlow(ctx);
     // Validation (Assert)
     test:assertNotEquals(ctx.payload, ());
     test:assertEquals(ctx.payload.orderId, 123);

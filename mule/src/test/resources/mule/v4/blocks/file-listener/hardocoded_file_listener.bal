@@ -25,21 +25,21 @@ service on file_config {
     function init() returns error? {
     }
 
-    remote function onCreate(file:FileEvent event) {
+    remote function onCreate(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 
-    remote function onModify(file:FileEvent event) {
+    remote function onModify(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 }
 
-public function fileListnerFlow(Context ctx) {
+public function fileListnerFlow(Context ctx) returns error? {
     log:printInfo("xxx: logger invoked");
 }

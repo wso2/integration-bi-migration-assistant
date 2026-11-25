@@ -13,7 +13,7 @@ public type Context record {|
 
 configurable string api_region = "eu";
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.orderId = "1001";
 
     // http client request

@@ -9,7 +9,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function combineFlowVarsAndPayloadFlow(Context ctx) {
+public function combineFlowVarsAndPayloadFlow(Context ctx) returns error? {
     ctx.flowVars.name = "Alice";
 
     // set payload

@@ -18,7 +18,7 @@ service /mule3 on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(ctx);
+        check demoSub_Flow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -26,7 +26,7 @@ service /mule3 on config {
     }
 }
 
-public function demoSub_Flow(Context ctx) {
+public function demoSub_Flow(Context ctx) returns error? {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload

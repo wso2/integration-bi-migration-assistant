@@ -9,7 +9,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.age = 29;
     if ctx.vars?.age > 18 {
         log:printInfo(string `Adult detected: Age is ${ctx.vars?.age.toString()} years.`);

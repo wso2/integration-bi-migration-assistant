@@ -64,7 +64,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function mainFlow(Context ctx) {
+public function mainFlow(Context ctx) returns error? {
 
     // set payload
     string payload0 = "Hello";
@@ -75,7 +75,7 @@ public function mainFlow(Context ctx) {
     log:printInfo("Main flow continues immediately.");
 }
 
-public function async0(Context ctx) {
+public function async0(Context ctx) returns error? {
     log:printInfo(string `Doing something in background: ${ctx.payload.toString()}`);
 }
 
@@ -114,7 +114,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail {
@@ -228,7 +228,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function muleProject(Context ctx) {
+public function muleProject(Context ctx) returns error? {
     ctx.flowVars.age = 29;
     if ctx.flowVars.age > 18 {
         log:printInfo(string `Adult detected: Age is ${ctx.flowVars.age.toString()} years.`);
@@ -366,7 +366,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function muleProject(Context ctx) {
+public function muleProject(Context ctx) returns error? {
     ctx.flowVars.marks = 73;
     if ctx.flowVars.marks > 75 {
         log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);
@@ -421,7 +421,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
         log:printInfo("xxx: main flow logger invoked");
     } on fail error e {
@@ -830,7 +830,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function combineFlowVarsAndPayloadFlow(Context ctx) {
+public function combineFlowVarsAndPayloadFlow(Context ctx) returns error? {
     ctx.flowVars.name = "Alice";
 
     // set payload
@@ -1051,7 +1051,7 @@ service /mule3 on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(ctx);
+        check demoPrivateFlow(ctx);
         log:printInfo("xxx: end of main flow");
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -1059,7 +1059,7 @@ service /mule3 on config {
     }
 }
 
-public function demoPrivateFlow(Context ctx) {
+public function demoPrivateFlow(Context ctx) returns error? {
     log:printInfo("xxx: private flow invoked");
 }
 
@@ -2134,7 +2134,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function callExternalApiFlow(Context ctx) {
+public function callExternalApiFlow(Context ctx) returns error? {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
@@ -2178,7 +2178,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function callExternalApiFlow(Context ctx) {
+public function callExternalApiFlow(Context ctx) returns error? {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");
@@ -2398,7 +2398,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = ctx.flowVars.userId;
@@ -2446,20 +2446,20 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
+    ctx.flowVars.enrichedUserId = check enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function flow1(Context ctx) {
+public function flow1(Context ctx) returns error? {
     log:printInfo("xxx: flow1 starting logger invkoed");
     log:printInfo("xxx: end of flow1 reached");
 }
 
-public function enricher0(Context ctx) returns string? {
-    flow1(ctx);
+public function enricher0(Context ctx) returns string|error? {
+    check flow1(ctx);
     return ctx.flowVars.userId;
 }
 
@@ -2499,14 +2499,14 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
+    ctx.flowVars.enrichedUserId = check enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function enricher0(Context ctx) returns string? {
+public function enricher0(Context ctx) returns string|error? {
     log:printInfo("xxx: logger inside the message enricher invoked");
     return ctx.flowVars.userId;
 }
@@ -2700,7 +2700,7 @@ function testWithMock() returns error? {
     // ------------------------------------------------------------------------
     // Execution (Act)
     // TODO: failed to resolve flow getOrderFlow
-    getOrderFlow(ctx);
+    check getOrderFlow(ctx);
     // Validation (Assert)
     test:assertNotEquals(ctx.payload, ());
     test:assertEquals(ctx.payload.orderId, 123);
@@ -2995,15 +2995,15 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function muleProject(Context ctx) {
+public function muleProject(Context ctx) returns error? {
     do {
         log:printInfo("xxx: end of flow reached");
     } on fail error e {
-        catch\-exception\-strategy(ctx, e);
+        check catch\-exception\-strategy(ctx, e);
     }
 }
 
-public function catch\-exception\-strategy(Context ctx, error e) {
+public function catch\-exception\-strategy(Context ctx, error e) returns error? {
     log:printInfo("xxx: inside catch exception strategy");
 }
 
@@ -3058,7 +3058,7 @@ service / on httpConfig {
         do {
             log:printInfo("xxx: end of flow reached");
         } on fail error e {
-            catch\-exception\-strategy(ctx, e);
+            check catch\-exception\-strategy(ctx, e);
         }
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -3066,7 +3066,7 @@ service / on httpConfig {
     }
 }
 
-public function catch\-exception\-strategy(Context ctx, error e) {
+public function catch\-exception\-strategy(Context ctx, error e) returns error? {
     log:printInfo("xxx: inside catch exception strategy");
 }
 
@@ -3211,7 +3211,7 @@ public type Context record {|
     SessionVars sessionVars = {};
 |};
 
-public function myFlow(Context ctx) {
+public function myFlow(Context ctx) returns error? {
     log:printInfo("xxx: flow starting logger invoked");
     ctx.sessionVars.day = "21";
     ctx.sessionVars.month = "July";
@@ -3330,7 +3330,7 @@ public type Context record {|
     SessionVars sessionVars = {};
 |};
 
-public function weatherServiceFlow(Context ctx) {
+public function weatherServiceFlow(Context ctx) returns error? {
     ctx.sessionVars.greeting = "hello session";
     ctx.sessionVars.'from = "USA";
     ctx.sessionVars.greeting = ();
@@ -3375,7 +3375,7 @@ public type Context record {|
     SessionVars sessionVars = {};
 |};
 
-public function myFlow(Context ctx) {
+public function myFlow(Context ctx) returns error? {
     log:printInfo("xxx: flow starting logger invoked");
     ctx.sessionVars.sessionVar1 = "initial value";
     ctx.sessionVars.sessionVar1 = "updated value";
@@ -3553,7 +3553,7 @@ service /mule3 on config {
     resource function get .(http:Request request) returns http:Response|error {
         Context ctx = {inboundProperties: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoSub_Flow(ctx);
+        check demoSub_Flow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -3561,7 +3561,7 @@ service /mule3 on config {
     }
 }
 
-public function demoSub_Flow(Context ctx) {
+public function demoSub_Flow(Context ctx) returns error? {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload
@@ -3674,7 +3674,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
     json userName = check _dwMethod0_();
     json _dwOutput_ = check _dwMethod1_();
     ctx.payload = _dwOutput_;
@@ -3723,7 +3723,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
     json _dwOutput_ = check _dwMethod0_();
     ctx.payload = _dwOutput_;
 }
@@ -3767,7 +3767,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
     json _dwOutput_ = _dwMethod0_();
     ctx.payload = _dwOutput_;
 }
@@ -3812,7 +3812,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
     json _dwOutput_ = check _dwMethod0_();
     ctx.payload = _dwOutput_;
 }
@@ -3935,7 +3935,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
 
     // TODO: DATAWEAVE PARSING FAILED.
     // ------------------------------------------------------------------------
@@ -4063,7 +4063,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function weatherServiceFlow(Context ctx) {
+public function weatherServiceFlow(Context ctx) returns error? {
     ctx.flowVars.greeting = "hello";
     ctx.flowVars.'from = "USA";
     ctx.flowVars.greeting = ();
@@ -4106,16 +4106,16 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function inboundVmFlow(Context ctx) {
+public function inboundVmFlow(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function outboundVmFlow(Context ctx) {
+public function outboundVmFlow(Context ctx) returns error? {
     worker W returns error? {
         // VM Inbound Endpoint
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        inboundVmFlow(ctx);
+        check inboundVmFlow(ctx);
     }
 
     // set payload
@@ -4193,16 +4193,16 @@ service / on HTTP_Listener_Configuration {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function async0(Context ctx) {
+public function async0(Context ctx) returns error? {
     worker W returns error? {
         // VM Inbound Endpoint
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        vmReceive0(ctx);
+        check vmReceive0(ctx);
     }
 
     // VM Outbound Endpoint
@@ -4263,7 +4263,7 @@ service / on HTTP_Listener_Configuration {
             // VM Inbound Endpoint
             anydata receivedPayload = <- function;
             ctx.payload = receivedPayload;
-            vmReceive0(ctx);
+            check vmReceive0(ctx);
         }
 
         // set payload
@@ -4278,7 +4278,7 @@ service / on HTTP_Listener_Configuration {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 

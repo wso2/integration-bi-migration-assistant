@@ -13,7 +13,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.customerId = "C100";
     ctx.vars.orderId = "1001";
     ctx.vars.language = "en";

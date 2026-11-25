@@ -813,7 +813,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // set payload
     string payload0 = "John";
@@ -824,7 +824,7 @@ public function demoFlow(Context ctx) {
     log:printInfo(string `Payload is '${ctx.payload.toString()}'`);
 }
 
-public function async0(Context ctx) {
+public function async0(Context ctx) returns error? {
 
     // set payload
     string payload1 = "Harry";
@@ -876,7 +876,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.age = 29;
     if ctx.vars?.age > 18 {
         log:printInfo(string `Adult detected: Age is ${ctx.vars?.age.toString()} years.`);
@@ -1017,7 +1017,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.marks = 73;
     if ctx.vars?.marks >= 75 {
         log:printInfo(string `You have scored ${ctx.vars?.marks.toString()}. Your grade is 'A'.`);
@@ -1162,7 +1162,7 @@ public type Context record {|
 
 configurable string company_name = "WSO2";
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     log:printInfo(string `Company name : ${company_name}`);
 }
 
@@ -1340,14 +1340,14 @@ service / on listener_config {
 
     resource function default main(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
-        traceSubFlow(ctx);
+        check traceSubFlow(ctx);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
 }
 
-public function traceSubFlow(Context ctx) {
+public function traceSubFlow(Context ctx) returns error? {
     ctx.vars.trace = {correlationId: ctx.correlationId};
     ctx.vars.correlationId = "manual";
     ctx.vars.fromVars = ctx.vars?.correlationId;
@@ -2109,7 +2109,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function vmListenerFlow(Context ctx) {
+public function vmListenerFlow(Context ctx) returns error? {
     log:printInfo("Received " + ctx.correlationId.toString());
 }
 
@@ -2864,7 +2864,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
 
         // set payload
@@ -2872,11 +2872,11 @@ public function demoFlow(Context ctx) {
         ctx.payload = payload0;
         log:printInfo("xxx: log after exception");
     } on fail error err {
-        my_error_handler(ctx, err);
+        check my_error_handler(ctx, err);
     }
 }
 
-public function my_error_handler(Context ctx, error err) {
+public function my_error_handler(Context ctx, error err) returns error? {
     // on-error-propagate
     log:printError("Message: " + err.message());
     log:printError("Trace: " + err.stackTrace().toString());
@@ -2961,7 +2961,7 @@ service /mule4 on listener_config {
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
         } on fail error err {
-            my_error_handler(ctx, err);
+            check my_error_handler(ctx, err);
         }
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -2969,7 +2969,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function my_error_handler(Context ctx, error err) {
+public function my_error_handler(Context ctx, error err) returns error? {
     // TODO: if conditions may require some manual adjustments
     if err.message() == "#[error.description contains 'timeout']" {
 
@@ -3061,7 +3061,7 @@ service /mule4 on listener_config {
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
         } on fail error err {
-            my_error_handler(ctx, err);
+            check my_error_handler(ctx, err);
         }
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -3069,7 +3069,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function my_error_handler(Context ctx, error err) {
+public function my_error_handler(Context ctx, error err) returns error? {
     // on-error-propagate
     log:printError("Message: " + err.message());
     log:printError("Trace: " + err.stackTrace().toString());
@@ -3198,22 +3198,22 @@ service on file_config {
     function init() returns error? {
     }
 
-    remote function onCreate(file:FileEvent event) {
+    remote function onCreate(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 
-    remote function onModify(file:FileEvent event) {
+    remote function onModify(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 }
 
-public function fileListnerFlow(Context ctx) {
+public function fileListnerFlow(Context ctx) returns error? {
     log:printInfo("xxx: logger invoked");
 }
 
@@ -3273,22 +3273,22 @@ service on file_config {
     function init() returns error? {
     }
 
-    remote function onCreate(file:FileEvent event) {
+    remote function onCreate(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 
-    remote function onModify(file:FileEvent event) {
+    remote function onModify(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 }
 
-public function fileListnerFlow(Context ctx) {
+public function fileListnerFlow(Context ctx) returns error? {
     log:printInfo("xxx: logger invoked");
 }
 
@@ -3352,22 +3352,22 @@ service on file_config {
     function init() returns error? {
     }
 
-    remote function onCreate(file:FileEvent event) {
+    remote function onCreate(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 
-    remote function onModify(file:FileEvent event) {
+    remote function onModify(file:FileEvent event) returns error? {
         Context ctx = {attributes: {}};
         if regex:matches(event.name, ".*\.csv") {
-            fileListnerFlow(ctx);
+            check fileListnerFlow(ctx);
         }
     }
 }
 
-public function fileListnerFlow(Context ctx) {
+public function fileListnerFlow(Context ctx) returns error? {
     log:printInfo("xxx: logger invoked");
 }
 
@@ -3549,6 +3549,118 @@ service /mule4 on config {
 
 ```
 
+- ### Flow Ref To Failing Flow
+
+**Input (flow_ref_to_failing_flow.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <http:request-config name="http_request_config">
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80"/>
+    </http:request-config>
+    <flow name="mainFlow">
+        <http:listener config-ref="listener_config" path="/posts"/>
+        <flow-ref name="fetchPostFlow"/>
+        <flow-ref name="safeFetchFlow"/>
+        <flow-ref name="logSubFlow"/>
+    </flow>
+    <flow name="fetchPostFlow">
+        <http:request method="GET" config-ref="http_request_config" path="/posts/latest"/>
+        <logger level="INFO" message="Received from external API: #[payload]"/>
+    </flow>
+    <flow name="safeFetchFlow">
+        <http:request method="GET" config-ref="http_request_config" path="/posts/latest"/>
+        <error-handler>
+            <on-error-continue>
+                <logger level="ERROR" message="Fetch failed"/>
+            </on-error-continue>
+        </error-handler>
+    </flow>
+    <sub-flow name="logSubFlow">
+        <logger level="INFO" message="Done"/>
+    </sub-flow>
+</mule>
+
+```
+**Output (flow_ref_to_failing_flow.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/uuid;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+public listener http:Listener listener_config = new (8081);
+
+service / on listener_config {
+    function init() returns error? {
+    }
+
+    resource function default posts(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+        check fetchPostFlow(ctx);
+        check safeFetchFlow(ctx);
+        check logSubFlow(ctx);
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+public function fetchPostFlow(Context ctx) returns error? {
+
+    // http client request
+    http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
+    http:Response clientResult0 = check http_request_config->/posts/latest.get(headers = {"X-Correlation-ID": ctx.correlationId});
+    ctx.payload = check clientResult0.getJsonPayload();
+    log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
+}
+
+public function safeFetchFlow(Context ctx) returns error? {
+    do {
+
+        // http client request
+        http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
+        http:Response clientResult1 = check http_request_config->/posts/latest.get(headers = {"X-Correlation-ID": ctx.correlationId});
+        ctx.payload = check clientResult1.getJsonPayload();
+    } on fail error err {
+        // on-error-continue
+        log:printError("Fetch failed");
+    }
+}
+
+public function logSubFlow(Context ctx) returns error? {
+    log:printInfo("Done");
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+```
+
 - ### Private Flow
 
 **Input (private_flow.xml):**
@@ -3601,7 +3713,7 @@ service /mule4 on config {
     resource function get flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(ctx);
+        check demoPrivateFlow(ctx);
         log:printInfo("xxx: end of main flow");
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -3609,7 +3721,7 @@ service /mule4 on config {
     }
 }
 
-public function demoPrivateFlow(Context ctx) {
+public function demoPrivateFlow(Context ctx) returns error? {
     log:printInfo("xxx: private flow invoked");
 }
 
@@ -5076,7 +5188,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
@@ -5120,7 +5232,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function apiFlow(Context ctx) {
+public function apiFlow(Context ctx) returns error? {
 
     // http client request
     http:Client api_request_config = check new ("https://orders.example.com:80/api/v1");
@@ -5128,7 +5240,7 @@ public function apiFlow(Context ctx) {
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
-public function rootFlow(Context ctx) {
+public function rootFlow(Context ctx) returns error? {
 
     // http client request
     http:Client root_request_config = check new ("https://orders.example.com:80");
@@ -5168,7 +5280,7 @@ public type Context record {|
 
 configurable string api_basePath = "/api/v1";
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new (string `https://orders.example.com:80/${api_basePath}`);
@@ -5206,7 +5318,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80", timeout = 10);
@@ -5257,7 +5369,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("https://jsonplaceholder.typicode.com:80");
@@ -5307,7 +5419,7 @@ public type Context record {|
 
 configurable string http_timeout = "10000";
 
-public function propertyTimeoutFlow(Context ctx) {
+public function propertyTimeoutFlow(Context ctx) returns error? {
 
     // http client request
 
@@ -5317,7 +5429,7 @@ public function propertyTimeoutFlow(Context ctx) {
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
-public function expressionTimeoutFlow(Context ctx) {
+public function expressionTimeoutFlow(Context ctx) returns error? {
     ctx.vars.timeout = 5000;
 
     // http client request
@@ -5367,7 +5479,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function configTimeoutFlow(Context ctx) {
+public function configTimeoutFlow(Context ctx) returns error? {
 
     // http client request
     http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 5);
@@ -5375,7 +5487,7 @@ public function configTimeoutFlow(Context ctx) {
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
-public function requestTimeoutFlow(Context ctx) {
+public function requestTimeoutFlow(Context ctx) returns error? {
 
     // http client request
     http:Client timeout_request_config = check new ("https://orders.example.com:80", timeout = 2.5);
@@ -5383,7 +5495,7 @@ public function requestTimeoutFlow(Context ctx) {
     ctx.payload = check clientResult1.getJsonPayload();
 }
 
-public function defaultTimeoutFlow(Context ctx) {
+public function defaultTimeoutFlow(Context ctx) returns error? {
 
     // http client request
     http:Client default_request_config = check new ("https://orders.example.com:80", timeout = 20);
@@ -5433,7 +5545,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.orderId = "1640006670";
 
     // http client request
@@ -5498,7 +5610,7 @@ public type Context record {|
 configurable string anypoint_auth_client_id = ?;
 configurable string anypoint_auth_client_secret = ?;
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
@@ -5951,7 +6063,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.customerId = "C100";
     ctx.vars.orderId = "1001";
     ctx.vars.language = "en";
@@ -6028,7 +6140,7 @@ public type Context record {|
 
 configurable string api_region = "eu";
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.orderId = "1001";
 
     // http client request
@@ -6085,7 +6197,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.status = "OPEN";
 
     // http client request
@@ -6227,7 +6339,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("https://orders.example.com:80");
@@ -6367,7 +6479,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.orderId = "1001";
 
     // http client request
@@ -6423,7 +6535,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     ctx.vars.orderId = "1001";
 
     // http client request
@@ -6475,7 +6587,7 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new ("https://jsonplaceholder.typicode.com/todos/1");
@@ -6638,7 +6750,7 @@ configurable string application_version = ?;
 configurable string tracepoint_beforeRequest = ?;
 configurable string tracepoint_afterRequest = ?;
 
-public function send\-email(Context ctx) {
+public function send\-email(Context ctx) returns error? {
     json logMessage0 = check _dwMethod(ctx);
     log:printInfo(logMessage0.toJsonString());
 
@@ -6710,7 +6822,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function log\-without\-output\-directive(Context ctx) {
+public function log\-without\-output\-directive(Context ctx) returns error? {
     any logMessage0 = _dwMethod(ctx);
     log:printInfo(logMessage0.toString());
 }
@@ -6760,7 +6872,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
     ctx.flowVars.enrichedUserId = ctx.flowVars.userId;
@@ -6808,19 +6920,19 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
+    ctx.flowVars.enrichedUserId = check enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function enricher0(Context ctx) returns string? {
-    flow1(ctx);
+public function enricher0(Context ctx) returns string|error? {
+    check flow1(ctx);
     return ctx.flowVars.userId;
 }
 
-public function flow1(Context ctx) {
+public function flow1(Context ctx) returns error? {
     log:printInfo("xxx: flow1 starting logger invkoed");
     log:printInfo("xxx: end of flow1 reached");
 }
@@ -6861,14 +6973,14 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function variableEnricherFlow(Context ctx) {
+public function variableEnricherFlow(Context ctx) returns error? {
     ctx.flowVars.userId = "st455u";
     ctx.flowVars.enrichedUserId = "null";
-    ctx.flowVars.enrichedUserId = enricher0(ctx.clone());
+    ctx.flowVars.enrichedUserId = check enricher0(ctx.clone());
     log:printInfo(string `User ID: ${ctx.flowVars.userId.toString()}, Enriched User ID: ${ctx.flowVars.enrichedUserId.toString()}`);
 }
 
-public function enricher0(Context ctx) returns string? {
+public function enricher0(Context ctx) returns string|error? {
     log:printInfo("xxx: logger inside the message enricher invoked");
     return ctx.flowVars.userId;
 }
@@ -6917,7 +7029,7 @@ public type Context record {|
 configurable string JMS_PROVIDER_URL = ?;
 jms:ConnectionConfiguration mq_configConfig = {initialContextFactory: "org.apache.activemq.jndi.ActiveMQInitialContextFactory", providerUrl: JMS_PROVIDER_URL};
 
-public function mqSubscriberFlow(Context ctx) {
+public function mqSubscriberFlow(Context ctx) returns error? {
     jms:Connection connection0 = check new (mq_configConfig);
     jms:Session session0 = check connection0->createSession();
     jms:MessageProducer producer0 = check session0.createProducer({'type: jms:QUEUE, name: "destinationQueue"});
@@ -7600,7 +7712,7 @@ function testWithMock() returns error? {
     // ------------------------------------------------------------------------
     // Execution (Act)
     // TODO: failed to find flow getOrderFlow
-    getOrderFlow(ctx);
+    check getOrderFlow(ctx);
     // Validation (Assert)
     test:assertNotEquals(ctx.payload, ());
     test:assertEquals(ctx.payload.orderId, 123);
@@ -7800,7 +7912,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
 
         // set payload
@@ -7939,7 +8051,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
 
         // set payload
@@ -8100,7 +8212,7 @@ service on PubSubConfig {
     function init() returns error? {
     }
 
-    remote function onMessage(pubsub:Message message, pubsub:Caller caller) {
+    remote function onMessage(pubsub:Message message, pubsub:Caller caller) returns error? {
         Context ctx = {attributes: {}};
         log:printInfo("Pub-Sub message received");
     }
@@ -8345,6 +8457,149 @@ public function main() returns error? {
 
 ```
 
+- ### Scheduler With Flow Ref
+
+**Input (scheduler_with_flow_ref.xml):**
+```xml
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:request-config name="http_request_config">
+        <http:request-connection host="jsonplaceholder.typicode.com" port="80"/>
+    </http:request-config>
+    <flow name="schedulerFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+            </scheduling-strategy>
+        </scheduler>
+        <flow-ref name="fetchPostFlow"/>
+    </flow>
+    <flow name="fetchPostFlow">
+        <http:request method="GET" config-ref="http_request_config" path="/posts/latest"/>
+    </flow>
+</mule>
+
+```
+**Output (scheduler_with_flow_ref.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/log;
+import ballerina/task;
+import ballerina/uuid;
+
+public type Context record {|
+    anydata payload = ();
+    string correlationId = uuid:createType4AsString();
+|};
+
+class Job {
+    *task:Job;
+
+    public function execute() {
+        do {
+            check fetchPostFlow(ctx);
+        } on fail error err {
+            log:printError("Scheduled job failed", err);
+        }
+    }
+}
+
+public function main() returns error? {
+    task:JobId id = check task:scheduleJobRecurByFrequency(new Job(), 5.0);
+}
+
+public function fetchPostFlow(Context ctx) returns error? {
+
+    // http client request
+    http:Client http_request_config = check new ("jsonplaceholder.typicode.com:80");
+    http:Response clientResult0 = check http_request_config->/posts/latest.get(headers = {"X-Correlation-ID": ctx.correlationId});
+    ctx.payload = check clientResult0.getJsonPayload();
+}
+
+```
+
+- ### Scheduler With Vm Publish And Raise Error
+
+**Input (scheduler_with_vm_publish_and_raise_error.xml):**
+```xml
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+    <vm:config name="vm_config">
+        <vm:queues>
+            <vm:queue queueName="orders"/>
+        </vm:queues>
+    </vm:config>
+    <flow name="publishSchedulerFlow">
+        <scheduler>
+            <scheduling-strategy>
+                <fixed-frequency frequency="5" timeUnit="SECONDS"/>
+            </scheduling-strategy>
+        </scheduler>
+        <set-payload value="#['Hello World!']"/>
+        <vm:publish config-ref="vm_config" queueName="orders"/>
+        <raise-error type="APP:JOB_FAILED" description="Job failed"/>
+    </flow>
+    <flow name="vmListenerFlow">
+        <vm:listener config-ref="vm_config" queueName="orders"/>
+        <logger level="INFO" message="Received a message: #[payload]"/>
+    </flow>
+</mule>
+
+```
+**Output (scheduler_with_vm_publish_and_raise_error.bal):**
+```ballerina
+import ballerina/log;
+import ballerina/task;
+
+public type Context record {|
+    anydata payload = ();
+|};
+
+public type APP__JOB_FAILED distinct error;
+
+class Job {
+    *task:Job;
+
+    public function execute() {
+        worker W returns error? {
+            // VM Listener
+            anydata receivedPayload = <- function;
+            ctx.payload = receivedPayload;
+            check vmReceive0(ctx);
+        }
+        do {
+
+            // set payload
+            string payload0 = "Hello World!";
+            ctx.payload = payload0;
+
+            // VM Publish
+            ctx.payload -> W;
+            fail error APP__JOB_FAILED("Job failed");
+        } on fail error err {
+            log:printError("Scheduled job failed", err);
+        }
+    }
+}
+
+public function main() returns error? {
+    task:JobId id = check task:scheduleJobRecurByFrequency(new Job(), 5.0);
+}
+
+public function vmReceive0(Context ctx) returns error? {
+    log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
+}
+
+```
+
 ## Set Payload
 
 - ### Basic Set Payload
@@ -8526,7 +8781,7 @@ service /mule4 on config {
     resource function get sub_flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoSubFlow(ctx);
+        check demoSubFlow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -8534,7 +8789,7 @@ service /mule4 on config {
     }
 }
 
-public function demoSubFlow(Context ctx) {
+public function demoSubFlow(Context ctx) returns error? {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload
@@ -8596,14 +8851,14 @@ service /mule4 on config {
     resource function get sub_flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.orderType = getOptionalHeader(<http:Request>ctx.attributes.request, "orderType");
-        demoSubFlow(ctx);
+        check demoSubFlow(ctx);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
 }
 
-public function demoSubFlow(Context ctx) {
+public function demoSubFlow(Context ctx) returns error? {
     // TODO: failed to convert #[attributes.headers.'marketId']
 }
 
@@ -8729,7 +8984,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function mule6demoFlow(Context ctx) {
+public function mule6demoFlow(Context ctx) returns error? {
 
     // TODO: DATAWEAVE PARSING FAILED.
     // ------------------------------------------------------------------------
@@ -8786,7 +9041,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function mule6demoFlow(Context ctx) {
+public function mule6demoFlow(Context ctx) returns error? {
 
     // TODO: DATAWEAVE PARSING FAILED.
     // ------------------------------------------------------------------------
@@ -9379,7 +9634,7 @@ public type Context record {|
 
 public listener http:Listener Listener = new (9091);
 
-public function raise\-error\-example\-flow(Context ctx) {
+public function raise\-error\-example\-flow(Context ctx) returns error? {
     log:printInfo("flow starting logger invoked.");
     ctx.vars.var1 = "initial value";
     ctx.vars.var1 = "updated value";
@@ -9428,16 +9683,16 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function vmListenerFlow(Context ctx) {
+public function vmListenerFlow(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function vmPublishFlow(Context ctx) {
+public function vmPublishFlow(Context ctx) returns error? {
     worker W returns error? {
         // VM Listener
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        vmListenerFlow(ctx);
+        check vmListenerFlow(ctx);
     }
 
     // set payload
@@ -9525,16 +9780,16 @@ service /mule4 on listener_config {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function async0(Context ctx) {
+public function async0(Context ctx) returns error? {
     worker W returns error? {
         // VM Listener
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        vmReceive0(ctx);
+        check vmReceive0(ctx);
     }
 
     // VM Publish
@@ -9605,7 +9860,7 @@ service /mule4 on listener_config {
             // VM Listener
             anydata receivedPayload = <- function;
             ctx.payload = receivedPayload;
-            vmReceive0(ctx);
+            check vmReceive0(ctx);
         }
 
         // set payload
@@ -9620,7 +9875,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 

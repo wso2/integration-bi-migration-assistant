@@ -5,7 +5,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function callExternalApiFlow(Context ctx) {
+public function callExternalApiFlow(Context ctx) returns error? {
 
     // http client request
     http:Client HTTP_Request_Config = check new ("jsonplaceholder.typicode.com:80");

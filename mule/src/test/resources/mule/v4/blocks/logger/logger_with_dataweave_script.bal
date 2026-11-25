@@ -10,7 +10,7 @@ configurable string application_version = ?;
 configurable string tracepoint_beforeRequest = ?;
 configurable string tracepoint_afterRequest = ?;
 
-public function send\-email(Context ctx) {
+public function send\-email(Context ctx) returns error? {
     json logMessage0 = check _dwMethod(ctx);
     log:printInfo(logMessage0.toJsonString());
 

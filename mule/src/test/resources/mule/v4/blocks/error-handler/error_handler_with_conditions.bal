@@ -29,7 +29,7 @@ service /mule4 on listener_config {
             ctx.payload = payload0;
             log:printInfo("xxx: log after exception");
         } on fail error err {
-            my_error_handler(ctx, err);
+            check my_error_handler(ctx, err);
         }
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -37,7 +37,7 @@ service /mule4 on listener_config {
     }
 }
 
-public function my_error_handler(Context ctx, error err) {
+public function my_error_handler(Context ctx, error err) returns error? {
     // TODO: if conditions may require some manual adjustments
     if err.message() == "#[error.description contains 'timeout']" {
 

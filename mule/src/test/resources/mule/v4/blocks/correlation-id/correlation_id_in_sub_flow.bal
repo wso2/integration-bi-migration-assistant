@@ -29,14 +29,14 @@ service / on listener_config {
 
     resource function default main(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
-        traceSubFlow(ctx);
+        check traceSubFlow(ctx);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
 }
 
-public function traceSubFlow(Context ctx) {
+public function traceSubFlow(Context ctx) returns error? {
     ctx.vars.trace = {correlationId: ctx.correlationId};
     ctx.vars.correlationId = "manual";
     ctx.vars.fromVars = ctx.vars?.correlationId;

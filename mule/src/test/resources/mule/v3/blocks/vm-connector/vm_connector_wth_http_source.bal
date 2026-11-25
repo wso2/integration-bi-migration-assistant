@@ -21,7 +21,7 @@ service / on HTTP_Listener_Configuration {
             // VM Inbound Endpoint
             anydata receivedPayload = <- function;
             ctx.payload = receivedPayload;
-            vmReceive0(ctx);
+            check vmReceive0(ctx);
         }
 
         // set payload
@@ -36,6 +36,6 @@ service / on HTTP_Listener_Configuration {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }

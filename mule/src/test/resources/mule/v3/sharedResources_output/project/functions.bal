@@ -1,7 +1,7 @@
 import ballerina/log;
 
-public function muleprojectdemoFlow(Context ctx) {
+public function muleprojectdemoFlow(Context ctx) returns error? {
     log:printInfo("Before calling test flow");
-    lib:TestFlow(ctx);
+    check lib:TestFlow(ctx);
     log:printInfo("Returned from test flow");
 }

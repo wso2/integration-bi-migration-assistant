@@ -21,7 +21,7 @@ service /mule4 on config {
     resource function get flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoPrivateFlow(ctx);
+        check demoPrivateFlow(ctx);
         log:printInfo("xxx: end of main flow");
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -29,6 +29,6 @@ service /mule4 on config {
     }
 }
 
-public function demoPrivateFlow(Context ctx) {
+public function demoPrivateFlow(Context ctx) returns error? {
     log:printInfo("xxx: private flow invoked");
 }

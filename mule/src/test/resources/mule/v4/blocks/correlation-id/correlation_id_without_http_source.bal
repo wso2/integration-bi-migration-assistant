@@ -6,6 +6,6 @@ public type Context record {|
     string correlationId = uuid:createType4AsString();
 |};
 
-public function vmListenerFlow(Context ctx) {
+public function vmListenerFlow(Context ctx) returns error? {
     log:printInfo("Received " + ctx.correlationId.toString());
 }

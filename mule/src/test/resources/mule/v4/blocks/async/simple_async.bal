@@ -5,7 +5,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // set payload
     string payload0 = "John";
@@ -16,7 +16,7 @@ public function demoFlow(Context ctx) {
     log:printInfo(string `Payload is '${ctx.payload.toString()}'`);
 }
 
-public function async0(Context ctx) {
+public function async0(Context ctx) returns error? {
 
     // set payload
     string payload1 = "Harry";

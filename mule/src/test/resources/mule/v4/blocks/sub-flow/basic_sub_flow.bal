@@ -21,7 +21,7 @@ service /mule4 on config {
     resource function get sub_flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         log:printInfo("xxx: logger invoked via http end point");
-        demoSubFlow(ctx);
+        check demoSubFlow(ctx);
         log:printInfo("xxx: logger after flow reference invoked");
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
@@ -29,7 +29,7 @@ service /mule4 on config {
     }
 }
 
-public function demoSubFlow(Context ctx) {
+public function demoSubFlow(Context ctx) returns error? {
     log:printInfo("xxx: sub flow logger invoked");
 
     // set payload

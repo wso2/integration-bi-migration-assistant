@@ -34,16 +34,16 @@ service /mule4 on listener_config {
     }
 }
 
-public function vmReceive0(Context ctx) {
+public function vmReceive0(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function async0(Context ctx) {
+public function async0(Context ctx) returns error? {
     worker W returns error? {
         // VM Listener
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        vmReceive0(ctx);
+        check vmReceive0(ctx);
     }
 
     // VM Publish

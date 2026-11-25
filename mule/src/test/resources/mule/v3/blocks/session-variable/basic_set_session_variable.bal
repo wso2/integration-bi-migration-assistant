@@ -11,7 +11,7 @@ public type Context record {|
     SessionVars sessionVars = {};
 |};
 
-public function myFlow(Context ctx) {
+public function myFlow(Context ctx) returns error? {
     log:printInfo("xxx: flow starting logger invoked");
     ctx.sessionVars.day = "21";
     ctx.sessionVars.month = "July";
