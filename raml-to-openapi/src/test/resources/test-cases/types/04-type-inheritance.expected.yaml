@@ -42,7 +42,6 @@ components:
 paths:
   /employees:
     get:
-      summary: get
       operationId: get_employees
       responses:
         "200":
@@ -53,7 +52,6 @@ paths:
                 $ref: '#/components/schemas/EmployeeArray'
   /employees/{employeeId}:
     get:
-      summary: get
       operationId: get_employees_employeeId
       parameters:
         - name: employeeId
