@@ -125,7 +125,7 @@ public class MELConverter {
                     // We reach here for two kinds of syntax.
                     // 1. vars.foo
                     // 2. vars['foo']
-                    i = processVars(melExpr, i, tokenStr, result, addToStringCalls);
+                    i = processVars(ctx, melExpr, i, result, addToStringCalls);
                     token.setLength(0);
                     continue;
                 }
@@ -446,7 +446,7 @@ public class MELConverter {
         return i;
     }
 
-    private static int processVars(String melExpr, int startPos, String baseToken, StringBuilder result,
+    private static int processVars(Context ctx, String melExpr, int startPos, StringBuilder result,
                                    boolean addToStringCalls) {
         StringBuilder varNameToken = new StringBuilder();
         int i = startPos;
@@ -471,8 +471,7 @@ public class MELConverter {
             i++; // Skip the closing bracket
         }
 
-        String varName = ConversionUtils.convertToBalIdentifier(varNameToken.toString());
-        result.append(Constants.VARS_FIELD_ACCESS).append("?.").append(varName);
+        result.append(ConversionUtils.readVar(ctx, varNameToken.toString()));
         if (addToStringCalls) {
             result.append(".toString()");
         }

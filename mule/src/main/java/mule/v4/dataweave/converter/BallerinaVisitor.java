@@ -302,8 +302,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         } else if (queryParamAttributeAccess) {
             handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
         } else {
-            visit(ctx.primaryExpression());
-            visit(ctx.selectorExpression());
+            visitSelection(ctx.primaryExpression(), ctx.selectorExpression());
         }
         if (headerAttributeAccess | uriParamAttributeAccess) {
             dwContext.append(" : ");
@@ -1276,10 +1275,61 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         } else if (queryParamAttributeAccess) {
             handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
         } else {
-            visit(ctx.primaryExpression());
-            visit(ctx.selectorExpression());
+            visitSelection(ctx.primaryExpression(), ctx.selectorExpression());
         }
         return null;
+    }
+
+    private void visitSelection(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        Optional<String> varName = selectedVarName(primaryExpression, selectorExpression);
+        if (varName.isPresent()) {
+            dwContext.currentScriptContext.currentType = DWUtils.IDENTIFIER;
+            dwContext.append(ConversionUtils.readVar(ctx, varName.get()));
+            stats.record(DWConstruct.IDENTIFIER, true);
+            stats.record(DWConstruct.SINGLE_VALUE_SELECTOR, true);
+            return;
+        }
+        visit(primaryExpression);
+        if (selectorExpression instanceof DataWeaveParser.SingleValueSelectorContext && readsVar(primaryExpression)) {
+            // A field of an unset variable is null in DataWeave, but lax field access on nil is an error
+            boolean inDefaultAccess = dwContext.inDefaultAccess;
+            dwContext.inDefaultAccess = true;
+            visit(selectorExpression);
+            dwContext.inDefaultAccess = inDefaultAccess;
+            return;
+        }
+        visit(selectorExpression);
+    }
+
+    private boolean readsVar(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        if (!(primaryExpression instanceof DataWeaveParser.SelectorExpressionWrapperContext selection)) {
+            return false;
+        }
+        return selectedVarName(selection.primaryExpression(), selection.selectorExpression()).isPresent()
+                || selection.selectorExpression() instanceof DataWeaveParser.SingleValueSelectorContext
+                && readsVar(selection.primaryExpression());
+    }
+
+    private Optional<String> selectedVarName(DataWeaveParser.PrimaryExpressionContext primaryExpression,
+                                             DataWeaveParser.SelectorExpressionContext selectorExpression) {
+        if (!isVarsReference(primaryExpression)) {
+            return Optional.empty();
+        }
+        if (selectorExpression instanceof DataWeaveParser.SingleValueSelectorContext nameSelector) {
+            return Optional.of(nameSelector.IDENTIFIER().getText());
+        }
+        if (selectorExpression instanceof DataWeaveParser.KeySelectorContext keySelector) {
+            String quotedKey = keySelector.STRING().getText();
+            return Optional.of(quotedKey.substring(1, quotedKey.length() - 1));
+        }
+        return Optional.empty();
+    }
+
+    private boolean isVarsReference(DataWeaveParser.PrimaryExpressionContext primaryExpression) {
+        return primaryExpression instanceof DataWeaveParser.IdentifierExpressionContext
+                && primaryExpression.getText().equals(Constants.VARS_REF)
+                && !dwContext.currentScriptContext.varNames.containsKey(Constants.VARS_REF);
     }
 
     @Override
@@ -1367,6 +1417,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         if (identifier.equals(Constants.CORRELATION_ID_REF)) {
             this.dwContext.append(Constants.CORRELATION_ID_FIELD_ACCESS);
+            return null;
+        }
+        if (identifier.equals(Constants.VARS_REF)) {
+            this.ctx.projectCtx.readsVarsContainer = true;
+            this.dwContext.append(Constants.VARS_FIELD_ACCESS);
             return null;
         }
         if (identifier.equals(DWUtils.DW_PAYLOAD_IDENTIFIER)) {

@@ -160,7 +160,7 @@ public class DWReader {
                                            String namePrefix) throws DWCodeGenException {
         String funcStatement = getFunctionStatement(script, resourcePath, context, ctx, varName, namePrefix);
         statementList.add(new BallerinaStatement(funcStatement));
-        ctx.projectCtx.vars.put(varName, context.currentScriptContext.outputType);
+        ctx.projectCtx.redeclareVarWrite(varName, context.currentScriptContext.outputType);
         statementList.add(stmtFrom(
                 "%s.%s = %s;".formatted(Constants.VARS_FIELD_ACCESS, varName, varName)));
         context.clearScript();

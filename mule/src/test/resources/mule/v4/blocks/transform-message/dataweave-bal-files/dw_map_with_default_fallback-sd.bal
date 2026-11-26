@@ -1,4 +1,5 @@
 public type Vars record {|
+    json sourceApi?;
     json _dwOutput_?;
 |};
 
@@ -18,7 +19,7 @@ public function sampleFlow(Context ctx) {
 
 public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType(), json[] array = check (check payload.ChangeLog.ModTypes.Order).cloneWithType() in (array.map(item => {
         "entity": secure_xref_orderFiltering_entityApiName,
-        "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + check vars.sourceApi.toString() + "|" + item.toString() + "|" + "" + "|").toLowerAscii()) ?: "",
+        "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + ctx.vars?.sourceApi.toString() + "|" + item.toString() + "|" + "" + "|").toLowerAscii()) ?: "",
         "domain": secure_xref_orderFiltering_domainNameOrder,
         "defaultValue": false
     })) ?: ([

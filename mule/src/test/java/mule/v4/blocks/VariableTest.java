@@ -35,4 +35,15 @@ public class VariableTest extends AbstractBlockTest {
     public void testUpdatingSameVariable() {
         testMule4ToBal("variable/updating_same_variable.xml", "variable/updating_same_variable.bal");
     }
+
+    @Test
+    public void testSetVariableDataWeaveVarsDefault() {
+        testMule4ToBal("variable/set_variable_dataweave_vars_default.xml",
+                "variable/set_variable_dataweave_vars_default.bal");
+    }
+
+    @Test
+    public void testDataWeaveBareVars() {
+        testMule4ToBal("variable/dataweave_bare_vars.xml", "variable/dataweave_bare_vars.bal");
+    }
 }

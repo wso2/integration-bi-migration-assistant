@@ -545,9 +545,7 @@ public class MuleConfigConverter {
             String balExpr = convertMuleExprToBal(ctx, setVariable.value());
             String type = inferTypeFromBalExpr(balExpr);
 
-            if (!ctx.projectCtx.vars.containsKey(varName)) {
-                ctx.projectCtx.vars.put(varName, type);
-            }
+            ctx.projectCtx.declareVarWrite(varName, type);
 
             var stmt = stmtFrom(String.format("%s.%s = %s;", Constants.VARS_FIELD_ACCESS, varName, balExpr));
             stmts.add(stmt);
@@ -706,9 +704,7 @@ public class MuleConfigConverter {
 
         if (target.startsWith(Constants.VARS_FIELD_ACCESS + ".")) {
             String var = target.replace(Constants.VARS_FIELD_ACCESS + ".", "");
-            if (!ctx.projectCtx.vars.containsKey(var)) {
-                ctx.projectCtx.vars.put(var, "string");
-            }
+            ctx.projectCtx.declareVarWrite(var, "string");
         }
 
         if (enricher.innerBlock().isEmpty()) {
@@ -1084,7 +1080,7 @@ public class MuleConfigConverter {
     private static void declareReferencedVars(Context ctx, String balExpr) {
         Matcher matcher = VARS_REFERENCE_PATTERN.matcher(balExpr);
         while (matcher.find()) {
-            ctx.projectCtx.vars.putIfAbsent(matcher.group(1), "anydata");
+            ctx.projectCtx.declareVarRead(matcher.group(1));
         }
     }
 

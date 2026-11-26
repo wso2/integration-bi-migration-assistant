@@ -1069,7 +1069,7 @@ public class MuleToBalConverter {
         List<RecordField> contextRecFields = new ArrayList<>();
         contextRecFields.add(new RecordField(Constants.PAYLOAD_REF, BAL_ANYDATA_TYPE, exprFrom("()")));
 
-        if (!ctx.projectCtx.vars.isEmpty()) {
+        if (!ctx.projectCtx.vars.isEmpty() || ctx.projectCtx.readsVarsContainer) {
             contextRecFields.add(new RecordField(Constants.VARS_REF, typeFrom(Constants.VARS_TYPE),
                     exprFrom("{}")));
             List<RecordField> varRecFields = new ArrayList<>();

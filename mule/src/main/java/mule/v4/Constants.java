@@ -64,6 +64,8 @@ public class Constants {
     public static final String JMS_MESSAGE_REF = "jmsMessage";
     public static final String CORRELATION_ID_REF = "correlationId";
     public static final String VARS_FIELD_ACCESS = CONTEXT_REFERENCE + "." + VARS_REF;
+    // Type of the Vars field of a variable that the converted code reads but never writes
+    public static final String READ_ONLY_VAR_TYPE = "json";
     public static final String ATTRIBUTES_FIELD_ACCESS = CONTEXT_REFERENCE + "." + ATTRIBUTES_REF;
     public static final String PAYLOAD_FIELD_ACCESS = CONTEXT_REFERENCE + "." + PAYLOAD_REF;
     public static final String CORRELATION_ID_FIELD_ACCESS = CONTEXT_REFERENCE + "." + CORRELATION_ID_REF;

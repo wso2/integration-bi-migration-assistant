@@ -1,4 +1,5 @@
 public type Vars record {|
+    json sourceApi?;
     json _dwOutput_?;
 |};
 
@@ -21,7 +22,7 @@ public function _dwMethod(Context ctx) returns json|error {
     json[] array = check (check payload.ChangeLog.ModTypes.Order).cloneWithType();
     any[] _var_0 = (array.map(item => {
         "entity": secure_xref_orderFiltering_entityApiName,
-        "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + check vars.sourceApi.toString() + "|" + item.toString() + "|" + "" + "|").toLowerAscii()) ?: "",
+        "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + ctx.vars?.sourceApi.toString() + "|" + item.toString() + "|" + "" + "|").toLowerAscii()) ?: "",
         "domain": secure_xref_orderFiltering_domianNameOrder,
         "defaultValue": false
     })) ?: ([
@@ -35,7 +36,7 @@ public function _dwMethod(Context ctx) returns json|error {
     var _var_1 = [
         {
             "entity": secure_xref_orderFiltering_entityApiName,
-            "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + check vars.sourceApi.toString() + "|" + "" + "|" + (check payload.hasHomeDelivery) ?: "" + "|" + (check payload.isCompleted) ?: "").toLowerAscii()) ?: "",
+            "value": ((secure_xref_orderFiltering_entityApiName.toString() + "|" + ctx.vars?.sourceApi.toString() + "|" + "" + "|" + (check payload.hasHomeDelivery) ?: "" + "|" + (check payload.isCompleted) ?: "").toLowerAscii()) ?: "",
             "domain": secure_xref_orderFiltering_domianNameOrder,
             "defaultValue": ""
         }
