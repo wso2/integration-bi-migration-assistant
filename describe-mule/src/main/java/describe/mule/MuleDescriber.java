@@ -17,7 +17,6 @@
  */
 package describe.mule;
 
-import describe.json.DescriptionWriter;
 import describe.model.DescriptionModel;
 import describe.model.DescriptionModel.Counts;
 import describe.model.DescriptionModel.Coverage;
@@ -63,16 +62,6 @@ public final class MuleDescriber {
     private static final Pattern MIN_MULE_VERSION = Pattern.compile("\"minMuleVersion\"\\s*:\\s*\"([^\"]+)\"");
 
     private MuleDescriber() {
-    }
-
-    // For manual runs until the --describe flag arrives in Week 3
-    public static void main(String[] args) throws IOException {
-        if (args.length != 2) {
-            throw new IllegalArgumentException("Usage: MuleDescriber <mule-project-dir> <output-dir>");
-        }
-        Path outputDir = Path.of(args[1]);
-        Files.createDirectories(outputDir);
-        DescriptionWriter.write(describe(Path.of(args[0])), outputDir.resolve(DESCRIPTION_FILE));
     }
 
     @NotNull
