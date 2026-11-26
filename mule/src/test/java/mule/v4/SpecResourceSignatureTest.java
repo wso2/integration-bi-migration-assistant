@@ -134,7 +134,7 @@ public class SpecResourceSignatureTest {
                         param("filter", new ApiType.Ref("Filter"), false),
                         param("type", STRING, false),
                         param("request", STRING, false)),
-                List.of(param("X-Dyson-Correlation", STRING, false), param("ID", INTEGER, true)),
+                List.of(param("X-Request-Correlation", STRING, false), param("ID", INTEGER, true)),
                 Map.of());
 
         Assert.assertEquals(rendered(of(operation, types, Optional.empty())), List.of(
@@ -146,7 +146,7 @@ public class SpecResourceSignatureTest {
                 "string? filter",
                 "@http:Query {name: \"type\"} string? 'type",
                 "@http:Query {name: \"request\"} string? requestQuery",
-                "@http:Header {name: \"X-Dyson-Correlation\"} string? xDysonCorrelation",
+                "@http:Header {name: \"X-Request-Correlation\"} string? xRequestCorrelation",
                 "@http:Header {name: \"ID\"} int id",
                 "http:Request request"));
     }
