@@ -1,0 +1,80 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Library API",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "components": {},
+  "paths": {
+    "/books": {
+      "description": "The books in the library",
+      "get": {
+        "summary": "Lists all books",
+        "description": "Lists all books",
+        "operationId": "get_books",
+        "responses": {
+          "default": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "put": {
+        "summary": "Replaces the whole list of books",
+        "description": "Replaces the whole list of books",
+        "operationId": "put_books",
+        "responses": {
+          "default": {
+            "description": "Successful response"
+          }
+        },
+        "x-raml-displayName": "Replace books"
+      },
+      "post": {
+        "summary": "Add book",
+        "operationId": "post_books",
+        "responses": {
+          "default": {
+            "description": "Successful response"
+          }
+        },
+        "x-raml-displayName": "Add book"
+      },
+      "delete": {
+        "operationId": "delete_books",
+        "responses": {
+          "default": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "x-raml-displayName": "Books"
+    },
+    "/books/{bookId}": {
+      "get": {
+        "summary": "Get book",
+        "operationId": "get_books_bookId",
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Successful response"
+          }
+        },
+        "x-raml-displayName": "Get book"
+      }
+    }
+  }
+}
