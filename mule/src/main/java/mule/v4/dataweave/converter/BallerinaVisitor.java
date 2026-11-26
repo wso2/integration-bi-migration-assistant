@@ -27,6 +27,7 @@ import mule.v4.dataweave.converter.builder.IfStatementBuilder;
 import mule.v4.dataweave.parser.DataWeaveBaseVisitor;
 import mule.v4.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jetbrains.annotations.NotNull;
 
@@ -603,6 +604,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             visit(ctx.implicitLambdaExpression());
             dwContext.append(")");
         }
+        dwContext.currentScriptContext.currentType = DWUtils.ARRAY;
         stats.record(DWConstruct.MAP, true);
         return null;
     }
@@ -743,6 +745,11 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit(ctx.logicalOrExpression(0));
         if (ctx.DEFAULT() != null) {
             String leftExpr = dwContext.getExpression();
+            if (isNeverNil(unwrapSingleOperand(ctx.logicalOrExpression(0)))) {
+                // Ballerina rejects `?:` on an operand whose type excludes nil
+                dwContext.append(DWUtils.parenthesisNeeded(leftExpr) ? "(" + leftExpr + ")" : leftExpr);
+                return null;
+            }
             if (leftExpr.equals(Constants.CORRELATION_ID_FIELD_ACCESS)) {
                 leftExpr = Constants.NILABLE_CORRELATION_ID;
             } else if (DWUtils.parenthesisNeeded(leftExpr)) {
@@ -756,6 +763,41 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             dwContext.append(leftExpr + " ?: " + rightExpr);
         }
         return null;
+    }
+
+    private static boolean isNeverNil(ParseTree operand) {
+        if (operand instanceof DataWeaveParser.DefaultExpressionContext defaultExpr && defaultExpr.DEFAULT() != null) {
+            return isNonNilFallback(defaultExpr.logicalOrExpression(1));
+        }
+        if (operand instanceof DataWeaveParser.SelectorExpressionWrapperWithDefaultContext selectorWithDefault) {
+            return isNonNilFallback(selectorWithDefault.expression());
+        }
+        return operand instanceof DataWeaveParser.MapExpressionContext
+                || operand instanceof DataWeaveParser.FilterExpressionContext
+                || operand instanceof DataWeaveParser.ConcatExpressionContext
+                || operand instanceof DataWeaveParser.LowerExpressionContext
+                || operand instanceof DataWeaveParser.LowerExpressionWithParenthesesContext
+                || operand instanceof DataWeaveParser.UpperExpressionContext
+                || operand instanceof DataWeaveParser.UpperExpressionWithParenthesesContext;
+    }
+
+    private static boolean isNonNilFallback(ParseTree fallback) {
+        assert fallback != null;
+        ParseTree operand = unwrapSingleOperand(fallback);
+        if (operand instanceof DataWeaveParser.LiteralContext literal) {
+            return literal.NULL() == null;
+        }
+        return operand instanceof DataWeaveParser.ArrayContext || operand instanceof DataWeaveParser.ObjectContext
+                || isNeverNil(operand);
+    }
+
+    private static ParseTree unwrapSingleOperand(ParseTree node) {
+        assert node != null;
+        if (node instanceof DataWeaveParser.GroupedContext grouped) {
+            return unwrapSingleOperand(grouped.expression());
+        }
+        return node.getChildCount() == 1 && !(node.getChild(0) instanceof TerminalNode)
+                ? unwrapSingleOperand(node.getChild(0)) : node;
     }
 
     @Override
@@ -866,14 +908,19 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         visit((ctx.operationExpression()));
         String leftExpr = dwContext.getExpression();
         String leftType = dwContext.currentScriptContext.currentType;
+        boolean leftIsDefault = isDefaultWithFallback(ctx.operationExpression());
         visit(ctx.defaultExpression());
         String rightExpr = dwContext.getExpression();
+        boolean rightIsDefault = isDefaultWithFallback(ctx.defaultExpression());
         switch (dwContext.currentScriptContext.currentType) {
             case DWUtils.STRING:
-                if (!leftType.equals(DWUtils.STRING)) {
+                if (leftIsDefault) {
+                    leftExpr = "(" + leftExpr + ").toString()";
+                } else if (!leftType.equals(DWUtils.STRING)) {
                     leftExpr += ".toString()";
                 }
-                dwContext.append(leftExpr).append(" + ").append(rightExpr);
+                dwContext.append(leftExpr).append(" + ")
+                        .append(rightIsDefault ? "(" + rightExpr + ").toString()" : rightExpr);
                 break;
             case DWUtils.ARRAY:
                 String leftArr = DWUtils.VAR_PREFIX + varCount++;
@@ -888,10 +935,17 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 dwContext.append("{...").append(leftExpr).append(", ...").append(rightExpr).append("}");
                 break;
             default:
-                dwContext.append(leftExpr).append(" + ").append(rightExpr);
+                dwContext.append(leftIsDefault ? "(" + leftExpr + ").toString()" : leftExpr).append(" + ")
+                        .append(rightIsDefault ? "(" + rightExpr + ").toString()" : rightExpr);
         }
         stats.record(DWConstruct.CONCAT, true);
         return null;
+    }
+
+    private static boolean isDefaultWithFallback(ParseTree operand) {
+        assert operand != null;
+        return unwrapSingleOperand(operand) instanceof DataWeaveParser.DefaultExpressionContext defaultExpr
+                && defaultExpr.DEFAULT() != null;
     }
 
     @Override
