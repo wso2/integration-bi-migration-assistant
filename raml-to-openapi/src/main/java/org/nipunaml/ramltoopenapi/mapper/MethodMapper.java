@@ -11,6 +11,7 @@ import org.nipunaml.ramltoopenapi.exception.ConverterException;
 import org.raml.v2.api.model.v10.datamodel.TypeDeclaration;
 import org.raml.v2.api.model.v10.methods.Method;
 import org.raml.v2.api.model.v10.methods.TraitRef;
+import org.raml.v2.api.model.v10.system.types.AnnotableStringType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -29,6 +31,11 @@ public class MethodMapper {
      * Extension listing the names of the RAML traits applied to an operation, which OpenAPI has no field for.
      */
     public static final String TRAITS_EXTENSION = "x-raml-traits";
+
+    /**
+     * Extension holding the RAML display name of an operation or a path item, which OpenAPI has no field for.
+     */
+    public static final String DISPLAY_NAME_EXTENSION = "x-raml-displayName";
 
     private static final Logger logger = LoggerFactory.getLogger(MethodMapper.class);
 
@@ -60,12 +67,14 @@ public class MethodMapper {
         operation.setOperationId(generateOperationId(ramlMethod, resourcePath));
         
         // Set summary and description
+        Optional<String> displayName = explicitDisplayName(ramlMethod.displayName(), ramlMethod.method());
         if (ramlMethod.description() != null && ramlMethod.description().value() != null) {
             operation.setSummary(ramlMethod.description().value());
             operation.setDescription(ramlMethod.description().value());
-        } else if (ramlMethod.displayName() != null && ramlMethod.displayName().value() != null) {
-            operation.setSummary(ramlMethod.displayName().value());
+        } else {
+            displayName.ifPresent(operation::setSummary);
         }
+        displayName.ifPresent(name -> operation.addExtension(DISPLAY_NAME_EXTENSION, name));
         
         // Map parameters
         List<Parameter> parameters = new ArrayList<>();
@@ -128,6 +137,16 @@ public class MethodMapper {
 
     private static Stream<TraitRef> traitRefs(List<TraitRef> refs) {
         return refs != null ? refs.stream() : Stream.empty();
+    }
+
+    /**
+     * Returns the display name only when the RAML sets it. The parser fills a missing display name with the key:
+     * the method name (for example "get") or the resource's relative URI (for example "/orders").
+     */
+    static Optional<String> explicitDisplayName(AnnotableStringType displayName, String key) {
+        return Optional.ofNullable(displayName)
+                .map(AnnotableStringType::value)
+                .filter(name -> !name.equals(key));
     }
 
     /**

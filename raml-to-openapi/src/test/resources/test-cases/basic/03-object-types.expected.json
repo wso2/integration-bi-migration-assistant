@@ -55,7 +55,6 @@
   "paths": {
     "/users": {
       "get": {
-        "summary": "get",
         "operationId": "get_users",
         "responses": {
           "200": {
@@ -71,7 +70,6 @@
         }
       },
       "post": {
-        "summary": "post",
         "operationId": "post_users",
         "requestBody": {
           "content": {
