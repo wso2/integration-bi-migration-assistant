@@ -604,6 +604,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             visit(ctx.implicitLambdaExpression());
             dwContext.append(")");
         }
+        dwContext.currentScriptContext.currentType = DWUtils.ARRAY;
         stats.record(DWConstruct.MAP, true);
         return null;
     }
@@ -766,10 +767,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     private static boolean isNeverNil(ParseTree operand) {
         if (operand instanceof DataWeaveParser.DefaultExpressionContext defaultExpr && defaultExpr.DEFAULT() != null) {
-            return !isNullLiteral(defaultExpr.logicalOrExpression(1));
+            return isNonNilFallback(defaultExpr.logicalOrExpression(1));
         }
         if (operand instanceof DataWeaveParser.SelectorExpressionWrapperWithDefaultContext selectorWithDefault) {
-            return !isNullLiteral(selectorWithDefault.expression());
+            return isNonNilFallback(selectorWithDefault.expression());
         }
         return operand instanceof DataWeaveParser.MapExpressionContext
                 || operand instanceof DataWeaveParser.FilterExpressionContext
@@ -780,8 +781,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 || operand instanceof DataWeaveParser.UpperExpressionWithParenthesesContext;
     }
 
-    private static boolean isNullLiteral(ParseTree fallback) {
-        return fallback.getText().equals("null");
+    private static boolean isNonNilFallback(ParseTree fallback) {
+        assert fallback != null;
+        ParseTree operand = unwrapSingleOperand(fallback);
+        if (operand instanceof DataWeaveParser.LiteralContext literal) {
+            return literal.NULL() == null;
+        }
+        return operand instanceof DataWeaveParser.ArrayContext || operand instanceof DataWeaveParser.ObjectContext
+                || isNeverNil(operand);
     }
 
     private static ParseTree unwrapSingleOperand(ParseTree node) {
