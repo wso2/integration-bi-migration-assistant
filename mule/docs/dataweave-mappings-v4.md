@@ -18,7 +18,12 @@
 - [Lower Expression](dataweave-mappings-v4.md#lower-expression)
 - [Map Combination Expression](dataweave-mappings-v4.md#map-combination-expression)
 - [Map Index Identifier Expression](dataweave-mappings-v4.md#map-index-identifier-expression)
+- [Map Index Identifier In Reduce Expression](dataweave-mappings-v4.md#map-index-identifier-in-reduce-expression)
+- [Map Index Identifier Named Outer Expression](dataweave-mappings-v4.md#map-index-identifier-named-outer-expression)
+- [Map Index Identifier Nested Expression](dataweave-mappings-v4.md#map-index-identifier-nested-expression)
 - [Map Index Identifier Only Expression](dataweave-mappings-v4.md#map-index-identifier-only-expression)
+- [Map Index Identifier Payload Expression](dataweave-mappings-v4.md#map-index-identifier-payload-expression)
+- [Map Index Identifier Twice Expression](dataweave-mappings-v4.md#map-index-identifier-twice-expression)
 - [Map Value Identifier Expression](dataweave-mappings-v4.md#map-value-identifier-expression)
 - [Map With Parameters Expression](dataweave-mappings-v4.md#map-with-parameters-expression)
 - [Multiple Imports Expression](dataweave-mappings-v4.md#multiple-imports-expression)
@@ -619,7 +624,120 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => element + [1, 2, 3, 4].indexOf(element));
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].enumerate().map(
+_var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_1 + _var_0
+);
+
+```
+
+## Map Index Identifier In Reduce Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_in_reduce.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload map {
+    total: ($.nums reduce ($ + $$))
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_in_reduce.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in payload.map(element => {"total": reduce(check element.nums, element + payload.indexOf(element))});
+
+```
+
+## Map Index Identifier Named Outer Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_named_outer.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload map ((item, index) -> (item.kids map {outer: index, inner: $$}))
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_named_outer.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_1 = check payload.cloneWithType() in _var_1.enumerate().map(
+        _var_0 => let int index = _var_0[0], var item = _var_0[1] in (let json[] _var_5 = check (check item.kids).cloneWithType() in _var_5.enumerate().map(
+                _var_4 => let int _var_2 = _var_4[0], var _var_3 = _var_4[1] in {
+                        "outer": index,
+                        "inner": _var_2
+                    }
+))
+));
+
+```
+
+## Map Index Identifier Nested Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_nested.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.orders map {
+    items: $.items map {pos: $$}
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_nested.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType(), json[] array = check (check payload.orders).cloneWithType() in array.map(element => {
+        "items": (let json[] _var_3 = check (check element.items).cloneWithType() in _var_3.enumerate().map(
+            _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in {"pos": _var_0}
+))
+    });
 
 ```
 
@@ -651,7 +769,91 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => [1, 2, 3, 4].indexOf(element) + 1);
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].enumerate().map(
+_var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_0 + 1
+);
+
+```
+
+## Map Index Identifier Payload Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_payload.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.items map {
+    value: $,
+    position: $$
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_payload.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_3 = check (check payload.items).cloneWithType() in _var_3.enumerate().map(
+        _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in {
+                "value": _var_1,
+                "position": _var_0
+            }
+));
+
+```
+
+## Map Index Identifier Twice Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_twice.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+{
+    a: payload.x map $$,
+    b: payload.y map $$
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_twice.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {
+        "a": (let json[] _var_3 = check (check payload.x).cloneWithType() in _var_3.enumerate().map(
+            _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_0
+)),
+        "b": (let json[] _var_7 = check (check payload.y).cloneWithType() in _var_7.enumerate().map(
+            _var_6 => let int _var_4 = _var_6[0], var _var_5 = _var_6[1] in _var_4
+))
+    };
 
 ```
 
@@ -715,8 +917,8 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => let var indexMemberPairs = ["john", "peter", "matt"].enumerate() in indexMemberPairs.map(
-    indexMemberPair => let int position = indexMemberPair[0], var firstName = indexMemberPair[1] in position.toString() + ":" + firstName.toUpperAscii()
+public function _dwMethod(Context ctx) returns json => ["john", "peter", "matt"].enumerate().map(
+_var_0 => let int position = _var_0[0], var firstName = _var_0[1] in position.toString() + ":" + firstName.toUpperAscii()
 );
 
 ```
@@ -1147,11 +1349,11 @@ public function sampleFlow(Context ctx) {
 }
 
 public function newDecimalFormat(handle format) returns handle = @java:Constructor {
-    'class: "java.text.DecimalFormat"
+'class: "java.text.DecimalFormat"
 } external;
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
-    'class: "java.text.NumberFormat",
+'class: "java.text.NumberFormat",
     name: "format",
     paramTypes: ["long"]
 } external;
@@ -1167,29 +1369,29 @@ public function getCurrentTimeString() returns string {
 }
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
-    'class: "java.time.LocalDateTime"
+'class: "java.time.LocalDateTime"
 } external;
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
-    'class: "java.time.format.DateTimeFormatter",
+'class: "java.time.format.DateTimeFormatter",
     name: "ofPattern",
     paramTypes: ["java.lang.String"]
 } external;
 
 public function getZoneId(handle zoneId) returns handle = @java:Method {
-    'class: "java.time.ZoneId",
+'class: "java.time.ZoneId",
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
 
 public function getDateTime(handle instant, handle zoneId) returns handle = @java:Method {
-    'class: "java.time.LocalDateTime",
+'class: "java.time.LocalDateTime",
     name: "ofInstant",
     paramTypes: ["java.time.Instant", "java.time.ZoneId"]
 } external;
 
 public function parseInstant(handle instant) returns handle = @java:Method {
-    'class: "java.time.Instant",
+'class: "java.time.Instant",
     name: "parse"
 } external;
 
@@ -1306,24 +1508,24 @@ public function sampleFlow(Context ctx) {
 }
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
-    'class: "java.time.format.DateTimeFormatter",
+'class: "java.time.format.DateTimeFormatter",
     name: "ofPattern",
     paramTypes: ["java.lang.String"]
 } external;
 
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
-    'class: "java.time.LocalDateTime",
+'class: "java.time.LocalDateTime",
     name: "parse",
     paramTypes: ["java.lang.CharSequence", "java.time.format.DateTimeFormatter"]
 } external;
 
 public function toInstant(handle localDateTime, handle zoneOffset) returns handle = @java:Method {
-    'class: "java.time.LocalDateTime",
+'class: "java.time.LocalDateTime",
     paramTypes: ["java.time.ZoneOffset"]
 } external;
 
 public function UTC() returns handle = @java:FieldGet {
-    'class: "java.time.ZoneOffset",
+'class: "java.time.ZoneOffset",
     name: "UTC"
 } external;
 

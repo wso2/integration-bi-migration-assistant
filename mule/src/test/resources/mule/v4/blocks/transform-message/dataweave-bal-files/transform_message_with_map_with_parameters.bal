@@ -13,6 +13,6 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => let var indexMemberPairs = ["john", "peter", "matt"].enumerate() in indexMemberPairs.map(
-    indexMemberPair => let int position = indexMemberPair[0], var firstName = indexMemberPair[1] in position.toString() + ":" + firstName.toUpperAscii()
+public function _dwMethod(Context ctx) returns json => ["john", "peter", "matt"].enumerate().map(
+_var_0 => let int position = _var_0[0], var firstName = _var_0[1] in position.toString() + ":" + firstName.toUpperAscii()
 );
