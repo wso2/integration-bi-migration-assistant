@@ -41,6 +41,12 @@ public class TransformMessageTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testTransformMessageWithMultilineDWParsingFailure() {
+        testMule4ToBal("transform-message/transform_message_with_multiline_dw_parsing_failure.xml",
+                "transform-message/transform_message_with_multiline_dw_parsing_failure.bal");
+    }
+
+    @Test
     public void testTransformMessageWithQuotedAttributeNames() {
         testMule4ToBal("transform-message/transform_message_with_quoted_attribute_names.xml",
                 "transform-message/transform_message_with_quoted_attribute_names.bal");

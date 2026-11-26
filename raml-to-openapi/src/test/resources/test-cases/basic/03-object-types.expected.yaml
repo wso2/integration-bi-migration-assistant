@@ -36,7 +36,6 @@ components:
 paths:
   /users:
     get:
-      summary: get
       operationId: get_users
       responses:
         "200":
@@ -46,7 +45,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserArray'
     post:
-      summary: post
       operationId: post_users
       requestBody:
         content:

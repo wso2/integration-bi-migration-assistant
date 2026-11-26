@@ -19,9 +19,13 @@ package tibco.xslt;
 
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class AddMissingParameters implements Transform {
+
+    private static final Pattern STYLESHEET_START = Pattern.compile("<(?:[\\w.-]+:)?stylesheet\\b");
 
     @Override
     public String transform(TransformContext cx, String content) {
@@ -33,25 +37,17 @@ public class AddMissingParameters implements Transform {
         if (missingParameters.isEmpty()) {
             return content;
         }
+        Matcher stylesheetStart = STYLESHEET_START.matcher(content);
+        boolean found = stylesheetStart.find();
+        assert found : "stylesheet element not found";
+        int tagEnd = content.indexOf('>', stylesheetStart.end());
+        assert tagEnd != -1 : "unterminated stylesheet tag";
         StringBuilder sb = new StringBuilder();
-        boolean inStyleSheet = false;
-        int index = 0;
-        while (index < content.length() && !inStyleSheet) {
-            if (content.substring(index).startsWith("stylesheet")) {
-                while (content.charAt(index) != '>') {
-                    index++;
-                }
-                inStyleSheet = true;
-            } else {
-                index++;
-            }
-        }
-        assert content.charAt(index) == '>';
-        sb.append(content, 0, index + 1);
+        sb.append(content, 0, tagEnd + 1);
         for (String each : missingParameters) {
             sb.append("<xsl:param name=\"%s\"/>".formatted(each));
         }
-        sb.append(content, index + 2, content.length());
+        sb.append(content, tagEnd + 1, content.length());
         return sb.toString();
     }
 

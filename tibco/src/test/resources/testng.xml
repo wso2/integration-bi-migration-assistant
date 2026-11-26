@@ -12,6 +12,7 @@
             <class name="tibco.converter.ProcessLookupTest"/>
             <class name="tibco.util.PathMatcherTest"/>
             <class name="tibco.xslt.TibcoFunctionsTest"/>
+            <class name="tibco.xslt.AnalysisResultTest"/>
         </classes>
     </test>
 </suite>

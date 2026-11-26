@@ -118,6 +118,25 @@ public class MUnitTest {
         Assert.assertTrue(balCode.contains("mock-when"));
     }
 
+    @Test
+    public void testMUnitFunctionNamesAreNamedAndUnique() {
+        String xmlPath = MULE_RESOURCE_DIR.resolve("munit/munit_function_names.xml").toString();
+
+        Context ctx = new Context(List.of(), List.of(), new MuleLogger(false));
+        MuleXMLNavigator navigator = new MuleXMLNavigator(
+                new MigrationMetrics<DWConstruct>(), mule.v4.model.MuleXMLTag::isCompatible);
+        TestSuite testSuite = MUnitConfigReader.readMUnitTestSuite(ctx, navigator, xmlPath);
+
+        String balCode = new CodeGenerator(
+                MUnitConverter.convertTestSuite(ctx, "tests/munit_function_names.bal", testSuite))
+                .generateSyntaxTree().toSourceCode();
+
+        for (String funcName : List.of("beforeSuite", "testOrder", "testOrder2", "testOrder3", "test")) {
+            Assert.assertTrue(balCode.contains("function " + funcName + "() returns error?"), balCode);
+        }
+        Assert.assertFalse(balCode.contains("function ()"), balCode);
+    }
+
     private static void updateAssertFile(Path filePath, String newContent) {
         if (!UPDATE_ASSERTS) {
             return;

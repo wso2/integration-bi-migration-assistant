@@ -1,0 +1,19 @@
+#%RAML 1.0
+title: Library API
+version: 1.0
+baseUri: https://api.example.com
+
+/books:
+  displayName: Books
+  description: The books in the library
+  get:
+    description: Lists all books
+  post:
+    displayName: Add book
+  put:
+    displayName: Replace books
+    description: Replaces the whole list of books
+  delete:
+  /{bookId}:
+    get:
+      displayName: Get book
