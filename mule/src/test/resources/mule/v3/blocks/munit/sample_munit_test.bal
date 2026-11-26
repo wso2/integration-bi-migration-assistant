@@ -2,17 +2,17 @@ import ballerina/log;
 import ballerina/test;
 
 @test:BeforeSuite
-function before\-suite\-setup() returns error? {
+function beforeSuiteSetup() returns error? {
     log:printInfo("Setting up test suite");
 }
 
 @test:AfterSuite
-function after\-suite\-cleanup() returns error? {
+function afterSuiteCleanup() returns error? {
     log:printInfo("Cleaning up test suite");
 }
 
 @test:Config {}
-function test\-assert\-on\-equals() returns error? {
+function testAssertOnEquals() returns error? {
     // Test: Test with assert-on-equals
     // Execution (Act)
     // set payload
@@ -23,7 +23,7 @@ function test\-assert\-on\-equals() returns error? {
 }
 
 @test:Config {}
-function test\-with\-mock() returns error? {
+function testWithMock() returns error? {
     // Test: Test with munit mock
     // Behavior (Setup)
     // TODO: MUNIT MOCK — MANUAL CONVERSION REQUIRED.
@@ -46,7 +46,7 @@ function test\-with\-mock() returns error? {
 }
 
 @test:Config {}
-function test\-fail() returns error? {
+function testFail() returns error? {
     // Test: Test with explicit fail
     // Validation (Assert)
     test:assertFail("This test should not pass");

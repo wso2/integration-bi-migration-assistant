@@ -13,8 +13,7 @@ service on GeneralConnection {
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
         check start_Processes_MainProcessStarter_process(cx);
-        xml response = cx.result;
-        return response;
+        return cx.result;
     }
 }
 
@@ -29,8 +28,7 @@ service on GeneralConnection {
         map<xml> paramXML = {post: inputVal};
         Context cx = initContext(paramXML, jobSharedVariables);
         check start_Processes_Other_process(cx);
-        xml response = cx.result;
-        return response;
+        return cx.result;
     }
 }
 

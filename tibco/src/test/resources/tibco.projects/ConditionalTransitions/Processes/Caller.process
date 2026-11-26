@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://www.tibco.com/pe/EngineTypes" xmlns:ns1="http://www.tibco.com/pe/GenerateErrorActivitySchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <pd:name>Processes/Caller.process</pd:name>
+    <pd:startName>HTTP Receiver</pd:startName>
+    <pd:returnBindings/>
+    <pd:starter name="HTTP Receiver">
+        <pd:type>com.tibco.plugin.http.HTTPEventSource</pd:type>
+        <pd:resourceType>httppalette.httpEventSource</pd:resourceType>
+        <config>
+            <outputMode>String</outputMode>
+            <defaultEncoding>ISO8859_1</defaultEncoding>
+            <inputOutputVersion>5.3.0</inputOutputVersion>
+            <newMimeSupport>true</newMimeSupport>
+            <sharedChannel>/ConditionalTransitions/SharedResources/ConditionalConnection.sharedhttp</sharedChannel>
+            <parsePostData>true</parsePostData>
+        </config>
+        <pd:inputBindings/>
+    </pd:starter>
+    <pd:endName>End</pd:endName>
+    <pd:errorSchemas/>
+    <pd:targetNamespace>http://xmlns.example.com/1357991310276</pd:targetNamespace>
+    <pd:activity name="Prepare">
+        <pd:type>com.tibco.plugin.mapper.MapperActivity</pd:type>
+        <pd:resourceType>ae.activities.MapperActivity</pd:resourceType>
+        <config>
+            <element>
+                <xsd:element name="status" type="xsd:string"/>
+            </element>
+        </config>
+        <pd:inputBindings>
+            <status>
+                <xsl:value-of select="$post/item/status"/>
+            </status>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Log OK">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <message>status is OK</message>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Log Other">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <message>status is <xsl:value-of select="$Prepare/status"/></message>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Call Worker">
+        <pd:type>com.tibco.pe.core.CallProcessActivity</pd:type>
+        <pd:resourceType>ae.process.subprocess</pd:resourceType>
+        <config>
+            <processName>/Processes/Worker.process</processName>
+        </config>
+        <pd:inputBindings>
+            <WorkerInput>
+                <status>
+                    <xsl:value-of select="$Prepare/status"/>
+                </status>
+            </WorkerInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Fault">
+        <pd:type>com.tibco.pe.core.GenerateErrorActivity</pd:type>
+        <pd:resourceType>ae.activities.throw</pd:resourceType>
+        <config>
+            <faultName/>
+        </config>
+        <pd:inputBindings>
+            <ns1:ActivityInput>
+                <message>
+                    <xsl:value-of select="$_error_Call-Worker/Msg"/>
+                </message>
+            </ns1:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>HTTP Receiver</pd:from>
+        <pd:to>Prepare</pd:to>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Prepare</pd:from>
+        <pd:to>Log OK</pd:to>
+        <pd:conditionType>xpath</pd:conditionType>
+        <pd:xpath>$Prepare/status = 'OK'</pd:xpath>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Prepare</pd:from>
+        <pd:to>Log Other</pd:to>
+        <pd:conditionType>otherwise</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Log OK</pd:from>
+        <pd:to>Call Worker</pd:to>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Log Other</pd:from>
+        <pd:to>Call Worker</pd:to>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Call Worker</pd:from>
+        <pd:to>End</pd:to>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Call Worker</pd:from>
+        <pd:to>Fault</pd:to>
+        <pd:conditionType>error</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>

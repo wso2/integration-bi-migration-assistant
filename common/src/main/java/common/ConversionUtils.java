@@ -26,6 +26,7 @@ public class ConversionUtils {
 
     private static final Pattern UNESCAPED_SPECIAL_CHAR_SET =
             Pattern.compile("([$&+,:;=\\?@#\\\\|/'\\ \\[\\}\\]<\\>.\"^*{}~`()%!-])");
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^A-Za-z0-9]+");
 
     public static BallerinaModel.Expression.BallerinaExpression exprFrom(String expr) {
         return new BallerinaModel.Expression.BallerinaExpression(expr);
@@ -85,6 +86,27 @@ public class ConversionUtils {
     public static String lowerFirst(String identifier) {
         return identifier.isEmpty() ? identifier
                 : Character.toLowerCase(identifier.charAt(0)) + identifier.substring(1);
+    }
+
+    /**
+     * Converts a name to a camelCase Ballerina identifier that needs no escaping, by dropping the non-alphanumeric
+     * characters and capitalising the word that follows each of them, e.g. {@code get-order-test} becomes
+     * {@code getOrderTest}. Escaped identifiers such as {@code get\-order\-test} break the test runner that
+     * {@code bal test} generates, as it quotes test function names in string literals.
+     *
+     * @param name the original name
+     * @return camelCase identifier, quoted if it is a keyword or starts with a digit
+     */
+    public static String convertToCamelCaseIdentifier(String name) {
+        StringBuilder identifier = new StringBuilder();
+        for (String word : NON_ALPHANUMERIC.split(name)) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            identifier.append(identifier.isEmpty() ? lowerFirst(word)
+                    : Character.toUpperCase(word.charAt(0)) + word.substring(1));
+        }
+        return insertQuoteIfApplicable(identifier.toString());
     }
 
     /**

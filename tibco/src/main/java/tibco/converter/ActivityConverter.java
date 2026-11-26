@@ -41,6 +41,7 @@ import tibco.analyzer.AnalysisResult;
 import tibco.model.PartnerLink;
 import tibco.model.Process5;
 import tibco.model.Process5.ExplicitTransitionGroup.InlineActivity;
+import tibco.model.Process5.ExplicitTransitionGroup.NestedGroup.CriticalSectionGroup;
 import tibco.model.Resource;
 import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.ActivityExtension;
@@ -139,6 +140,28 @@ final class ActivityConverter {
         }
     }
 
+    static @NotNull BallerinaModel.Function convertTransitionPredicate(
+            ProcessContext processContext, Process5.ExplicitTransitionGroup.Transition.Condition.XPath condition) {
+        ActivityContext cx = new ActivityContext(processContext, null);
+        List<BallerinaModel.Parameter> parameters = List.of(new BallerinaModel.Parameter("input", XML),
+                ConversionUtils.activityFnType(processContext).parameters().getFirst());
+        List<Statement> body = new ArrayList<>();
+        try {
+            VarDeclStatment output =
+                    evaluateBooleanStyleSheet(cx, new VariableReference("input"), condition.predicate(), body);
+            body.add(output);
+            body.add(new Statement.Return<>(booleanStyleSheetHolds(output)));
+        } catch (Exception e) {
+            cx.log(SEVERE, "Failed to convert transition condition: " + e.getMessage());
+            body.clear();
+            body.add(new Comment("FIXME: failed to convert transition condition"));
+            body.add(new Statement.Return<>(new FunctionCall("error",
+                    List.of(new StringConstant("Unsupported transition condition")))));
+        }
+        return new BallerinaModel.Function(processContext.transitionPredicateFunction(condition), parameters,
+                UnionTypeDesc.of(BOOLEAN, ERROR), body);
+    }
+
     private static BallerinaModel.Function convertActivity(ActivityContext cx, Activity activity) {
         List<Statement> body;
         try {
@@ -195,7 +218,7 @@ final class ActivityConverter {
         VarDeclStatment inputDecl = new VarDeclStatment(XML, cx.getAnnonVarName(), startingValue);
         body.add(inputDecl);
         VariableReference result;
-        if (inlineActivity.hasInputBinding()) {
+        if (inlineActivity.hasInputBinding() && !(inlineActivity instanceof CriticalSectionGroup)) {
             InputBindingResult inputBindings = convertInputBindings(cx, inputDecl.ref(),
                     List.of(inlineActivity.inputBinding()));
             body.addAll(inputBindings.statements());
@@ -228,6 +251,8 @@ final class ActivityConverter {
                     convertLoopGroup(cx, result, loopGroup);
             case Process5.ExplicitTransitionGroup.NestedGroup.ErrorLoopGroup errorLoopGroup ->
                     convertErrorLoopGroup(cx, errorLoopGroup);
+            case CriticalSectionGroup criticalSectionGroup ->
+                    convertCriticalSectionGroup(cx, criticalSectionGroup);
             case InlineActivity.REST rest -> convertREST(cx, result, rest);
             case InlineActivity.Catch ignored -> emptyExtensionConversion(cx, result);
             case InlineActivity.JSONParser jsonParser -> convertJsonParser(cx, result, jsonParser);
@@ -1156,7 +1181,7 @@ final class ActivityConverter {
                                     List.of(loopSequence.ref(),
                                             exprFrom("`%s`".formatted(xPath)))))));
         }
-        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("-1"));
+        VarDeclStatment indexValue = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
         body.add(indexValue);
         loopGroup.elementSlot().map(elementSlot -> addToContext(cx, defaultEmptyXml(), elementSlot))
                 .ifPresent(body::add);
@@ -1215,12 +1240,10 @@ final class ActivityConverter {
         VarDeclStatment index = new VarDeclStatment(INT, cx.getAnnonVarName(), exprFrom("0"));
         body.add(index);
         String error = cx.getAnnonVarName();
-        XsltTransformResult condition = xsltTransform(cx, resultValue.ref(), errorLoop.errorCondition());
-        addNonStandardXsltWarning(condition.nonStandardFunctions(), body);
-        body.addAll(condition.statements());
-        VarDeclStatment conditionOutput = new VarDeclStatment(XML, cx.getAnnonVarName(), condition.expression());
+        VarDeclStatment conditionOutput =
+                evaluateBooleanStyleSheet(cx, resultValue.ref(), errorLoop.errorCondition(), body);
         VarDeclStatment retryLimitReached = new VarDeclStatment(BOOLEAN, cx.getAnnonVarName(),
-                exprFrom("(%s/*).toString().trim() == \"true\"".formatted(conditionOutput.ref())));
+                booleanStyleSheetHolds(conditionOutput));
         String publishIndex = errorLoop.indexSlot()
                 .map(indexSlot -> addToContext(cx, new XMLTemplate("<root>${%s}</root>".formatted(index.ref())),
                         indexSlot).toString())
@@ -1245,6 +1268,50 @@ final class ActivityConverter {
                 cx.contextVarRef(), addToContext(cx, new XMLTemplate(ERROR_LOOP_ERROR_REPORT.formatted(error)),
                         ERROR_LOOP_ERROR_VARIABLE),
                 conditionOutput, retryLimitReached, retryLimitReached.ref())));
+        return new ActivityConversionResult(resultValue.ref(), body);
+    }
+
+    // The stylesheet is parsed once into `preamble`; the returned declaration runs it, so callers can place it
+    // wherever the condition must be re-evaluated.
+    private static @NotNull VarDeclStatment evaluateBooleanStyleSheet(ActivityContext cx, VariableReference input,
+            Activity.Expression.XSLT styleSheet, List<Statement> preamble) {
+        XsltTransformResult result = xsltTransform(cx, input, styleSheet);
+        addNonStandardXsltWarning(result.nonStandardFunctions(), preamble);
+        preamble.addAll(result.statements());
+        return new VarDeclStatment(XML, cx.getAnnonVarName(), result.expression());
+    }
+
+    // A boolean stylesheet writes the condition's value as the text of its single result element.
+    private static @NotNull BallerinaModel.Expression booleanStyleSheetHolds(VarDeclStatment output) {
+        return exprFrom("(%s/*).toString().trim() == \"true\"".formatted(output.ref()));
+    }
+
+    // jBallerina gives a lock statement that touches no module-level variable a lock of its own, which matches
+    // TIBCO's single-group scope; groups sharing a lock object read the same module-level variable so that they
+    // share one lock. The group exposes no output of its own, so the body's last result is passed through.
+    private static @NotNull ActivityConversionResult convertCriticalSectionGroup(
+            ActivityContext cx, CriticalSectionGroup criticalSection) {
+        List<Statement> body = new ArrayList<>();
+        if (criticalSection.hasInputBinding()) {
+            cx.log(WARN, "critical section group '" + criticalSection.name() + "' has input bindings, which are "
+                    + "not supported; they are ignored.");
+            body.add(new Comment("FIXME: input bindings of critical section groups are not supported and ignored"));
+        }
+        Optional<ProjectContext.CriticalSectionLock> lock = criticalSection.lockPath()
+                .map(cx.processContext.projectContext::getCriticalSectionLock);
+        lock.filter(ProjectContext.CriticalSectionLock::multiEngine).flatMap(ignored -> criticalSection.lockPath())
+                .ifPresent(path -> {
+                    cx.log(WARN, "critical section group '" + criticalSection.name() + "' uses multi-engine lock '"
+                            + path + "'; the converted lock only applies within one Ballerina runtime.");
+                    body.add(new Comment("FIXME: multi-engine lock '" + path + "' only applies within this runtime"));
+                });
+        body.add(stmtFrom("lock { %s check %s(%s); }".formatted(
+                lock.map(each -> "_ = %s;".formatted(each.variable())).orElse(""),
+                cx.processContext.getAnalysisResult().getControlFlowFunctions(criticalSection.body()).scopeFn(),
+                cx.contextVarRef())));
+        VarDeclStatment resultValue = new VarDeclStatment(XML, cx.getAnnonVarName(),
+                ConversionUtils.getXMLResultFromContext(cx.contextVarRef()));
+        body.add(resultValue);
         return new ActivityConversionResult(resultValue.ref(), body);
     }
 
@@ -2811,8 +2878,28 @@ final class ActivityConverter {
         return new InputBindingResult(statements, resultRef);
     }
 
+    // A process's output is whatever its return bindings build, so every entry point (Call Process, service, main)
+    // must see the bound value in the context result rather than the last activity's output.
+    static @NotNull List<Statement> convertReturnBindings(ProcessContext processContext,
+                                                          Activity.Expression.XSLT returnBindings) {
+        assert returnBindings != null : "Return bindings cannot be null";
+        ActivityContext cx = ActivityContext.withoutActivity(processContext);
+        BallerinaModel.Expression.FieldAccess result = ConversionUtils.getXMLResultFromContext(cx.contextVarRef());
+        XsltTransformResult transformResult = xsltTransform(cx, result, returnBindings);
+        List<Statement> body = new ArrayList<>();
+        addNonStandardXsltWarning(transformResult.nonStandardFunctions(), body);
+        body.addAll(transformResult.statements());
+        VarDeclStatment output = new VarDeclStatment(XML, cx.getAnnonVarName(), transformResult.expression());
+        body.add(output);
+        // addToContext keeps only the children of a result, so the caller's $<CallProcess>/<root element> needs
+        // the same root wrapper every activity output has.
+        body.add(new Statement.VarAssignStatement(result,
+                new XMLTemplate("<root>${%s}</root>".formatted(output.varName()))));
+        return body;
+    }
+
     @NotNull
-    private static XsltTransformResult xsltTransform(ActivityContext cx, VariableReference inputVariable,
+    private static XsltTransformResult xsltTransform(ActivityContext cx, BallerinaModel.Expression input,
                                                      Activity.Expression.XSLT xslt) {
         cx.addLibraryImport(Library.XSLT);
         String styleSheet = xsltTransformer.apply(cx, xslt.expression());
@@ -2822,14 +2909,14 @@ final class ActivityConverter {
 
         VarDeclStatment styleSheetDecl = parseStyleSheet(cx, styleSheet);
         BallerinaModel.Expression expression = new Check(new FunctionCall(XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                List.of(inputVariable, styleSheetDecl.ref(), xsltParameters(cx.processContext, styleSheet,
+                List.of(input, styleSheetDecl.ref(), xsltParameters(cx.processContext, styleSheet,
                         new BallerinaModel.Expression.FieldAccess(cx.contextVarRef(), "variables")))));
 
         return new XsltTransformResult(List.of(styleSheetDecl), expression, nonStandardFunctions);
     }
 
     @NotNull
-    static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
+    private static BallerinaModel.Expression xsltParameters(ProcessContext cx, String styleSheet,
                                                     BallerinaModel.Expression variables) {
         List<String> uuidParameters = TibcoFunctions.uuidParameters(styleSheet);
         if (uuidParameters.isEmpty()) {
@@ -2852,7 +2939,7 @@ final class ActivityConverter {
     }
 
     @NotNull
-    static List<String> detectNonStandardFunctions(String xsltContent) {
+    private static List<String> detectNonStandardFunctions(String xsltContent) {
         List<String> nonStandardFunctions = new ArrayList<>();
 
         // Pattern to match Tibco-specific functions like tib:trim, tib:parse-dateTime, etc.
@@ -2901,9 +2988,6 @@ final class ActivityConverter {
     record XsltTransformResult(List<Statement> statements, BallerinaModel.Expression expression,
                                List<String> nonStandardFunctions) {
 
-        XsltTransformResult(BallerinaModel.Expression expression, List<String> nonStandardFunctions) {
-            this(List.of(), expression, nonStandardFunctions);
-        }
     }
     static final class XSLTConstants {
 

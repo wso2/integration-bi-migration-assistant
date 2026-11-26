@@ -29,7 +29,6 @@ import common.BallerinaModel.Expression.XMLTemplate;
 import common.BallerinaModel.Parameter;
 import common.BallerinaModel.Statement;
 import common.BallerinaModel.Statement.Return;
-import common.BallerinaModel.Statement.VarAssignStatement;
 import common.BallerinaModel.Statement.VarDeclStatment;
 import common.BallerinaModel.TypeDesc;
 import common.BallerinaModel.TypeDesc.UnionTypeDesc;
@@ -48,7 +47,6 @@ import tibco.model.Scope.Flow.Activity;
 import tibco.model.Scope.Flow.Activity.Expression.XPath;
 import tibco.model.Type;
 import tibco.model.Variable;
-import tibco.xslt.TibcoFunctions;
 
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -307,23 +305,11 @@ public class ProcessConverter {
                 new FunctionCall(cx.getInitContextFn(), List.of(paramXmlDecl.ref(), jobSharedVariables.ref())));
         body.add(contextDecl);
 
-        // TODO: it is better if we can reuse the same logic as Process6 where we use the intrinsic and return
-        //  http response. But we need to refactor how deal with return bindings
         body.add(new Statement.CallStatement(
                 new Check(new FunctionCall(cx.getProcessStartFunction().name(), List.of(contextDecl.ref())))));
-        VarDeclStatment resultDecl =
-                        new VarDeclStatment(XML, "response",
-                                        ConversionUtils.getXMLResultFromContext(contextDecl.ref()));
-        body.add(resultDecl);
-        group.returnBindings().ifPresent(binding -> {
-            ActivityConverter.XsltTransformResult transformResult = xsltTransform(cx, resultDecl.ref(), binding);
-            if (!transformResult.nonStandardFunctions().isEmpty()) {
-                        body.add(new Statement.Comment("WARNING: Non-standard XSLT functions detected: " +
-                    String.join(", ", transformResult.nonStandardFunctions())));
-            }
-            body.add(new VarAssignStatement(resultDecl.ref(), transformResult.expression()));
-        });
-        body.add(new Return<>(resultDecl.ref()));
+        Expression.FieldAccess result = ConversionUtils.getXMLResultFromContext(contextDecl.ref());
+        // The start function root-wraps the bound output for Call Process callers; HTTP clients get the End document.
+        body.add(new Return<>(group.returnBindings().isPresent() ? exprFrom(result + "/*") : result));
         return new BallerinaModel.Resource("'default[string... path]", "",
                 List.of(parameter), Optional.of(UnionTypeDesc.of(XML, ERROR)), body);
     }
@@ -576,7 +562,12 @@ public class ProcessConverter {
                                 "generateExplicitTransitionBlockScopeFunction"))
                 .map(data -> tryGenerateFunction(data.fn, cx, group, data.functionName))
                 .flatMap(Optional::stream);
-        return Stream.concat(functions, childFunctions);
+        Stream<BallerinaModel.Function> transitionPredicates = group.transitions().stream()
+                .map(ExplicitTransitionGroup.Transition::condition)
+                .filter(ExplicitTransitionGroup.Transition.Condition.XPath.class::isInstance)
+                .map(condition -> ActivityConverter.convertTransitionPredicate(cx,
+                        (ExplicitTransitionGroup.Transition.Condition.XPath) condition));
+        return Stream.of(functions, transitionPredicates, childFunctions).flatMap(Function.identity());
     }
 
 private static Optional<BallerinaModel.Function> tryGenerateFunction(
@@ -680,8 +671,11 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
 
         AnalysisResult.ControlFlowFunctions controlFn =
                 cx.getAnalysisResult().getControlFlowFunctions(process.transitionGroup());
-        String scopeFn = controlFn.scopeFn();
-        List<Statement> body = List.of(new Return<>(new FunctionCall(scopeFn, List.of(parameters.getFirst().ref()))));
+        FunctionCall runScope = new FunctionCall(controlFn.scopeFn(), List.of(parameters.getFirst().ref()));
+        List<Statement> body = process.transitionGroup().returnBindings()
+                .map(returnBindings -> Stream.concat(Stream.of(new Statement.CallStatement(new Check(runScope))),
+                        ActivityConverter.convertReturnBindings(cx, returnBindings).stream()).toList())
+                .orElseGet(() -> List.of(new Return<>(runScope)));
         Optional<String> visibility = cx.isShared(process) ? Optional.of("public") : Optional.empty();
         return new BallerinaModel.Function(visibility, cx.getProcessStartFunction().name(), parameters,
                 Optional.of(scopeFnType.returnType()), new BallerinaModel.BlockFunctionBody(body));
@@ -697,8 +691,8 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         List<Parameter> parameters = activityFnType.parameters();
         assert parameters.size() == 1 : "Activity function type should have exactly one parameter";
 
-        return generateActivityFlowFunctionInner(cx, activities, activityRunnerFunction,
-                activityFnType.returnType(), Check::new, parameters);
+        return new BallerinaModel.Function(activityRunnerFunction, parameters, activityFnType.returnType(),
+                ActivityFlowGenerator.generate(cx, group, activities, Check::new));
     }
 
     private static @NotNull List<Activity> withoutMisplacedRethrows(ProcessContext cx, List<Activity> activities) {
@@ -741,20 +735,15 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
             return defaultErrorHandlerFunction(cx, errorHandlerFunction);
         }
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
-        List<Statement> body = new ArrayList<>(ActivityFlowGenerator.generate(cx, activities.stream()
-                        .filter(activity -> !(activity instanceof ExplicitTransitionGroup.InlineActivity.Rethrow))
-                        .toList(),
-                Check::new));
-        // Statements after a return are unreachable, so a rethrow runs once every other handler activity has.
-        if (activities.stream().anyMatch(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)) {
-            if (group.activities().stream()
-                    .filter(ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity.class::isInstance)
-                    .count() > 1) {
-                cx.log(LoggingUtils.Level.WARN, "Error handler \"" + errorHandlerFunction
-                        + "\" merges several catches, so its rethrow applies to faults from all of them.");
-            }
-            body.add(returnCaughtError());
+        if (activities.stream().anyMatch(ExplicitTransitionGroup.InlineActivity.Rethrow.class::isInstance)
+                && group.activities().stream()
+                        .filter(ExplicitTransitionGroup.InlineActivity.ErrorHandlerInlineActivity.class::isInstance)
+                        .count() > 1) {
+            cx.log(LoggingUtils.Level.WARN, "Error handler \"" + errorHandlerFunction
+                    + "\" merges several catches, so its rethrow applies to faults from all of them.");
         }
+        List<Statement> body = ActivityFlowGenerator.generateErrorFlow(cx, group, activities,
+                errorFlowFnType.parameters().getFirst().ref());
         return new BallerinaModel.Function(errorHandlerFunction, errorFlowFnType.parameters(),
                 errorFlowFnType.returnType(), body);
     }
@@ -944,25 +933,6 @@ private static Optional<BallerinaModel.Function> tryGenerateFunction(
         TypeDesc.FunctionTypeDesc errorFlowFnType = ConversionUtils.errorFlowFnType(cx);
         return new BallerinaModel.Function(errorHandlerFunction,
                 errorFlowFnType.parameters(), errorFlowFnType.returnType(), body);
-    }
-
-    private static ActivityConverter.XsltTransformResult xsltTransform(ProcessContext cx,
-                                                                       VariableReference inputVariable,
-                                                                       Activity.Expression.XSLT xslt) {
-        cx.addLibraryImport(Library.XSLT);
-        String xsltContent = TibcoFunctions.rewrite(xslt.expression());
-
-        // Detect non-standard functions (Tibco-specific functions)
-        List<String> nonStandardFunctions = ActivityConverter.detectNonStandardFunctions(xsltContent);
-
-        List<Expression> arguments = new ArrayList<>(List.of(inputVariable, new XMLTemplate(xsltContent)));
-        if (!TibcoFunctions.uuidParameters(xsltContent).isEmpty()) {
-            arguments.add(ActivityConverter.xsltParameters(cx, xsltContent, exprFrom("{}")));
-        }
-        Expression expression = new Check(new FunctionCall(ActivityConverter.XSLTConstants.XSLT_TRANSFORM_FUNCTION,
-                arguments));
-
-        return new ActivityConverter.XsltTransformResult(expression, nonStandardFunctions);
     }
 
     private static List<Statement> initJobSharedVariables(ProjectContext projectContext,

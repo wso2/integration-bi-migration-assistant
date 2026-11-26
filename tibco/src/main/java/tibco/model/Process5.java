@@ -18,6 +18,7 @@
 
 package tibco.model;
 
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
@@ -152,10 +153,73 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                     return inputBinding != null;
                 }
             }
+
+            record CriticalSectionGroup(Element element, String name, InputBinding inputBinding,
+                                        ExplicitTransitionGroup body, Optional<String> lockPath,
+                                        String fileName)
+                    implements ExplicitTransitionGroup.NestedGroup, Scope.Flow.ActivityWithResources {
+
+                public CriticalSectionGroup {
+                    assert body != null : "critical section group must have a body";
+                    assert lockPath != null : "use Optional.empty() for single group critical sections";
+                }
+
+                @Override
+                public @NotNull Collection<Resource.ResourceIdentifier> resources() {
+                    return lockPath.map(path -> List.of(
+                                    new Resource.ResourceIdentifier(Resource.ResourceKind.SHARED_LOCK, path)))
+                            .orElse(List.of());
+                }
+
+                @Override
+                public @NotNull InlineActivityType type() {
+                    return InlineActivityType.CRITICAL_SECTION_GROUP;
+                }
+
+                @Override
+                public boolean hasInputBinding() {
+                    return inputBinding != null;
+                }
+            }
         }
 
-        public record Transition(String from, String to) {
+        public record Transition(String from, String to, Condition condition) {
 
+            public Transition {
+                assert from != null && to != null : "transition must have both ends";
+                assert condition != null : "transition must have a condition";
+            }
+
+            public sealed interface Condition {
+
+                record Always() implements Condition {
+
+                }
+
+                // The predicate is a stylesheet that writes the boolean value of the TIBCO XPath condition into a
+                // CONDITION_RESULT element, so its $variables bind like a mapping's.
+                record XPath(Scope.Flow.Activity.Expression.XSLT predicate) implements Condition {
+
+                    public static final String CONDITION_RESULT = "transitionConditionResult";
+
+                    public XPath {
+                        assert predicate != null : "xpath transition must have a predicate";
+                    }
+                }
+
+                record Otherwise() implements Condition {
+
+                }
+
+                record Error() implements Condition {
+
+                }
+
+                // Taken like Always so the activities it connects keep their order; the runner flags it.
+                record Unsupported() implements Condition {
+
+                }
+            }
         }
 
         public sealed interface InlineActivity extends Scope.Flow.Activity {
@@ -184,6 +248,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                 SOAP_SEND_RECEIVE,
                 SOAP_SEND_REPLY,
                 LOOP_GROUP,
+                CRITICAL_SECTION_GROUP,
                 REST,
                 CATCH,
                 JSON_PARSER_ACTIVITY,
@@ -220,6 +285,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                                     new LookUpData("XMLParseActivity", XML_PARSE_ACTIVITY),
                                     new LookUpData("XMLTransformActivity", XML_TRANSFORM_ACTIVITY),
                                     new LookUpData("LoopGroup", LOOP_GROUP),
+                                    new LookUpData("CriticalSectionGroup", CRITICAL_SECTION_GROUP),
                                     new LookUpData("WriteToLogActivity", WRITE_LOG),
                                     new LookUpData("CatchActivity", CATCH),
                                     new LookUpData("FileReadActivity", FILE_READ),
@@ -260,6 +326,7 @@ public record Process5(String name, String path, Collection<NameSpace> nameSpace
                         case XML_PARSE_ACTIVITY -> "com.tibco.plugin.xml.XMLParseActivity";
                         case XML_TRANSFORM_ACTIVITY -> "com.tibco.plugin.xml.XMLTransformActivity";
                         case LOOP_GROUP -> "com.tibco.pe.core.LoopGroup";
+                        case CRITICAL_SECTION_GROUP -> "com.tibco.pe.core.CriticalSectionGroup";
                         case WRITE_LOG -> "com.tibco.pe.core.WriteToLogActivity";
                         case CATCH -> "com.tibco.pe.core.CatchActivity";
                         case FILE_READ -> "com.tibco.plugin.file.FileReadActivity";
