@@ -213,46 +213,58 @@ public class ConversionUtils {
      * - `*` → `.*` (zero or more characters)
      * - `?` → `.` (single character)
      * - `**` → `.*` (recursive wildcard)
+     * - `{a,b}` → `(a|b)` (alternatives)
      * - `.` → `\.` (escape literal dots)
      * - Other special regex characters are escaped
      *
-     * @param globPattern the glob pattern (e.g., "*.csv", "file?.txt")
-     * @return regex pattern (e.g., ".*\\.csv", "file.\\.txt")
+     * @param globPattern the glob pattern (e.g., "*.csv", "file?.txt", "*.{htm,html}")
+     * @return regex pattern (e.g., ".*\\.csv", "file.\\.txt", ".*\\.(htm|html)")
      */
     public static String convertGlobToRegex(String globPattern) {
         if (globPattern == null || globPattern.isEmpty()) {
             return globPattern;
         }
 
-        // Step 1: Replace ** with a placeholder to handle it separately
-        String placeholder = "<<<DOUBLE_STAR>>>";
-        String result = globPattern.replace("**", placeholder);
+        StringBuilder regex = new StringBuilder();
+        boolean inAlternatives = false;
+        for (int i = 0; i < globPattern.length(); i++) {
+            char c = globPattern.charAt(i);
+            switch (c) {
+                case '*' -> {
+                    regex.append(".*");
+                    while (i + 1 < globPattern.length() && globPattern.charAt(i + 1) == '*') {
+                        i++;
+                    }
+                }
+                case '?' -> regex.append('.');
+                case '{' -> {
+                    if (!inAlternatives && globPattern.indexOf('}', i + 1) > i) {
+                        inAlternatives = true;
+                        regex.append('(');
+                    } else {
+                        regex.append("\\{");
+                    }
+                }
+                case '}' -> {
+                    if (inAlternatives) {
+                        inAlternatives = false;
+                        regex.append(')');
+                    } else {
+                        regex.append("\\}");
+                    }
+                }
+                case ',' -> regex.append(inAlternatives ? "|" : ",");
+                default -> appendEscapedRegexChar(regex, c);
+            }
+        }
+        return regex.toString();
+    }
 
-        // Step 2: Escape special regex characters except * and ?
-        // Characters that need escaping in regex: . + ( ) | ^ $ @ % [ ] { } \
-        result = result.replace("\\", "\\\\");  // Escape backslash first
-        result = result.replace(".", "\\.");
-        result = result.replace("+", "\\+");
-        result = result.replace("(", "\\(");
-        result = result.replace(")", "\\)");
-        result = result.replace("|", "\\|");
-        result = result.replace("^", "\\^");
-        result = result.replace("$", "\\$");
-        result = result.replace("@", "\\@");
-        result = result.replace("%", "\\%");
-        result = result.replace("[", "\\[");
-        result = result.replace("]", "\\]");
-        result = result.replace("{", "\\{");
-        result = result.replace("}", "\\}");
-
-        // Step 3: Convert glob wildcards to regex
-        result = result.replace("*", ".*");  // * → .*
-        result = result.replace("?", ".");   // ? → .
-
-        // Step 4: Replace placeholder with .*
-        result = result.replace(placeholder, ".*");
-
-        return result;
+    private static void appendEscapedRegexChar(StringBuilder regex, char c) {
+        if ("\\.+()|^$@%[]".indexOf(c) >= 0) {
+            regex.append('\\');
+        }
+        regex.append(c);
     }
 
     /**

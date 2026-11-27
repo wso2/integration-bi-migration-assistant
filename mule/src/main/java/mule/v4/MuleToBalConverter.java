@@ -751,7 +751,7 @@ public class MuleToBalConverter {
     }
 
     private static String getFileNamePattern(FileListener fileListener) {
-        return ConversionUtils.convertGlobToRegex(fileListener.matcher().filenamePattern());
+        return ConversionUtils.convertGlobToRegex(fileListener.matcher().filenamePattern()).replace("\\", "\\\\");
     }
 
     private static @NotNull List<String> fileListenerTodoComments(FileListener fileListener) {
