@@ -828,7 +828,7 @@ public class MuleConfigConverter {
             String queryPathVarName = "queryPath";
 
             stmts.add(stmtFrom(
-                    "string %s = %s(%s);".formatted(queryPathVarName, pathBuilderFn, String.join(", ", params))));
+                    "string %s = check %s(%s);".formatted(queryPathVarName, pathBuilderFn, String.join(", ", params))));
             List<String> callArgs = new ArrayList<>();
             callArgs.add(queryPathVarName);
             if (headersVar != null) {
@@ -909,6 +909,7 @@ public class MuleConfigConverter {
 
     private static String generateRequestPathBuilder(Context ctx, String todoComment) {
         ctx.addImport(new Import("ballerina", "lang.regexp"));
+        ctx.addImport(new Import("ballerina", "url"));
         String pathParam = "path";
         String uriParam = "uriParams";
         String queryParam = "queryParams";
@@ -918,8 +919,12 @@ public class MuleConfigConverter {
                 foreach var [key, value] in %s.entries() {
                     requestPath = regexp:replaceAll(check regexp:fromString(string `\\{${key}\\}`), requestPath, value);
                 }
+                string[] queryParts = [];
                 foreach var [key, value] in %s.entries() {
-                    requestPath = regexp:replaceAll(check regexp:fromString(string `\\{${key}\\}`), requestPath, value);
+                    queryParts.push(string `${check url:encode(key, "UTF-8")}=${check url:encode(value, "UTF-8")}`);
+                }
+                if queryParts.length() > 0 {
+                    requestPath += (requestPath.includes("?") ? "&" : "?") + string:'join("&", ...queryParts);
                 }
                 return requestPath;
                 """.formatted(todoComment, pathParam, uriParam, queryParam)));
@@ -930,7 +935,8 @@ public class MuleConfigConverter {
                 List.of(new Parameter(pathParam, BallerinaModel.TypeDesc.BuiltinType.STRING),
                         new Parameter(uriParam, stringMapTD),
                         new Parameter(queryParam, stringMapTD)),
-                BallerinaModel.TypeDesc.BuiltinType.STRING, body));
+                BallerinaModel.TypeDesc.UnionTypeDesc.of(BallerinaModel.TypeDesc.BuiltinType.STRING,
+                        BallerinaModel.TypeDesc.BuiltinType.ERROR), body));
         return functionName;
     }
 
