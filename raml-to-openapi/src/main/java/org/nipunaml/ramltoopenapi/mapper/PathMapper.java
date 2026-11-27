@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Maps RAML resources to OpenAPI paths.
@@ -85,6 +86,11 @@ public class PathMapper implements ComponentMapper<Api, Paths> {
             // Set description
             if (resource.description() != null && resource.description().value() != null) {
                 pathItem.setDescription(resource.description().value());
+            }
+            Optional<String> displayName =
+                    MethodMapper.explicitDisplayName(resource.displayName(), resource.relativeUri().value());
+            if (displayName.isPresent()) {
+                pathItem.addExtension(MethodMapper.DISPLAY_NAME_EXTENSION, displayName.get());
             }
 
             // Map each HTTP method - PASS resourcePath

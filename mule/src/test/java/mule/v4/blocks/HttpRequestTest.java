@@ -75,6 +75,12 @@ public class HttpRequestTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testHttpRequestWithHeaderDefaultInUriParams() {
+        testMule4ToBal("http-request/http_request_with_header_default_in_uri_params.xml",
+                "http-request/http_request_with_header_default_in_uri_params.bal");
+    }
+
+    @Test
     public void testHttpRequestWithMultipleUriParams() {
         testMule4ToBal("http-request/http_request_with_multiple_uri_params.xml",
                 "http-request/http_request_with_multiple_uri_params.bal");
