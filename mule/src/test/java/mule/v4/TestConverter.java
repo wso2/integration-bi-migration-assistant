@@ -97,12 +97,36 @@ public class TestConverter {
         assertProjectConversion("correlationIdProject");
     }
 
+    @Test(description = "Test converting a project whose HTTP flows can be converted after its Anypoint MQ flows")
+    public void testMqAndHttpProjectConversion() throws IOException {
+        assertKeepStructureProjectConversion("mqAndHttpProject");
+    }
+
+    @Test(description = "Test converting a project whose APIkit routers can be converted after its Anypoint MQ flows")
+    public void testMqAndApiKitProjectConversion() throws IOException {
+        assertProjectConversion("mqAndApiKitProject");
+    }
+
+    @Test(description = "Test converting a project whose only source is an Anypoint MQ subscriber")
+    public void testMqOnlyProjectConversion() throws IOException {
+        assertKeepStructureProjectConversion("mqOnlyProject");
+    }
+
     private void assertProjectConversion(String projectName) throws IOException {
         assertProjectConversion(projectName, false, projectName + "_ballerina");
     }
 
+    private void assertKeepStructureProjectConversion(String projectName) throws IOException {
+        assertProjectConversion(projectName, true, false, projectName + "_keep_structure_ballerina");
+    }
+
     private void assertProjectConversion(String projectName, boolean checkResponses, String expectedDirName)
             throws IOException {
+        assertProjectConversion(projectName, false, checkResponses, expectedDirName);
+    }
+
+    private void assertProjectConversion(String projectName, boolean keepStructure, boolean checkResponses,
+                                         String expectedDirName) throws IOException {
         String projectPath = "src/test/resources/mule/v4/projects/" + projectName;
         Path expectedDir = Path.of(projectPath, expectedDirName);
 
@@ -111,7 +135,7 @@ public class TestConverter {
         boolean bless = "true".equalsIgnoreCase(System.getenv("BLESS"));
         try {
             migrateAndExportMuleSource(projectPath, tempDir.toString(), null, null, 4,
-                    false, false, false, checkResponses, false);
+                    false, false, keepStructure, checkResponses, false);
 
             Path actualDir = locateGeneratedProjectDir(tempDir, expectedDir.getFileName().toString());
             if (bless) {

@@ -366,9 +366,12 @@ public class Context extends ContextBase {
     @Override
     public List<Import> getContextImports() {
         List<Import> contextImports = new ArrayList<>();
-        if (!projectCtx.attributes.isEmpty()) {
-            // TODO: at the moment only http provides 'attributes'
+        if (projectCtx.attributes.containsKey(Constants.HTTP_REQUEST_REF)
+                || projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
             contextImports.add(new Import("ballerina", "http"));
+        }
+        if (projectCtx.attributes.containsKey(Constants.JMS_MESSAGE_REF)) {
+            contextImports.add(new Import(Constants.ORG_BALLERINAX, Constants.MODULE_JMS));
         }
         if (projectCtx.apiTypeGenerators.values().stream().anyMatch(ApiTypeGenerator::usesConstraints)) {
             contextImports.add(new Import("ballerina", "constraint"));
