@@ -1,0 +1,4 @@
+# Properties from mule-app.properties
+http_port = "9090"
+partner_http_port = "9091"
+

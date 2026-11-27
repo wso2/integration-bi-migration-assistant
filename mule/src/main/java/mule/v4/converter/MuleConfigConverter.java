@@ -492,7 +492,9 @@ public class MuleConfigConverter {
             Context.JMSMessageProducerLookupKey key) {
         // Add configurable variable for JMS provider URL
         String jmsProviderUrlVar = "JMS_PROVIDER_URL";
-        ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+        if (!ctx.projectCtx.configurableVarExists(jmsProviderUrlVar)) {
+            ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+        }
 
         var mqConfigRef = key.connectionConfig();
         var destination = key.destination();

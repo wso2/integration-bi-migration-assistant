@@ -556,7 +556,9 @@ public class MuleToBalConverter {
 
         // Add configurable variable for JMS provider URL (null value generates "?")
         String jmsProviderUrlVar = "JMS_PROVIDER_URL";
-        ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+        if (!ctx.projectCtx.configurableVarExists(jmsProviderUrlVar)) {
+            ConversionUtils.addConfigVarEntry(ctx, jmsProviderUrlVar, null);
+        }
 
         String serviceName = "\"" + escapeIdentifier(mqSubscriber.configRef()) + "\"";
 
@@ -1348,7 +1350,9 @@ public class MuleToBalConverter {
                 case Constants.HTTP_RESPONSE_REF -> attributesPropMap.put(Constants.HTTP_RESPONSE_REF, "new");
                 case Constants.URI_PARAMS_REF -> uriParamsInit.ifPresent(
                         init -> attributesPropMap.put(Constants.URI_PARAMS_REF, init));
-                case JMS_MESSAGE_REF -> attributesPropMap.put(JMS_MESSAGE_REF, JMS_MESSAGE_REF);
+                case JMS_MESSAGE_REF -> {
+                    // An HTTP resource has no JMS message; only an Anypoint MQ subscriber sets this optional field
+                }
                 default -> throw new IllegalStateException();
             }
         }
