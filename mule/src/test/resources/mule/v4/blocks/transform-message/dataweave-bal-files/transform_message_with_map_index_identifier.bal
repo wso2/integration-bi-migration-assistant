@@ -13,4 +13,6 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => element + [1, 2, 3, 4].indexOf(element));
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].enumerate().map(
+_var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_1 + _var_0
+);

@@ -18,7 +18,13 @@
 - [Lower Expression](dataweave-mappings-v4.md#lower-expression)
 - [Map Combination Expression](dataweave-mappings-v4.md#map-combination-expression)
 - [Map Index Identifier Expression](dataweave-mappings-v4.md#map-index-identifier-expression)
+- [Map Index Identifier After Lambda Expression](dataweave-mappings-v4.md#map-index-identifier-after-lambda-expression)
+- [Map Index Identifier Infix Arg Expression](dataweave-mappings-v4.md#map-index-identifier-infix-arg-expression)
+- [Map Index Identifier Named Outer Expression](dataweave-mappings-v4.md#map-index-identifier-named-outer-expression)
+- [Map Index Identifier Nested Expression](dataweave-mappings-v4.md#map-index-identifier-nested-expression)
 - [Map Index Identifier Only Expression](dataweave-mappings-v4.md#map-index-identifier-only-expression)
+- [Map Index Identifier Payload Expression](dataweave-mappings-v4.md#map-index-identifier-payload-expression)
+- [Map Index Identifier Twice Expression](dataweave-mappings-v4.md#map-index-identifier-twice-expression)
 - [Map Value Identifier Expression](dataweave-mappings-v4.md#map-value-identifier-expression)
 - [Map With Parameters Expression](dataweave-mappings-v4.md#map-with-parameters-expression)
 - [Multiple Imports Expression](dataweave-mappings-v4.md#multiple-imports-expression)
@@ -619,7 +625,162 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => element + [1, 2, 3, 4].indexOf(element));
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].enumerate().map(
+_var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_1 + _var_0
+);
+
+```
+
+## Map Index Identifier After Lambda Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_after_lambda.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.items map {
+    doubled: [1, 2] map ($ + 1),
+    value: $,
+    position: $$
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_after_lambda.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_3 = check (check payload.items).cloneWithType() in _var_3.enumerate().map(
+        _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in {
+                "doubled": [1, 2].map(element => element + 1),
+                "value": _var_1,
+                "position": _var_0
+            }
+));
+
+```
+
+## Map Index Identifier Infix Arg Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_infix_arg.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.items map ($.ids contains $$)
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_infix_arg.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_3 = check (check payload.items).cloneWithType() in _var_3.enumerate().map(
+        _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in contains(check _var_1.ids, _var_0)
+));
+
+```
+
+## Map Index Identifier Named Outer Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_named_outer.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload map ((item, index) -> (item.kids map {outer: index, inner: $$}))
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_named_outer.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_1 = check payload.cloneWithType() in _var_1.enumerate().map(
+        _var_0 => let int index = _var_0[0], var item = _var_0[1] in (let json[] _var_5 = check (check item.kids).cloneWithType() in _var_5.enumerate().map(
+                _var_4 => let int _var_2 = _var_4[0], var _var_3 = _var_4[1] in {
+                        "outer": index,
+                        "inner": _var_2
+                    }
+))
+));
+
+```
+
+## Map Index Identifier Nested Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_nested.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.orders map {
+    items: $.items map {pos: $$}
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_nested.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType(), json[] array = check (check payload.orders).cloneWithType() in array.map(element => {
+        "items": (let json[] _var_3 = check (check element.items).cloneWithType() in _var_3.enumerate().map(
+            _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in {"pos": _var_0}
+))
+    });
 
 ```
 
@@ -651,7 +812,91 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].map(element => [1, 2, 3, 4].indexOf(element) + 1);
+public function _dwMethod(Context ctx) returns json => [1, 2, 3, 4].enumerate().map(
+_var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_0 + 1
+);
+
+```
+
+## Map Index Identifier Payload Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_payload.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.items map {
+    value: $,
+    position: $$
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_payload.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_3 = check (check payload.items).cloneWithType() in _var_3.enumerate().map(
+        _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in {
+                "value": _var_1,
+                "position": _var_0
+            }
+));
+
+```
+
+## Map Index Identifier Twice Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_twice.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+{
+    a: payload.x map $$,
+    b: payload.y map $$
+}
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_twice.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in {
+        "a": (let json[] _var_3 = check (check payload.x).cloneWithType() in _var_3.enumerate().map(
+            _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_0
+)),
+        "b": (let json[] _var_7 = check (check payload.y).cloneWithType() in _var_7.enumerate().map(
+            _var_6 => let int _var_4 = _var_6[0], var _var_5 = _var_6[1] in _var_4
+))
+    };
 
 ```
 
@@ -715,8 +960,8 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json => let var indexMemberPairs = ["john", "peter", "matt"].enumerate() in indexMemberPairs.map(
-    indexMemberPair => let int position = indexMemberPair[0], var firstName = indexMemberPair[1] in position.toString() + ":" + firstName.toUpperAscii()
+public function _dwMethod(Context ctx) returns json => ["john", "peter", "matt"].enumerate().map(
+_var_0 => let int position = _var_0[0], var firstName = _var_0[1] in position.toString() + ":" + firstName.toUpperAscii()
 );
 
 ```

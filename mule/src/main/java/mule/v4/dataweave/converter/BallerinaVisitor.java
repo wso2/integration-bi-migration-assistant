@@ -27,6 +27,7 @@ import mule.v4.dataweave.converter.builder.IfStatementBuilder;
 import mule.v4.dataweave.parser.DataWeaveBaseVisitor;
 import mule.v4.dataweave.parser.DataWeaveParser;
 import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jetbrains.annotations.NotNull;
 
@@ -546,37 +547,25 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         String sourceExpr = dwContext.getExpression();
         DataWeaveParser.InlineLambdaContext inlineLambda = getInlineLambda(ctx.implicitLambdaExpression());
         boolean hasTwoParams = inlineLambda != null && parameterNames(inlineLambda.functionParameters()).size() == 2;
+        Optional<DataWeaveParser.ExpressionContext> bodyUsingIndex = hasTwoParams ? Optional.empty()
+                : bodyUsingIndexIdentifier(ctx.implicitLambdaExpression());
 
         String varName = sourceExpr;
         if (hasTwoParams) {
-            // when source is an array literal, we can directly use it without a let
-            if (!DWUtils.isArrayLiteral(sourceExpr)) {
-                varName = "list";
-                if (DWUtils.parenthesisNeeded(sourceExpr)) {
-                    sourceExpr = "(" + sourceExpr + ")";
-                }
-                dwContext.currentScriptContext.letVariables.add(new DWContext.LetVariableDeclaration(
-                        varName, "check %s.cloneWithType()".formatted(sourceExpr), "json[]"));
-            }
-
-            String enumeratedVar = "indexMemberPairs";
-            dwContext.currentScriptContext.letVariables.add(
-                    new DWContext.LetVariableDeclaration(enumeratedVar, varName + ".enumerate()")
-            );
-            dwContext.append(enumeratedVar).append(".map(").append(System.lineSeparator()).append(" ")
-                    .append("indexMemberPair => let ");
-
             List<String> identifiers = parameterNames(inlineLambda.functionParameters());
             String indexParam = identifiers.get(1);
             String itemParam = identifiers.getFirst();
             dwContext.currentScriptContext.varNames.put(indexParam, indexParam);
             dwContext.currentScriptContext.varNames.put(itemParam, itemParam);
-
-            dwContext.append("int ").append(indexParam).append(" = indexMemberPair[0], ");
-            dwContext.append("var ").append(itemParam).append(" = indexMemberPair[1] in ");
-
-            visit(inlineLambda.expression());
-            dwContext.append(System.lineSeparator()).append(")");
+            appendEnumeratedMap(sourceExpr, indexParam, itemParam, inlineLambda.expression());
+        } else if (bodyUsingIndex.isPresent()) {
+            String indexParam = DWUtils.VAR_PREFIX + varCount++;
+            String itemParam = DWUtils.VAR_PREFIX + varCount++;
+            String outerValueArg = dwContext.commonArgs.put(DWUtils.DW_VALUE_IDENTIFIER, itemParam);
+            String outerIndexArg = dwContext.commonArgs.put(DWUtils.DW_INDEX_IDENTIFIER, indexParam);
+            appendEnumeratedMap(sourceExpr, indexParam, itemParam, bodyUsingIndex.get());
+            restoreCommonArg(DWUtils.DW_VALUE_IDENTIFIER, outerValueArg);
+            restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
         } else {
             dwContext.currentScriptContext.varTypes.put(varName, "var");
             dwContext.currentScriptContext.varTypes.put(DWUtils.ELEMENT_ARG, "var");
@@ -605,6 +594,63 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         }
         stats.record(DWConstruct.MAP, true);
         return null;
+    }
+
+    private static Optional<DataWeaveParser.ExpressionContext> bodyUsingIndexIdentifier(
+            DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
+        if (ctx.implicitLambdaExpression() != null) {
+            return bodyUsingIndexIdentifier(ctx.implicitLambdaExpression());
+        }
+        if (ctx.expression() == null || !containsIndexIdentifier(ctx.expression())) {
+            return Optional.empty();
+        }
+        return Optional.of(ctx.expression());
+    }
+
+    // A `$$` inside a nested lambda, or in the callback of an infix function such as reduce or mapObject, belongs
+    // to that construct (an index, accumulator or key), not to this map.
+    private static boolean containsIndexIdentifier(ParseTree tree) {
+        if (tree instanceof DataWeaveParser.IndexIdentifierExpressionContext) {
+            return true;
+        }
+        if (tree instanceof DataWeaveParser.ImplicitLambdaExpressionContext
+                || tree instanceof DataWeaveParser.LambdaExpressionContext) {
+            return false;
+        }
+        if (tree instanceof DataWeaveParser.InfixFunctionCallContext infixCall
+                && DWUtils.DW_CALLBACK_INFIX_FUNCTIONS.contains(infixCall.IDENTIFIER().getText())) {
+            return containsIndexIdentifier(infixCall.operationExpression());
+        }
+        for (int i = 0; i < tree.getChildCount(); i++) {
+            if (containsIndexIdentifier(tree.getChild(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The source is enumerated in place, not hoisted into the function's let, because it may refer to the
+    // parameter of an enclosing lambda.
+    private void appendEnumeratedMap(String sourceExpr, String indexParam, String itemParam,
+                                     DataWeaveParser.ExpressionContext body) {
+        String pairParam = DWUtils.VAR_PREFIX + varCount++;
+        String sourceDeclaration = "";
+        String enumerableSource = sourceExpr;
+        if (!DWUtils.isArrayLiteral(sourceExpr)) {
+            enumerableSource = DWUtils.VAR_PREFIX + varCount++;
+            sourceDeclaration = "let json[] %s = check %s.cloneWithType() in ".formatted(enumerableSource,
+                    DWUtils.parenthesisNeeded(sourceExpr) ? "(" + sourceExpr + ")" : sourceExpr);
+            dwContext.currentScriptContext.containsCheck = true;
+        }
+        // A map in the body reads the whole expression buffer as its source, so the body is converted on its own.
+        String precedingExpr = dwContext.getExpression();
+        visit(body);
+        String bodyExpr = dwContext.getExpression();
+        String enumeratedMap = enumerableSource + ".enumerate().map(" + System.lineSeparator() + " "
+                + pairParam + " => let int " + indexParam + " = " + pairParam + "[0], var " + itemParam + " = "
+                + pairParam + "[1] in " + bodyExpr + System.lineSeparator() + ")";
+        dwContext.append(precedingExpr).append(sourceDeclaration.isEmpty() ? enumeratedMap
+                : "(" + sourceDeclaration + enumeratedMap + ")");
     }
 
     private DataWeaveParser.InlineLambdaContext getInlineLambda(DataWeaveParser.ImplicitLambdaExpressionContext ctx) {
@@ -843,6 +889,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             }
         }
         dwContext.append(lambdaParam).append("=>");
+        String outerValueArg = dwContext.commonArgs.get(DWUtils.DW_VALUE_IDENTIFIER);
+        String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
         String expr;
         if (ctx.inlineLambda() != null) {
             expr = ctx.inlineLambda().getText();
@@ -857,8 +905,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             }
             visit(ctx.expression());
         }
+        restoreCommonArg(DWUtils.DW_VALUE_IDENTIFIER, outerValueArg);
+        restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
         stats.record(DWConstruct.LAMBDA_EXPRESSION, true);
         return null;
+    }
+
+    private void restoreCommonArg(String key, String outerValue) {
+        if (outerValue == null) {
+            dwContext.commonArgs.remove(key);
+        } else {
+            dwContext.commonArgs.put(key, outerValue);
+        }
     }
 
     @Override
@@ -898,9 +956,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitInfixFunctionCall(DataWeaveParser.InfixFunctionCallContext ctx) {
         visit(ctx.operationExpression());
         String leftExpr = dwContext.getExpression();
-        visit(ctx.defaultExpression());
-        String rightExpr = dwContext.getExpression();
         String functionName = ctx.IDENTIFIER().getText();
+        if (DWUtils.DW_CALLBACK_INFIX_FUNCTIONS.contains(functionName)) {
+            String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
+            visit(ctx.defaultExpression());
+            restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
+        } else {
+            visit(ctx.defaultExpression());
+        }
+        String rightExpr = dwContext.getExpression();
         if (DWUtils.DW_JOIN_BY_IDENTIFIER.equals(functionName)) {
             appendJoinByExpression(leftExpr, rightExpr);
         } else {
@@ -972,7 +1036,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx) {
-        return visit(ctx.inlineLambda());
+        String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
+        visit(ctx.inlineLambda());
+        restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
+        return null;
     }
 
     @Override
@@ -1392,9 +1459,14 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitIndexIdentifierExpression(DataWeaveParser.IndexIdentifierExpressionContext ctx) {
-        this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(
-                DWUtils.DW_INDEX_IDENTIFIER))
-                .append(".indexOf(").append(DWUtils.ELEMENT_ARG).append(")");
+        String enumeratedIndex = this.dwContext.commonArgs.get(DWUtils.DW_INDEX_IDENTIFIER);
+        if (enumeratedIndex != null) {
+            this.dwContext.append(enumeratedIndex);
+        } else {
+            this.dwContext.append(this.dwContext.currentScriptContext.varNames.get(
+                    DWUtils.DW_INDEX_IDENTIFIER))
+                    .append(".indexOf(").append(DWUtils.ELEMENT_ARG).append(")");
+        }
         stats.record(DWConstruct.IDENTIFIER, true);
         return null;
     }
