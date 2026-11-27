@@ -8,7 +8,7 @@ public type Context record {|
 
 configurable string api_basePath = "/api/v1";
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // http client request
     http:Client http_request_config = check new (string `https://orders.example.com:80/${api_basePath}`);

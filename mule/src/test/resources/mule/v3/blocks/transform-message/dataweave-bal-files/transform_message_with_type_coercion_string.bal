@@ -2,7 +2,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function sampleFlow(Context ctx) {
+public function sampleFlow(Context ctx) returns error? {
     string _dwOutput_ = _dwMethod0_();
     ctx.payload = _dwOutput_;
 }

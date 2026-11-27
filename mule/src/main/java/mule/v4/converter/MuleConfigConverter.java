@@ -656,7 +656,7 @@ public class MuleConfigConverter {
             statements.add(new Statement.Comment("TODO: failed to find flow %s".formatted(flowName)));
             return flowName;
         });
-        var stmt = stmtFrom(String.format("%s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
+        var stmt = stmtFrom(String.format("check %s(%s);", funcRef, Constants.CONTEXT_REFERENCE));
         statements.add(stmt);
         return new WorkerStatementResult(statements);
     }
@@ -720,11 +720,11 @@ public class MuleConfigConverter {
             String methodName = Constants.FUNC_NAME_ENRICHER_TEMPLATE
                     .formatted(ctx.projectCtx.counters.enricherFuncCount);
             Function func = new Function(Optional.of("public"), methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
-                    Optional.of(typeFrom("string?")), new BlockFunctionBody(enricherStmts));
+                    Optional.of(typeFrom("string|error?")), new BlockFunctionBody(enricherStmts));
             ctx.currentFileCtx.balConstructs.functions.add(func);
 
             enricherStmts.add(stmtFrom("return %s;".formatted(source)));
-            stmts.add(stmtFrom("%s = %s(%s.clone());".formatted(target,
+            stmts.add(stmtFrom("%s = check %s(%s.clone());".formatted(target,
                     Constants.FUNC_NAME_ENRICHER_TEMPLATE.formatted(ctx.projectCtx.counters.enricherFuncCount++),
                     Constants.CONTEXT_REFERENCE)));
         }
@@ -1193,7 +1193,8 @@ public class MuleConfigConverter {
         List<Statement> body = convertTopLevelMuleBlocks(ctx, async.flowBlocks());
         int asyncFuncId = ctx.projectCtx.counters.asyncFuncCount++;
         String funcName = String.format(FUNC_NAME_ASYC_TEMPLATE, asyncFuncId);
-        Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+        Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                Constants.BAL_ERROR_OR_NIL_TYPE, body);
         ctx.currentFileCtx.balConstructs.functions.add(function);
 
         List<Statement> stmts = new ArrayList<>();
@@ -1384,13 +1385,14 @@ public class MuleConfigConverter {
         namedWorkerBody.add(stmtFrom("\n// VM Listener\n"));
         namedWorkerBody.add(stmtFrom("anydata receivedPayload = <- function;"));
         namedWorkerBody.add(stmtFrom("ctx.payload = receivedPayload;"));
-        namedWorkerBody.add(stmtFrom(String.format("%s(ctx);", funcName)));
+        namedWorkerBody.add(stmtFrom(String.format("check %s(ctx);", funcName)));
 
         List<Statement> stmts = new ArrayList<>(2);
         stmts.add(stmtFrom("\n\n// VM Publish\n"));
         stmts.add(stmtFrom(String.format("%s.payload -> W;", Constants.CONTEXT_REFERENCE)));
 
-        NamedWorkerDecl worker = new NamedWorkerDecl("W", Optional.of(typeFrom("error?")), namedWorkerBody);
+        NamedWorkerDecl worker = new NamedWorkerDecl("W", Optional.of(Constants.BAL_ERROR_OR_NIL_TYPE),
+                namedWorkerBody);
         return new WorkerStatementResult(stmts, List.of(worker));
     }
 
@@ -1425,7 +1427,7 @@ public class MuleConfigConverter {
             // A reference function is provided. We create a function call statement
             String refName = errorHandler.ref();
             String funcRef = ConversionUtils.convertToBalIdentifier(refName);
-            BallerinaStatement funcCallStmt = stmtFrom(String.format("%s(%s, %s);", funcRef,
+            BallerinaStatement funcCallStmt = stmtFrom(String.format("check %s(%s, %s);", funcRef,
                     Constants.CONTEXT_REFERENCE, Constants.ON_FAIL_ERROR_VAR_REF));
             onFailBody = Collections.singletonList(funcCallStmt);
         }
@@ -1469,15 +1471,14 @@ public class MuleConfigConverter {
         List<Statement> errorBlocks = convertMuleRegularBlocks(ctx, onErrorPropagate.errorBlocks()).statements();
         stmts.addAll(errorBlocks);
 
-        if (ctx.projectCtx.attributes.containsKey(Constants.HTTP_RESPONSE_REF)) {
+        if (ctx.inHttpListenerFlow) {
             stmts.add(stmtFrom("%s response = <%s>%s.%s;".formatted(Constants.HTTP_RESPONSE_TYPE,
                     Constants.HTTP_RESPONSE_TYPE,
                     Constants.ATTRIBUTES_FIELD_ACCESS,
                     Constants.HTTP_RESPONSE_REF)));
             stmts.add(stmtFrom("response.statusCode = 500;"));
         } else {
-            // Add a panic statement to propagate the error
-            stmts.add(stmtFrom("panic " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
+            stmts.add(stmtFrom("fail " + Constants.ON_FAIL_ERROR_VAR_REF + ";"));
         }
 
         return new WorkerStatementResult(stmts);

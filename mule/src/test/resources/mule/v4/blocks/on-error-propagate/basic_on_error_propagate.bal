@@ -4,7 +4,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
 
         // set payload
@@ -21,6 +21,6 @@ public function demoFlow(Context ctx) {
         // set payload
         string payload1 = "Custom error message: Something went wrong.";
         ctx.payload = payload1;
-        panic err;
+        fail err;
     }
 }

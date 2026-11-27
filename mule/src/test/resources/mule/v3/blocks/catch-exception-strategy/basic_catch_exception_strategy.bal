@@ -4,7 +4,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
     do {
         log:printInfo("xxx: logger invoked via http end point");
     } on fail {

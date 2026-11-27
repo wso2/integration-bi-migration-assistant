@@ -1,10 +1,10 @@
 import ballerina/log;
 
-public function commonConfig2Sub_Flow(Context ctx) {
+public function commonConfig2Sub_Flow(Context ctx) returns error? {
     log:printInfo("xxx: common config2 logger invoked");
 }
 
-public function commonConfig1Flow(Context ctx) {
+public function commonConfig1Flow(Context ctx) returns error? {
     log:printInfo("xxx: common config1 logger invoked");
 }
 
@@ -29,6 +29,6 @@ function _dwMethod2_(xml payload) returns xml {
     // TODO: UNSUPPORTED DATAWEAVE EXPRESSION 'map$+1' OF TYPE 'xml' FOUND. MANUAL CONVERSION REQUIRED.
 }
 
-public function mainconfigSub_Flow(Context ctx) {
+public function mainconfigSub_Flow(Context ctx) returns error? {
     log:printInfo("xxx: main config logger invoked");
 }

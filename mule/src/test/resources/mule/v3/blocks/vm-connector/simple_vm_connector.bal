@@ -4,16 +4,16 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function inboundVmFlow(Context ctx) {
+public function inboundVmFlow(Context ctx) returns error? {
     log:printInfo(string `Received a message: ${ctx.payload.toString()}`);
 }
 
-public function outboundVmFlow(Context ctx) {
+public function outboundVmFlow(Context ctx) returns error? {
     worker W returns error? {
         // VM Inbound Endpoint
         anydata receivedPayload = <- function;
         ctx.payload = receivedPayload;
-        inboundVmFlow(ctx);
+        check inboundVmFlow(ctx);
     }
 
     // set payload

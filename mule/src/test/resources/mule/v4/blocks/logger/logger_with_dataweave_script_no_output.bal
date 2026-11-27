@@ -4,7 +4,7 @@ public type Context record {|
     anydata payload = ();
 |};
 
-public function log\-without\-output\-directive(Context ctx) {
+public function log\-without\-output\-directive(Context ctx) returns error? {
     any logMessage0 = _dwMethod(ctx);
     log:printInfo(logMessage0.toString());
 }

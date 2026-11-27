@@ -25,14 +25,14 @@ service /mule4 on config {
     resource function get sub_flow(http:Request request) returns http:Response|error {
         Context ctx = {attributes: {request, response: new}};
         ctx.vars.orderType = getOptionalHeader(<http:Request>ctx.attributes.request, "orderType");
-        demoSubFlow(ctx);
+        check demoSubFlow(ctx);
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
     }
 }
 
-public function demoSubFlow(Context ctx) {
+public function demoSubFlow(Context ctx) returns error? {
     // TODO: failed to convert #[attributes.headers.'marketId']
 }
 

@@ -17,7 +17,9 @@
  */
 package mule.v4;
 
+import common.BallerinaModel.OnFailClause;
 import common.BallerinaModel.Statement.BallerinaStatement;
+import common.BallerinaModel.TypeBindingPattern;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc;
 import common.BallerinaModel.TypeDesc.RecordTypeDesc.RecordField;
 import common.CodeGenerator;
@@ -276,6 +278,7 @@ public class MuleToBalConverter {
     private static void genApiKitSource(Context ctx, Flow flow, ApiKitConfig apiKit, Collection<Service> services,
                                         Service lastHttpService) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         // TODO: Common with httpSource refactor
         ctx.projectCtx.attributes.put(Constants.HTTP_REQUEST_REF, Constants.HTTP_REQUEST_TYPE);
@@ -659,7 +662,7 @@ public class MuleToBalConverter {
         params.add(new Parameter("message", typeFrom(Constants.PUBSUB_MESSAGE_TYPE)));
         params.add(new Parameter("caller", typeFrom(Constants.PUBSUB_CALLER_TYPE)));
 
-        Function onMessageFunction = new Function("onMessage", params, bodyStmts);
+        Function onMessageFunction = new Function("onMessage", params, Constants.BAL_ERROR_OR_NIL_TYPE, bodyStmts);
         Remote remoteFunction = new Remote(onMessageFunction);
 
         // Create service with listener reference
@@ -721,9 +724,9 @@ public class MuleToBalConverter {
                     Constants.CONTEXT_REFERENCE, Constants.ATTRIBUTES_REF)));
 
             Parameter event = new Parameter("event", typeFrom(Constants.FILE_EVENT_TYPE));
-            Statement.CallStatement flowCall = new Statement.CallStatement(
+            Statement.CallStatement flowCall = new Statement.CallStatement(new Expression.Check(
                     new Expression.FunctionCall(flowFuncName,
-                            List.of(new VariableReference(Constants.CONTEXT_REFERENCE))));
+                            List.of(new VariableReference(Constants.CONTEXT_REFERENCE)))));
             if (hasFilenamePattern) {
                 String pattern = getFileNamePattern(fileListener);
                 remoteBody.add(Statement.IfElseStatement.ifStatement(
@@ -735,7 +738,7 @@ public class MuleToBalConverter {
                 remoteBody.add(flowCall);
             }
 
-            Function remoteFunc = new Function(eventType, List.of(event), remoteBody);
+            Function remoteFunc = new Function(eventType, List.of(event), Constants.BAL_ERROR_OR_NIL_TYPE, remoteBody);
             remoteFunctions.add(new Remote(remoteFunc));
         }
 
@@ -776,7 +779,8 @@ public class MuleToBalConverter {
     private static @NotNull String createFlowFunction(Context ctx, Flow flow) {
         String flowFuncName = convertToBalIdentifier(flow.name());
         List<Statement> flowBody = convertTopLevelMuleBlocks(ctx, flow.flowBlocks());
-        Function flowFunction = Function.publicFunction(flowFuncName, Constants.FUNC_PARAMS_WITH_CONTEXT, flowBody);
+        Function flowFunction = Function.publicFunction(flowFuncName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                Constants.BAL_ERROR_OR_NIL_TYPE, flowBody);
         ctx.currentFileCtx.balConstructs.functions.add(flowFunction);
         return flowFuncName;
     }
@@ -853,7 +857,7 @@ public class MuleToBalConverter {
         BallerinaStatement stmt = stmtFrom("task:JobId id = check task:scheduleJobRecurByFrequency(new %s(), %s);"
                 .formatted(jobClassName, intervalInSeconds));
         stmts.add(stmt);
-        Function mainFunc = Function.publicFunction("main", List.of(), typeFrom("error?"), stmts);
+        Function mainFunc = Function.publicFunction("main", List.of(), Constants.BAL_ERROR_OR_NIL_TYPE, stmts);
         functions.add(mainFunc);
     }
 
@@ -871,8 +875,27 @@ public class MuleToBalConverter {
 
     private static ClassDef genBalJobClass(Context ctx, String jobName, List<MuleRecord> flowBlocks) {
         List<Statement> bodyCoreStmts = convertTopLevelMuleBlocks(ctx, flowBlocks);
-        Function executeFunc = Function.publicFunction("execute", List.of(), bodyCoreStmts);
+        Function executeFunc = Function.publicFunction("execute", List.of(),
+                handleJobErrors(ctx, bodyCoreStmts));
         return new ClassDef(jobName, List.of(typeFrom("task:Job")), List.of(), List.of(executeFunc));
+    }
+
+    // task:Job.execute() cannot return an error, so errors the flow does not handle are logged here.
+    // Named workers must stay at the top of the function body, outside the do statement.
+    private static @NotNull List<Statement> handleJobErrors(Context ctx, List<Statement> body) {
+        int workerCount = (int) body.stream().takeWhile(stmt -> stmt instanceof Statement.NamedWorkerDecl).count();
+        List<Statement> defaultWorkerBody = body.subList(workerCount, body.size());
+        if (defaultWorkerBody.stream().map(Statement::toString)
+                .noneMatch(stmt -> stmt.contains("check ") || stmt.contains("fail "))) {
+            return body;
+        }
+        ctx.addImport(new Import(Constants.ORG_BALLERINA, Constants.MODULE_LOG));
+        List<Statement> jobBody = new ArrayList<>(body.subList(0, workerCount));
+        jobBody.add(new Statement.DoStatement(defaultWorkerBody, new OnFailClause(
+                List.of(stmtFrom("log:printError(\"Scheduled job failed\", %s);"
+                        .formatted(Constants.ON_FAIL_ERROR_VAR_REF))),
+                new TypeBindingPattern(Constants.BAL_ERROR_TYPE, Constants.ON_FAIL_ERROR_VAR_REF))));
+        return jobBody;
     }
 
     private static Service genHttpSource(Context ctx, Flow flow, HttpListener src, List<Service> services,
@@ -956,6 +979,7 @@ public class MuleToBalConverter {
 
     private static HTTPInterceptor genRequestInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         List<Statement> body = new ArrayList<>();
         if (flowBlocks.isEmpty()) {
@@ -985,6 +1009,7 @@ public class MuleToBalConverter {
     // Runs the blocks after an APIkit router; the listener's http:response is applied by the resources instead
     private static HTTPInterceptor genResponseInterceptor(Context ctx, List<MuleRecord> flowBlocks) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         List<Statement> body = new ArrayList<>();
         body.add(stmtFrom("Context %s = {%s: {%s: %s}%s};".formatted(Constants.CONTEXT_REFERENCE,
@@ -1017,6 +1042,7 @@ public class MuleToBalConverter {
     private static HTTPInterceptor genResponseErrorInterceptor(Context ctx, Optional<ErrorHandler> errorHandler,
                                                                Optional<HttpResponse> httpErrorResponse) {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER_RESPONSE;
         String interceptedResponse = "interceptedResponse";
         List<Statement> body = new ArrayList<>();
@@ -1055,7 +1081,7 @@ public class MuleToBalConverter {
             return convertErrorHandlerRecords(ctx, errorHandler.errorHandlers());
         }
         String functionName = convertToBalIdentifier(errorHandler.ref());
-        return List.of(stmtFrom("%s(%s, %s);".formatted(functionName,
+        return List.of(stmtFrom("check %s(%s, %s);".formatted(functionName,
                 Constants.CONTEXT_REFERENCE, Constants.ON_FAIL_ERROR_VAR_REF)));
     }
 
@@ -1130,7 +1156,8 @@ public class MuleToBalConverter {
         parameters.add(new Parameter(Constants.ON_FAIL_ERROR_VAR_REF, Constants.BAL_ERROR_TYPE));
 
         List<Statement> body = convertErrorHandlerRecords(ctx, errorHandler.errorHandlers());
-        Function function = Function.publicFunction(methodName, parameters.stream().toList(), body);
+        Function function = Function.publicFunction(methodName, parameters.stream().toList(),
+                Constants.BAL_ERROR_OR_NIL_TYPE, body);
         functions.add(function);
     }
 
@@ -1145,13 +1172,15 @@ public class MuleToBalConverter {
         ctx.attributesOrigin = Context.AttributesOrigin.UNKNOWN;
         List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
         String methodName = convertToBalIdentifier(flowName);
-        Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+        Function function = Function.publicFunction(methodName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                Constants.BAL_ERROR_OR_NIL_TYPE, body);
         functions.add(function);
     }
 
     private static void genBalFunc(Context ctx, Set<Function> functions, String funcName, List<MuleRecord> flowBlocks) {
         List<Statement> body = convertTopLevelMuleBlocks(ctx, flowBlocks);
-        Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT, body);
+        Function function = Function.publicFunction(funcName, Constants.FUNC_PARAMS_WITH_CONTEXT,
+                Constants.BAL_ERROR_OR_NIL_TYPE, body);
         functions.add(function);
     }
 
@@ -1166,6 +1195,7 @@ public class MuleToBalConverter {
                                          boolean sharesCorrelationId)
             throws ScriptConversionException {
         ctx.inServiceGen = true;
+        ctx.inHttpListenerFlow = true;
         ctx.attributesOrigin = Context.AttributesOrigin.HTTP_LISTENER;
         Optional<String> apiKitRouterRef = flowBlocks.stream()
                 .filter(ApiKitRouter.class::isInstance)

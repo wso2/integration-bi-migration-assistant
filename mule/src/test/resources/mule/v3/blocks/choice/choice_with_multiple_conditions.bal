@@ -9,7 +9,7 @@ public type Context record {|
     FlowVars flowVars = {};
 |};
 
-public function muleProject(Context ctx) {
+public function muleProject(Context ctx) returns error? {
     ctx.flowVars.marks = 73;
     if ctx.flowVars.marks > 75 {
         log:printInfo(string `You have scored ${ctx.flowVars.marks.toString()}. Your grade is A.`);

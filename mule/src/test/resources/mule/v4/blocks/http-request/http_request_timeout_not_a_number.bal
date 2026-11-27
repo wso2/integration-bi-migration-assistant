@@ -13,7 +13,7 @@ public type Context record {|
 
 configurable string http_timeout = "10000";
 
-public function propertyTimeoutFlow(Context ctx) {
+public function propertyTimeoutFlow(Context ctx) returns error? {
 
     // http client request
 
@@ -23,7 +23,7 @@ public function propertyTimeoutFlow(Context ctx) {
     ctx.payload = check clientResult0.getJsonPayload();
 }
 
-public function expressionTimeoutFlow(Context ctx) {
+public function expressionTimeoutFlow(Context ctx) returns error? {
     ctx.vars.timeout = 5000;
 
     // http client request

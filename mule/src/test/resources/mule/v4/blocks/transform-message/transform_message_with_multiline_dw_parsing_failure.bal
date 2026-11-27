@@ -7,7 +7,7 @@ public type Context record {|
     Vars vars = {};
 |};
 
-public function mule6demoFlow(Context ctx) {
+public function mule6demoFlow(Context ctx) returns error? {
 
     // TODO: DATAWEAVE PARSING FAILED.
     // ------------------------------------------------------------------------

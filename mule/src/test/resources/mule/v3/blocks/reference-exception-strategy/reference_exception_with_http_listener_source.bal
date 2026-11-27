@@ -20,7 +20,7 @@ service / on httpConfig {
         do {
             log:printInfo("xxx: end of flow reached");
         } on fail error e {
-            catch\-exception\-strategy(ctx, e);
+            check catch\-exception\-strategy(ctx, e);
         }
 
         ctx.inboundProperties.response.setPayload(ctx.payload);
@@ -28,6 +28,6 @@ service / on httpConfig {
     }
 }
 
-public function catch\-exception\-strategy(Context ctx, error e) {
+public function catch\-exception\-strategy(Context ctx, error e) returns error? {
     log:printInfo("xxx: inside catch exception strategy");
 }

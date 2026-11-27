@@ -7,7 +7,7 @@ public type Context record {|
 
 public listener http:Listener config = new (8081);
 
-public function demoFlow(Context ctx) {
+public function demoFlow(Context ctx) returns error? {
 
     // TODO: UNSUPPORTED MULE BLOCK ENCOUNTERED. MANUAL CONVERSION REQUIRED.
     // ------------------------------------------------------------------------
