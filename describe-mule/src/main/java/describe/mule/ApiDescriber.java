@@ -36,6 +36,7 @@ import mule.v4.model.MuleModel.MuleRecord;
 import mule.v4.model.ParseResult;
 import org.nipunaml.ramltoopenapi.RamlToOpenApiConverter;
 import org.nipunaml.ramltoopenapi.exception.ConverterException;
+import org.nipunaml.ramltoopenapi.mapper.MethodMapper;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -105,7 +106,7 @@ final class ApiDescriber {
         if (ctx.projectCtx.apiSpecs.get(configName) instanceof ApiSpecResult.Loaded loaded) {
             ApiSpec spec = loaded.spec();
             specRef = new ApiSpecRef(loaded.location(), nonEmpty(spec.title()), spec.version());
-            Map<String, String> texts = operationTexts(projectDir, apiRef);
+            Map<String, OperationText> texts = operationTexts(projectDir, apiRef);
             // A flow serves the spec operation with its exact method and path, as genApiKitSource finds it
             Map<ApiSpec.Operation, String> flowsByOperation = new IdentityHashMap<>();
             List<ApiKitFlowName> routesWithoutOperation = new ArrayList<>();
@@ -119,9 +120,10 @@ final class ApiDescriber {
                 }
             }
             for (ApiSpec.Operation operation : spec.operations()) {
+                OperationText text = texts.getOrDefault(textKey(operation.method(), operation.path()),
+                        OperationText.NONE);
                 operations.add(new ApiOperation(operation.method().toUpperCase(Locale.ROOT), operation.path(),
-                        Optional.empty(), Optional.ofNullable(texts.get(textKey(operation.method(), operation.path()))),
-                        Optional.ofNullable(flowsByOperation.get(operation))));
+                        text.displayName(), text.description(), Optional.ofNullable(flowsByOperation.get(operation))));
                 for (String trait : operation.traits()) {
                     if (!traits.contains(trait)) {
                         traits.add(trait);
@@ -151,11 +153,12 @@ final class ApiDescriber {
         return new Api(apiId, configName, specRef, operations, policies);
     }
 
-    // D7: the description of each operation, keyed by method and path. The summary is not used: raml-to-openapi
-    // fills it from the description or, without one, from displayName, which RAML defaults to the method name (W3).
+    // D7: the display name and description of each operation, keyed by method and path. The summary is not used:
+    // raml-to-openapi copies the description or the display name into it. The display name is in the extension
+    // only when the RAML sets one, so RAML's default (the method name, such as "get") never shows up.
     // The converter's own spec finder gives the same file the converter read, also from an Exchange archive.
-    private static Map<String, String> operationTexts(Path projectDir, String apiRef) {
-        Map<String, String> texts = new HashMap<>();
+    private static Map<String, OperationText> operationTexts(Path projectDir, String apiRef) {
+        Map<String, OperationText> texts = new HashMap<>();
         try (ApiSpecResolver resolver = new ApiSpecResolver(projectDir)) {
             if (!(resolver.resolve(apiRef) instanceof ApiSpecResolver.Resolution.Found found)) {
                 return texts;
@@ -167,10 +170,9 @@ final class ApiDescriber {
             for (Map.Entry<String, PathItem> path : openApi.getPaths().entrySet()) {
                 for (Map.Entry<PathItem.HttpMethod, Operation> operation
                         : path.getValue().readOperationsMap().entrySet()) {
-                    Optional<String> text = nonEmpty(operation.getValue().getDescription());
-                    if (text.isPresent()) {
-                        texts.put(textKey(operation.getKey().name(), path.getKey()), text.get());
-                    }
+                    texts.put(textKey(operation.getKey().name(), path.getKey()),
+                            new OperationText(displayName(operation.getValue()),
+                                    nonEmpty(operation.getValue().getDescription())));
                 }
             }
         } catch (ConverterException e) {
@@ -178,6 +180,18 @@ final class ApiDescriber {
             return texts;
         }
         return texts;
+    }
+
+    private static Optional<String> displayName(Operation operation) {
+        Map<String, Object> extensions = operation.getExtensions();
+        if (extensions != null && extensions.get(MethodMapper.DISPLAY_NAME_EXTENSION) instanceof String name) {
+            return nonEmpty(name);
+        }
+        return Optional.empty();
+    }
+
+    private record OperationText(Optional<String> displayName, Optional<String> description) {
+        static final OperationText NONE = new OperationText(Optional.empty(), Optional.empty());
     }
 
     // Same normal form as ApiSpec: lower-case method, no trailing slash

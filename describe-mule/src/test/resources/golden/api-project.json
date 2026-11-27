@@ -403,6 +403,7 @@
         {
           "method": "GET",
           "path": "/parcels/{parcelId}",
+          "displayName": "Track one parcel",
           "flow": "f5"
         },
         {
