@@ -23,6 +23,7 @@ import mule.v4.ConversionUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static common.BallerinaModel.Function;
@@ -37,6 +38,7 @@ public class MELConverter {
     private static final Pattern UNBRACED_OBJECT_KEY =
             Pattern.compile("(\"[^\"]*\"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)\\s*:(?!:)");
     private static final Pattern DEFAULT_OPERATOR = Pattern.compile("default(?![\\w.])");
+    private static final Set<String> STRING_COERCIBLE_TYPES = Set.of("String", "Boolean", "Number");
 
     private static String normalize(String melExpr) {
         String normalizedExpr = melExpr.trim();
@@ -166,6 +168,9 @@ public class MELConverter {
             // Build tokens for identifiers and keywords
             if (isTokenChar(currentChar)) {
                 token.append(currentChar);
+            } else if (addToStringCalls && "as".contentEquals(token)) {
+                i = skipStringTypeCoercion(melExpr, i);
+                token.setLength(0);
             } else {
                 switch (token.toString()) {
                     case "and" -> result.append("&&");
@@ -192,6 +197,83 @@ public class MELConverter {
         processToken(token, result, addToStringCalls);
 
         return result.toString();
+    }
+
+    // A whole value that ends up as a string is assumed to already be in the canonical text form of one of these
+    // types, so dropping the coercion keeps it. Mule would normalise other forms (e.g. "007" as Number sends "7"),
+    // which is not reproduced. Inside a larger expression the coerced type matters, and a format option changes the
+    // value, so neither can be dropped.
+    private static int skipStringTypeCoercion(String melExpr, int startPos) {
+        int typeEnd = readCoercionType(melExpr, startPos);
+        int next = skipEnclosingParens(melExpr, startPos - "as".length(), typeEnd);
+        if (next < melExpr.length() && ",}".indexOf(melExpr.charAt(next)) < 0) {
+            throw notWholeValueCoercion();
+        }
+        return typeEnd - 1;
+    }
+
+    private static int readCoercionType(String expr, int startPos) {
+        int typeStart = skipWhitespace(expr, startPos);
+        int i = typeStart;
+        while (i < expr.length() && isTokenChar(expr.charAt(i))) {
+            i++;
+        }
+        String type = expr.substring(typeStart, i);
+        if (!STRING_COERCIBLE_TYPES.contains(type)) {
+            throw new UnsupportedOperationException("type coercion to '" + type + "' not supported");
+        }
+        return i;
+    }
+
+    // Parentheses that wrap the whole value, e.g. "key": (vars.x as String), keep the coercion on a whole value
+    private static int skipEnclosingParens(String melExpr, int asStart, int typeEnd) {
+        int next = skipWhitespace(melExpr, typeEnd);
+        int open = asStart;
+        boolean enclosed = false;
+        while (next < melExpr.length() && melExpr.charAt(next) == ')') {
+            int outer = findUnmatchedOpenParen(melExpr, open);
+            if (outer < 0 || enclosed && !melExpr.substring(outer + 1, open).isBlank()) {
+                throw notWholeValueCoercion();
+            }
+            open = outer;
+            enclosed = true;
+            next = skipWhitespace(melExpr, next + 1);
+        }
+        if (enclosed) {
+            String before = melExpr.substring(0, open).stripTrailing();
+            if (!before.isEmpty() && !before.endsWith(":")) {
+                throw notWholeValueCoercion();
+            }
+        }
+        return next;
+    }
+
+    private static int findUnmatchedOpenParen(String expr, int end) {
+        int depth = 0;
+        for (int i = end - 1; i >= 0; i--) {
+            char c = expr.charAt(i);
+            if (c == ')') {
+                depth++;
+            } else if (c == '(') {
+                if (depth == 0) {
+                    return i;
+                }
+                depth--;
+            }
+        }
+        return -1;
+    }
+
+    private static UnsupportedOperationException notWholeValueCoercion() {
+        return new UnsupportedOperationException("type coercion is only supported on a whole value");
+    }
+
+    private static int skipWhitespace(String expr, int startPos) {
+        int i = startPos;
+        while (i < expr.length() && Character.isWhitespace(expr.charAt(i))) {
+            i++;
+        }
+        return i;
     }
 
     // An object key keeps its name, and a default needs an optional operand
@@ -599,13 +681,22 @@ public class MELConverter {
     // param as absent.
     private static boolean keepsNil(String before, String after) {
         String prev = before.stripTrailing();
-        String next = after.stripLeading();
+        String next = skipCoercion(after.stripLeading());
         while (prev.endsWith("(") && next.startsWith(")")) {
             prev = prev.substring(0, prev.length() - 1).stripTrailing();
-            next = next.substring(1).stripLeading();
+            next = skipCoercion(next.substring(1).stripLeading());
         }
         return DEFAULT_OPERATOR.matcher(next).lookingAt()
                 || prev.endsWith(":") && (next.startsWith(",") || next.startsWith("}"));
+    }
+
+    // The converter drops a coercion of a whole value, so the value keeps nil as if the coercion were not there
+    private static String skipCoercion(String next) {
+        int typeStart = "as".length();
+        if (!next.startsWith("as") || next.length() > typeStart && isTokenChar(next.charAt(typeStart))) {
+            return next;
+        }
+        return next.substring(readCoercionType(next, typeStart)).stripLeading();
     }
 
     private static String convertHeaderAccess(Context ctx, String headerName) {

@@ -117,6 +117,12 @@ public class HttpRequestTest extends AbstractBlockTest {
     }
 
     @Test
+    public void testHttpRequestPropertyPathWithUriParams() {
+        testMule4ToBal("http-request/http_request_property_path_with_uri_params.xml",
+                "http-request/http_request_property_path_with_uri_params.bal");
+    }
+
+    @Test
     public void testHttpRequestWithBasePathAndTimeouts() {
         testMule4ToBal("http-request/http_request_with_base_path_and_timeouts.xml",
                 "http-request/http_request_with_base_path_and_timeouts.bal");
@@ -150,6 +156,12 @@ public class HttpRequestTest extends AbstractBlockTest {
     public void testHttpRequestTimeoutNotANumber() {
         testMule4ToBal("http-request/http_request_timeout_not_a_number.xml",
                 "http-request/http_request_timeout_not_a_number.bal");
+    }
+
+    @Test
+    public void testHttpRequestWithTypeCoercionInHeaders() {
+        testMule4ToBal("http-request/http_request_with_type_coercion_in_headers.xml",
+                "http-request/http_request_with_type_coercion_in_headers.bal");
     }
 
     // TODO: due to some reason depends on the order, fix it

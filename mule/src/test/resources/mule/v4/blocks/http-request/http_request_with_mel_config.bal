@@ -1,6 +1,7 @@
 import ballerina/http;
 import ballerina/lang.regexp;
 import ballerina/log;
+import ballerina/url;
 
 public type Context record {|
     anydata payload = ();
@@ -36,20 +37,24 @@ public function demoFlow(Context ctx) {
     map<string> queryParams = map from string key in queryParams_nilable.keys()
         where queryParams_nilable.get(key) is string
         select [key, <string>queryParams_nilable.get(key)];
-    string queryPath = pathBuilder0(string `${secure_api_endpoint}`, uriParams, queryParams);
+    string queryPath = check pathBuilder0(string `${secure_api_endpoint}`, uriParams, queryParams);
     http:Response clientResult0 = check http_request_config->get(queryPath, headers);
     ctx.payload = check clientResult0.getJsonPayload();
     log:printInfo(string `Received from external API: ${ctx.payload.toString()}`);
 }
 
-function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string {
+function pathBuilder0(string path, map<string> uriParams, map<string> queryParams) returns string|error {
     // TODO: Instead try to use clientResult0->http_request_config./basePath/[id].get(language=language)
     string requestPath = path;
     foreach var [key, value] in uriParams.entries() {
         requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
     }
+    string[] queryParts = [];
     foreach var [key, value] in queryParams.entries() {
-        requestPath = regexp:replaceAll(check regexp:fromString(string `\{${key}\}`), requestPath, value);
+        queryParts.push(string `${check url:encode(key, "UTF-8")}=${check url:encode(value, "UTF-8")}`);
+    }
+    if queryParts.length() > 0 {
+        requestPath += (requestPath.includes("?") ? "&" : "?") + string:'join("&", ...queryParts);
     }
     return requestPath;
 }
