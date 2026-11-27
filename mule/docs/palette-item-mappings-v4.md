@@ -9219,11 +9219,28 @@ output application/json
 ---
 {
     apiKey: attributes.headers.'x-api-key',
+    channel: attributes.headers.channel,
+    channelOrDefault: attributes.headers.channel default "web",
     orderId: attributes.uriParams.'order-id',
+    orderIdOrDefault: attributes.uriParams.'order-id' default "none",
+    orderLabel: "Order " ++ attributes.uriParams.'order-id',
     pageSize: attributes.queryParams.'page-size',
     sortBy: attributes.queryParams."sort-by" default "date"
 }]]></ee:set-payload>
             </ee:message>
+        </ee:transform>
+        <ee:transform doc:name="Format Order Id">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="orderText"><![CDATA[%dw 2.0
+output text/plain
+---
+attributes.uriParams.'order-id']]></ee:set-variable>
+                <ee:set-variable variableName="orderTextOrDefault"><![CDATA[%dw 2.0
+output text/plain
+---
+attributes.uriParams.'order-id' default "none"]]></ee:set-variable>
+            </ee:variables>
         </ee:transform>
     </flow>
 </mule>
@@ -9235,6 +9252,8 @@ import ballerina/http;
 
 public type Vars record {|
     json _dwOutput_?;
+    string orderText?;
+    string orderTextOrDefault?;
 |};
 
 public type Attributes record {|
@@ -9260,6 +9279,10 @@ service /mule4 on listener_config {
         json _dwOutput_ = check transformMessage(ctx);
         ctx.vars._dwOutput_ = _dwOutput_;
         ctx.payload = _dwOutput_;
+        string orderText = check formatOrderId(ctx);
+        ctx.vars.orderText = orderText;
+        string orderTextOrDefault = formatOrderId1(ctx);
+        ctx.vars.orderTextOrDefault = orderTextOrDefault;
 
         (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
         return <http:Response>ctx.attributes.response;
@@ -9268,10 +9291,18 @@ service /mule4 on listener_config {
 
 public function transformMessage(Context ctx) returns json|error => {
     "apiKey": check ((<http:Request>ctx.attributes.request).hasHeader("x-api-key") ? (<http:Request>ctx.attributes.request).getHeader("x-api-key") : ()),
-    "orderId": check (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : error("no such uri param")),
+    "channel": check ((<http:Request>ctx.attributes.request).hasHeader("channel") ? (<http:Request>ctx.attributes.request).getHeader("channel") : ()),
+    "channelOrDefault": (check ((<http:Request>ctx.attributes.request).hasHeader("channel") ? (<http:Request>ctx.attributes.request).getHeader("channel") : ())) ?: "web",
+    "orderId": (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : ()),
+    "orderIdOrDefault": ((ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : ())) ?: "none",
+    "orderLabel": "Order " + (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : ()),
     "pageSize": (<http:Request>ctx.attributes.request).getQueryParamValue("page-size"),
     "sortBy": (<http:Request>ctx.attributes.request).getQueryParamValue("sort-by") ?: "date"
 };
+
+public function formatOrderId(Context ctx) returns string|error => check (ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : error("no such uri param"));
+
+public function formatOrderId1(Context ctx) returns string => ((ctx.attributes.uriParams.hasKey("order-id") ? ctx.attributes.uriParams.get("order-id") : ())) ?: "none";
 
 ```
 

@@ -18,11 +18,28 @@ output application/json
 ---
 {
     apiKey: attributes.headers.'x-api-key',
+    channel: attributes.headers.channel,
+    channelOrDefault: attributes.headers.channel default "web",
     orderId: attributes.uriParams.'order-id',
+    orderIdOrDefault: attributes.uriParams.'order-id' default "none",
+    orderLabel: "Order " ++ attributes.uriParams.'order-id',
     pageSize: attributes.queryParams.'page-size',
     sortBy: attributes.queryParams."sort-by" default "date"
 }]]></ee:set-payload>
             </ee:message>
+        </ee:transform>
+        <ee:transform doc:name="Format Order Id">
+            <ee:message/>
+            <ee:variables>
+                <ee:set-variable variableName="orderText"><![CDATA[%dw 2.0
+output text/plain
+---
+attributes.uriParams.'order-id']]></ee:set-variable>
+                <ee:set-variable variableName="orderTextOrDefault"><![CDATA[%dw 2.0
+output text/plain
+---
+attributes.uriParams.'order-id' default "none"]]></ee:set-variable>
+            </ee:variables>
         </ee:transform>
     </flow>
 </mule>

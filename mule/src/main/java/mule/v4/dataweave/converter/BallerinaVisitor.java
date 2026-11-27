@@ -364,7 +364,6 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         attributeAttributeUriParamAccess(selectorExpression, "hasKey");
         exprBuilder.append(" ? ");
         attributeAttributeUriParamAccess(selectorExpression, "get");
-        dwContext.addCheckExpr();
     }
 
     private void attributeAttributeUriParamAccess(DataWeaveParser.SelectorExpressionContext selectorExpression,
@@ -740,7 +739,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitDefaultExpression(DataWeaveParser.DefaultExpressionContext ctx) {
+        boolean enclosingDefaultOperand = dwContext.inDefaultOperand;
+        dwContext.inDefaultOperand = enclosingDefaultOperand || ctx.DEFAULT() != null;
         visit(ctx.logicalOrExpression(0));
+        dwContext.inDefaultOperand = enclosingDefaultOperand;
         if (ctx.DEFAULT() != null) {
             String leftExpr = dwContext.getExpression();
             if (leftExpr.equals(Constants.CORRELATION_ID_FIELD_ACCESS)) {
@@ -1272,7 +1274,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         } else if (uriParamAttributeAccess) {
             StringBuilder exprBuilder = this.dwContext.currentScriptContext.exprBuilder;
             handleAttributeUriParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
-            exprBuilder.append(": error(\"no such uri param\"))");
+            closeUriParamAccessWithoutDefault(exprBuilder);
         } else if (queryParamAttributeAccess) {
             handleAttributeQueryParamAccess(ctx.primaryExpression(), ctx.selectorExpression());
         } else {
@@ -1280,6 +1282,18 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             visit(ctx.selectorExpression());
         }
         return null;
+    }
+
+    // A missing uri param is null in DataWeave, but string and xml outputs cannot hold nil, so unless a default
+    // supplies the value those keep the checked lookup that fails on a missing param.
+    private void closeUriParamAccessWithoutDefault(StringBuilder exprBuilder) {
+        String outputType = dwContext.currentScriptContext.outputType;
+        if (dwContext.inDefaultOperand || outputType.equals("json") || outputType.equals(DWUtils.BAL_ANY_TYPE)) {
+            exprBuilder.append(": ())");
+            return;
+        }
+        exprBuilder.append(": error(\"no such uri param\"))");
+        dwContext.addCheckExpr();
     }
 
     @Override
