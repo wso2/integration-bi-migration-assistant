@@ -22,6 +22,7 @@ import mule.v4.Constants;
 import mule.v4.Context;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,6 +43,9 @@ public class DWUtils {
     public static final String DW_NOW_IDENTIFIER = "now";
     public static final String DW_PAYLOAD_IDENTIFIER = "payload";
     public static final String DW_JOIN_BY_IDENTIFIER = "joinBy";
+    // Infix functions whose right operand is a callback with its own `$` and `$$` bindings
+    public static final Set<String> DW_CALLBACK_INFIX_FUNCTIONS = Set.of("reduce", "mapObject", "pluck",
+            "filterObject", "flatMap", "orderBy", "distinctBy", "maxBy", "minBy");
 
     // IO Types
     public static final String APPLICATION_JAVA = "application/java";

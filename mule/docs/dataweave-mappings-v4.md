@@ -18,7 +18,8 @@
 - [Lower Expression](dataweave-mappings-v4.md#lower-expression)
 - [Map Combination Expression](dataweave-mappings-v4.md#map-combination-expression)
 - [Map Index Identifier Expression](dataweave-mappings-v4.md#map-index-identifier-expression)
-- [Map Index Identifier In Reduce Expression](dataweave-mappings-v4.md#map-index-identifier-in-reduce-expression)
+- [Map Index Identifier After Lambda Expression](dataweave-mappings-v4.md#map-index-identifier-after-lambda-expression)
+- [Map Index Identifier Infix Arg Expression](dataweave-mappings-v4.md#map-index-identifier-infix-arg-expression)
 - [Map Index Identifier Named Outer Expression](dataweave-mappings-v4.md#map-index-identifier-named-outer-expression)
 - [Map Index Identifier Nested Expression](dataweave-mappings-v4.md#map-index-identifier-nested-expression)
 - [Map Index Identifier Only Expression](dataweave-mappings-v4.md#map-index-identifier-only-expression)
@@ -630,20 +631,22 @@ _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in _var_1 + _var_0
 
 ```
 
-## Map Index Identifier In Reduce Expression
+## Map Index Identifier After Lambda Expression
 
-**DataWeave Script (transform_message_with_map_index_identifier_in_reduce.dwl):**
+**DataWeave Script (transform_message_with_map_index_identifier_after_lambda.dwl):**
 ```dataweave
 %dw 2.0
 output application/json
 ---
-payload map {
-    total: ($.nums reduce ($ + $$))
+payload.items map {
+    doubled: [1, 2] map ($ + 1),
+    value: $,
+    position: $$
 }
 
 ```
 
-**Ballerina Output (transform_message_with_map_index_identifier_in_reduce.bal):**
+**Ballerina Output (transform_message_with_map_index_identifier_after_lambda.bal):**
 ```ballerina
 public type Vars record {|
     json _dwOutput_?;
@@ -660,7 +663,47 @@ public function sampleFlow(Context ctx) {
     ctx.payload = _dwOutput_;
 }
 
-public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in payload.map(element => {"total": reduce(check element.nums, element + payload.indexOf(element))});
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_3 = check (check payload.items).cloneWithType() in _var_3.enumerate().map(
+        _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in {
+                "doubled": [1, 2].map(element => element + 1),
+                "value": _var_1,
+                "position": _var_0
+            }
+));
+
+```
+
+## Map Index Identifier Infix Arg Expression
+
+**DataWeave Script (transform_message_with_map_index_identifier_infix_arg.dwl):**
+```dataweave
+%dw 2.0
+output application/json
+---
+payload.items map ($.ids contains $$)
+
+```
+
+**Ballerina Output (transform_message_with_map_index_identifier_infix_arg.bal):**
+```ballerina
+public type Vars record {|
+    json _dwOutput_?;
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Vars vars = {};
+|};
+
+public function sampleFlow(Context ctx) {
+    json _dwOutput_ = check _dwMethod(ctx);
+    ctx.vars._dwOutput_ = _dwOutput_;
+    ctx.payload = _dwOutput_;
+}
+
+public function _dwMethod(Context ctx) returns json|error => let json payload = check ctx.payload.cloneWithType() in (let json[] _var_3 = check (check payload.items).cloneWithType() in _var_3.enumerate().map(
+        _var_2 => let int _var_0 = _var_2[0], var _var_1 = _var_2[1] in contains(check _var_1.ids, _var_0)
+));
 
 ```
 
@@ -1349,11 +1392,11 @@ public function sampleFlow(Context ctx) {
 }
 
 public function newDecimalFormat(handle format) returns handle = @java:Constructor {
-'class: "java.text.DecimalFormat"
+    'class: "java.text.DecimalFormat"
 } external;
 
 public function getFormattedStringFromNumber(handle formatObject, int value) returns handle = @java:Method {
-'class: "java.text.NumberFormat",
+    'class: "java.text.NumberFormat",
     name: "format",
     paramTypes: ["long"]
 } external;
@@ -1369,29 +1412,29 @@ public function getCurrentTimeString() returns string {
 }
 
 public function formatDateTime(handle dateTime, handle formatter) returns handle = @java:Method {
-'class: "java.time.LocalDateTime"
+    'class: "java.time.LocalDateTime"
 } external;
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
-'class: "java.time.format.DateTimeFormatter",
+    'class: "java.time.format.DateTimeFormatter",
     name: "ofPattern",
     paramTypes: ["java.lang.String"]
 } external;
 
 public function getZoneId(handle zoneId) returns handle = @java:Method {
-'class: "java.time.ZoneId",
+    'class: "java.time.ZoneId",
     name: "of",
     paramTypes: ["java.lang.String"]
 } external;
 
 public function getDateTime(handle instant, handle zoneId) returns handle = @java:Method {
-'class: "java.time.LocalDateTime",
+    'class: "java.time.LocalDateTime",
     name: "ofInstant",
     paramTypes: ["java.time.Instant", "java.time.ZoneId"]
 } external;
 
 public function parseInstant(handle instant) returns handle = @java:Method {
-'class: "java.time.Instant",
+    'class: "java.time.Instant",
     name: "parse"
 } external;
 
@@ -1508,24 +1551,24 @@ public function sampleFlow(Context ctx) {
 }
 
 public function getDateTimeFormatter(handle format) returns handle = @java:Method {
-'class: "java.time.format.DateTimeFormatter",
+    'class: "java.time.format.DateTimeFormatter",
     name: "ofPattern",
     paramTypes: ["java.lang.String"]
 } external;
 
 public function parseDateTime(handle date, handle formatter) returns handle = @java:Method {
-'class: "java.time.LocalDateTime",
+    'class: "java.time.LocalDateTime",
     name: "parse",
     paramTypes: ["java.lang.CharSequence", "java.time.format.DateTimeFormatter"]
 } external;
 
 public function toInstant(handle localDateTime, handle zoneOffset) returns handle = @java:Method {
-'class: "java.time.LocalDateTime",
+    'class: "java.time.LocalDateTime",
     paramTypes: ["java.time.ZoneOffset"]
 } external;
 
 public function UTC() returns handle = @java:FieldGet {
-'class: "java.time.ZoneOffset",
+    'class: "java.time.ZoneOffset",
     name: "UTC"
 } external;
 

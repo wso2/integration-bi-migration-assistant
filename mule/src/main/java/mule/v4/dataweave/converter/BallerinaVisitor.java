@@ -607,7 +607,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
         return Optional.of(ctx.expression());
     }
 
-    // A `$$` inside a nested lambda, or on the right of an infix function such as reduce or mapObject, belongs
+    // A `$$` inside a nested lambda, or in the callback of an infix function such as reduce or mapObject, belongs
     // to that construct (an index, accumulator or key), not to this map.
     private static boolean containsIndexIdentifier(ParseTree tree) {
         if (tree instanceof DataWeaveParser.IndexIdentifierExpressionContext) {
@@ -617,7 +617,8 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
                 || tree instanceof DataWeaveParser.LambdaExpressionContext) {
             return false;
         }
-        if (tree instanceof DataWeaveParser.InfixFunctionCallContext infixCall) {
+        if (tree instanceof DataWeaveParser.InfixFunctionCallContext infixCall
+                && DWUtils.DW_CALLBACK_INFIX_FUNCTIONS.contains(infixCall.IDENTIFIER().getText())) {
             return containsIndexIdentifier(infixCall.operationExpression());
         }
         for (int i = 0; i < tree.getChildCount(); i++) {
@@ -888,6 +889,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             }
         }
         dwContext.append(lambdaParam).append("=>");
+        String outerValueArg = dwContext.commonArgs.get(DWUtils.DW_VALUE_IDENTIFIER);
         String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
         String expr;
         if (ctx.inlineLambda() != null) {
@@ -903,6 +905,7 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
             }
             visit(ctx.expression());
         }
+        restoreCommonArg(DWUtils.DW_VALUE_IDENTIFIER, outerValueArg);
         restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
         stats.record(DWConstruct.LAMBDA_EXPRESSION, true);
         return null;
@@ -953,11 +956,15 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
     public Void visitInfixFunctionCall(DataWeaveParser.InfixFunctionCallContext ctx) {
         visit(ctx.operationExpression());
         String leftExpr = dwContext.getExpression();
-        String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
-        visit(ctx.defaultExpression());
-        restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
-        String rightExpr = dwContext.getExpression();
         String functionName = ctx.IDENTIFIER().getText();
+        if (DWUtils.DW_CALLBACK_INFIX_FUNCTIONS.contains(functionName)) {
+            String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
+            visit(ctx.defaultExpression());
+            restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
+        } else {
+            visit(ctx.defaultExpression());
+        }
+        String rightExpr = dwContext.getExpression();
         if (DWUtils.DW_JOIN_BY_IDENTIFIER.equals(functionName)) {
             appendJoinByExpression(leftExpr, rightExpr);
         } else {
@@ -1029,7 +1036,10 @@ public class BallerinaVisitor extends DataWeaveBaseVisitor<Void> {
 
     @Override
     public Void visitLambdaExpression(DataWeaveParser.LambdaExpressionContext ctx) {
-        return visit(ctx.inlineLambda());
+        String outerIndexArg = dwContext.commonArgs.remove(DWUtils.DW_INDEX_IDENTIFIER);
+        visit(ctx.inlineLambda());
+        restoreCommonArg(DWUtils.DW_INDEX_IDENTIFIER, outerIndexArg);
+        return null;
     }
 
     @Override
