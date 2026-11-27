@@ -3,6 +3,10 @@ import ballerinax/java.jms;
 
 public type APIKIT__NOT_FOUND distinct error;
 
+public type Vars record {|
+    anydata httpStatus?;
+|};
+
 public type Attributes record {|
     http:Request request?;
     http:Response response?;
@@ -12,5 +16,6 @@ public type Attributes record {|
 
 public type Context record {|
     anydata payload = ();
+    Vars vars = {};
     Attributes attributes;
 |};

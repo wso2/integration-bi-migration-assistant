@@ -8,8 +8,19 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
 http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
     <flow name="apiKitMain">
-        <http:listener config-ref="http-listener-config" path="/api/*"/>
+        <http:listener config-ref="http-listener-config" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]"/>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+            </http:error-response>
+        </http:listener>
         <apikit:router config-ref="apikit-config"/>
+        <error-handler>
+            <on-error-continue type="APIKIT:NOT_FOUND">
+                <set-payload value='{"message": "Resource not found"}'/>
+                <set-variable variableName="httpStatus" value="404"/>
+            </on-error-continue>
+        </error-handler>
     </flow>
     <flow name="apiKitMainInboundFlow">
         <anypoint-mq:subscriber config-ref="orders_mq_config" destination="apiKitMain-queue"/>

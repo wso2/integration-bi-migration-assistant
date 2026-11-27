@@ -4,7 +4,7 @@ import ballerina/test;
 // The service that routes requests to the operations of test.raml
 final http:Client apikitConfigClient = check new (string `http://localhost:${http\-listener\-config.getPort()}`);
 // The service that routes requests to the operations of test.raml
-final http:Client partnerApikitConfigClient = check new (string `http://localhost:${http\-listener\-config.getPort()}`);
+final http:Client partnerApikitConfigClient = check new (string `http://localhost:${partner\-http\-listener\-config.getPort()}`);
 
 @test:Config {groups: ["api-spec"]}
 function testApikitConfigAnswersNotFoundToUnknownPath() returns error? {

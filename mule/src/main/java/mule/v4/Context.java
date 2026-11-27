@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -317,14 +318,10 @@ public class Context extends ContextBase {
                     var parserResult = parseResults.get(f);
                     return parserResult != null && parserResult.flows() != null && parserResult.subFlows() != null;
                 })
-                .sorted((f1, f2) -> {
-                    boolean f1HasHttp = hasHttpListener(parseResults.get(f1));
-                    boolean f2HasHttp = hasHttpListener(parseResults.get(f2));
-                    if (f1HasHttp == f2HasHttp) {
-                        return 0;
-                    }
-                    return f1HasHttp ? -1 : 1; // HTTP listeners first
-                }).map(xmlFile -> {
+                // HTTP listeners first, then by path, since the order of the HashMap differs between platforms
+                .sorted(Comparator.comparing((File xmlFile) -> !hasHttpListener(parseResults.get(xmlFile)))
+                        .thenComparing(xmlFile -> xmlFile.getPath().replace(File.separatorChar, '/')))
+                .map(xmlFile -> {
                     currentFileCtx = this.fileContexts.get(xmlFile);
                     ParseResult parseResult = parseResults.get(xmlFile);
                     assert currentFileCtx != null : "We should have created file ctx when we parse the file";
