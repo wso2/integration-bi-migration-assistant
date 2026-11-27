@@ -6309,6 +6309,116 @@ function getCorrelationId(http:Request request) returns string {
 
 ```
 
+- ### Http Request With Type Coercion In Headers
+
+**Input (http_request_with_type_coercion_in_headers.xml):**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="listener_config" basePath="mule4">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <http:request-config name="backend">
+        <http:request-connection host="localhost" port="8082" />
+    </http:request-config>
+    <flow name="demoFlow">
+        <http:listener config-ref="listener_config" path="/orders" allowedMethods="GET"/>
+        <http:request method="GET" config-ref="backend" path="/orders">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+    "enrichProducts": p('backend.enrich') as Boolean,
+    "traceId": attributes.headers.'x-trace-id' as String,
+    "region": (p('backend.region') as String)
+}]]]></http:headers>
+            <http:query-params><![CDATA[#[output application/java
+---
+{
+    "limit": p('backend.limit') as String,
+    "page": (attributes.queryParams.page) as Number
+}]]]></http:query-params>
+        </http:request>
+    </flow>
+</mule>
+
+```
+**Output (http_request_with_type_coercion_in_headers.bal):**
+```ballerina
+import ballerina/http;
+import ballerina/uuid;
+
+public type Attributes record {|
+    http:Request request?;
+    http:Response response?;
+    map<string> uriParams = {};
+|};
+
+public type Context record {|
+    anydata payload = ();
+    Attributes attributes;
+    string correlationId = uuid:createType4AsString();
+|};
+
+configurable string backend_enrich = ?;
+configurable string backend_region = ?;
+configurable string backend_limit = ?;
+public listener http:Listener listener_config = new (8081);
+
+service /mule4 on listener_config {
+    function init() returns error? {
+    }
+
+    resource function get orders(http:Request request) returns http:Response|error {
+        Context ctx = {attributes: {request, response: new}, correlationId: getCorrelationId(request)};
+
+        // http client request
+        http:Client backend = check new ("localhost:8082");
+        map<string?> headers_nilable = {
+            "enrichProducts": backend_enrich,
+            "traceId": getOptionalHeader(<http:Request>ctx.attributes.request, "x-trace-id"),
+            "region": (backend_region)
+        };
+        map<string> headers = map from string key in headers_nilable.keys()
+            where headers_nilable.get(key) is string
+            select [key, <string>headers_nilable.get(key)];
+        map<string?> queryParams_nilable = {
+            "limit": backend_limit,
+            "page": ((<http:Request>ctx.attributes.request).getQueryParamValue("page"))
+        };
+        map<string> queryParams = map from string key in queryParams_nilable.keys()
+            where queryParams_nilable.get(key) is string
+            select [key, <string>queryParams_nilable.get(key)];
+        if headers.keys().every(key => !key.equalsIgnoreCaseAscii("X-Correlation-ID")) {
+            headers["X-Correlation-ID"] = ctx.correlationId;
+        }
+        http:Response clientResult0 = check backend->/orders.get(headers, params = check queryParams.cloneWithType());
+        ctx.payload = check clientResult0.getJsonPayload();
+
+        (<http:Response>ctx.attributes.response).setPayload(ctx.payload);
+        return <http:Response>ctx.attributes.response;
+    }
+}
+
+function getCorrelationId(http:Request request) returns string {
+    // Mule takes the caller's X-Correlation-ID, then its MULE_CORRELATION_ID, and makes an ID when neither is sent
+    string|http:HeaderNotFoundError id = request.getHeader("X-Correlation-ID");
+    if id !is string {
+        id = request.getHeader("MULE_CORRELATION_ID");
+    }
+    return id is string ? id : uuid:createType4AsString();
+}
+
+function getOptionalHeader(http:Request req, string name) returns string? {
+    string|http:HeaderNotFoundError value = req.getHeader(name);
+    return value is string ? value : ();
+}
+
+```
+
 - ### Http Request With Unbound Uri Param
 
 **Input (http_request_with_unbound_uri_param.xml):**
